@@ -478,9 +478,16 @@ function setReactorState(state) {
   reactorStateEl.className = `reactor-state ${state === 'idle' ? '' : state}`;
   reactorStateEl.textContent = state.toUpperCase();
 }
+const commandHistory = [];
+let historyIndex = -1;
 
 async function executeCommand(text) {
   if (!text.trim()) return;
+
+  if (commandHistory[commandHistory.length - 1] !== text.trim()) {
+    commandHistory.push(text.trim());
+  }
+  historyIndex = commandHistory.length;
 
   setReactorState('thinking');
   cmdResult.textContent = '';
@@ -623,6 +630,23 @@ cmdInput.addEventListener('keydown', (e) => {
           cmdInput.value = '';
         }
         return;
+      }
+    }
+  } else if (commandHistory.length > 0) {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (historyIndex > 0) {
+        historyIndex--;
+        cmdInput.value = commandHistory[historyIndex];
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (historyIndex < commandHistory.length - 1) {
+        historyIndex++;
+        cmdInput.value = commandHistory[historyIndex];
+      } else {
+        historyIndex = commandHistory.length;
+        cmdInput.value = "";
       }
     }
   }
