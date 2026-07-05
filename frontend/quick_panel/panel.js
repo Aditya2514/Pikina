@@ -57,11 +57,144 @@ async function runCommand(text) {
   result.className   = `panel-result ${status === 'ok' ? 'ok' : 'error'}`;
 }
 
+const commandHistory = [];
+let historyIndex = -1;
+
+const cmdSuggestions = document.getElementById("cmd-suggestions");
+let suggestionTimeout = null;
+let currentSuggestions = [];
+let selectedSuggestionIndex = -1;
+
+input.addEventListener("input", () => {
+  const q = input.value;
+  if (!q.trim()) {
+    cmdSuggestions.classList.add("hidden");
+    currentSuggestions = [];
+    return;
+  }
+
+  clearTimeout(suggestionTimeout);
+  suggestionTimeout = setTimeout(async () => {
+    try {
+      const res = await fetch(`${BACKEND}/api/suggest?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      currentSuggestions = data.suggestions || [];
+      renderSuggestions();
+    } catch (e) {}
+  }, 300);
+});
+
+function renderSuggestions() {
+  if (currentSuggestions.length === 0) {
+    cmdSuggestions.classList.add("hidden");
+    return;
+  }
+  selectedSuggestionIndex = -1;
+  cmdSuggestions.innerHTML = "";
+  cmdSuggestions.classList.remove("hidden");
+
+  currentSuggestions.forEach((sugg, idx) => {
+    const item = document.createElement("div");
+    item.className = "suggestion-item";
+    item.onclick = () => {
+      input.value = sugg.text;
+      cmdSuggestions.classList.add("hidden");
+      input.focus();
+    };
+
+    const txt = document.createElement("span");
+    txt.className = "sugg-text";
+    txt.textContent = sugg.text;
+    item.appendChild(txt);
+
+    if (sugg.desc) {
+      const desc = document.createElement("span");
+      desc.className = "sugg-desc";
+      desc.textContent = sugg.desc;
+      item.appendChild(desc);
+    }
+    cmdSuggestions.appendChild(item);
+  });
+}
+
+function updateSuggestionSelection(items) {
+  items.forEach((item, idx) => {
+    if (idx === selectedSuggestionIndex) {
+      item.classList.add("selected");
+    } else {
+      item.classList.remove("selected");
+    }
+  });
+}
+
 // ── Input bindings ──
 input.addEventListener('keydown', (e) => {
+  const isSuggestionsOpen = !cmdSuggestions.classList.contains("hidden") && currentSuggestions.length > 0;
+  
+  if (isSuggestionsOpen) {
+    const items = cmdSuggestions.querySelectorAll(".suggestion-item");
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (selectedSuggestionIndex === -1) input.dataset.original = input.value;
+      selectedSuggestionIndex = (selectedSuggestionIndex + 1) % currentSuggestions.length;
+      updateSuggestionSelection(items);
+      input.value = currentSuggestions[selectedSuggestionIndex].text;
+      return;
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (selectedSuggestionIndex === -1) {
+        input.dataset.original = input.value;
+        selectedSuggestionIndex = currentSuggestions.length - 1;
+      } else {
+        selectedSuggestionIndex = selectedSuggestionIndex - 1;
+      }
+      if (selectedSuggestionIndex < 0) {
+        selectedSuggestionIndex = -1;
+        input.value = input.dataset.original || '';
+        updateSuggestionSelection(items);
+      } else {
+        updateSuggestionSelection(items);
+        input.value = currentSuggestions[selectedSuggestionIndex].text;
+      }
+      return;
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      if (selectedSuggestionIndex >= 0) {
+        e.preventDefault();
+        input.value = currentSuggestions[selectedSuggestionIndex].text;
+        cmdSuggestions.classList.add("hidden");
+        return;
+      }
+    }
+  } else if (commandHistory.length > 0) {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (historyIndex > 0) {
+        historyIndex--;
+        input.value = commandHistory[historyIndex];
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (historyIndex < commandHistory.length - 1) {
+        historyIndex++;
+        input.value = commandHistory[historyIndex];
+      } else {
+        historyIndex = commandHistory.length;
+        input.value = "";
+      }
+    }
+  }
+
   if (e.key === 'Enter') {
     const cmd = input.value.trim();
-    if (cmd) { runCommand(cmd); input.value = ''; }
+    if (cmd) {
+      if (commandHistory[commandHistory.length - 1] !== cmd) {
+        commandHistory.push(cmd);
+      }
+      historyIndex = commandHistory.length;
+      runCommand(cmd);
+      input.value = '';
+      cmdSuggestions.classList.add("hidden");
+    }
   }
   if (e.key === 'Escape') {
     if (window.pikina) window.pikina.hidePanel();

@@ -44,17 +44,22 @@
     </div>
 
     <!-- Command input -->
-    <div class="panel-input-row">
-      <span class="panel-prefix">›_</span>
-      <input
-        type="text"
-        id="panel-input"
-        class="panel-input"
-        placeholder="open vs code · lock screen · find file *.pdf"
-        autocomplete="off"
-        spellcheck="false"
-        autofocus
-      />
+    <div style="position: relative; width: 100%;">
+      <div class="panel-input-row">
+        <span class="panel-prefix">›_</span>
+        <input
+          type="text"
+          id="panel-input"
+          class="panel-input"
+          placeholder="open vs code · lock screen · find file *.pdf"
+          autocomplete="off"
+          spellcheck="false"
+          autofocus
+        />
+      </div>
+      
+      <!-- Autocomplete Dropdown -->
+      <div id="cmd-suggestions" class="cmd-suggestions hidden"></div>
     </div>
 
     <!-- Result -->
