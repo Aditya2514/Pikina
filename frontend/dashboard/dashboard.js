@@ -625,10 +625,6 @@ cmdInput.addEventListener('keydown', (e) => {
         e.preventDefault();
         cmdInput.value = currentSuggestions[selectedSuggestionIndex].text;
         cmdSuggestions.classList.add("hidden");
-        if (e.key === "Enter") {
-          executeCommand(cmdInput.value);
-          cmdInput.value = '';
-        }
         return;
       }
     }
@@ -801,7 +797,7 @@ function renderSuggestions() {
     item.onclick = () => {
       cmdInput.value = sugg.text;
       cmdSuggestions.classList.add("hidden");
-      executeCommand(sugg.text);
+      cmdInput.focus();
     };
 
     const txt = document.createElement("span");
