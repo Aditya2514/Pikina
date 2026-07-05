@@ -1,24 +1,11 @@
-"""
-Capability: fs.find_file
-Searches for files by glob name pattern within specified or sensible root directories.
-Permission level: 0 (read-only)
-Optimized with max_depth limiting and excluded directories for sub-second responses.
-"""
 import os
-import fnmatch
+import subprocess
 from pathlib import Path
-
-_EXCLUDED_DIRS = {
-    "node_modules", ".git", "appdata", "__pycache__", "venv", ".venv",
-    ".next", "dist", "build", "$recycle.bin", ".gemini", "temp", "tmp"
-}
-
 
 def run(params: dict) -> dict:
     name        = params.get("name", "").strip()
     root_param  = params.get("root")
     max_results = int(params.get("max_results", 20))
-    max_depth   = int(params.get("max_depth", 4))
 
     if not name:
         return {"status": "error", "reason": "Missing required param: 'name'"}
@@ -44,44 +31,36 @@ def run(params: dict) -> dict:
         search_roots = [r for r in search_roots if r.exists()]
 
     results = []
-    skipped = 0
 
     for root_dir in search_roots:
         if len(results) >= max_results:
             break
-        if not root_dir.exists():
-            continue
-
-        base_depth = str(root_dir).count(os.sep)
-
+            
         try:
-            for dirpath, dirnames, filenames in os.walk(str(root_dir)):
-                current_depth = dirpath.count(os.sep) - base_depth
-                if current_depth > max_depth:
-                    dirnames.clear()
-                    continue
-
-                # Filter out heavy directories in-place
-                dirnames[:] = [
-                    d for d in dirnames
-                    if d.lower() not in _EXCLUDED_DIRS and not d.startswith(".")
-                ]
-
-                for fname in filenames:
-                    if fnmatch.fnmatch(fname.lower(), name.lower()):
-                        results.append(os.path.join(dirpath, fname))
+            # Native Windows WHERE command is orders of magnitude faster than os.walk
+            process = subprocess.run(
+                ["where", "/r", str(root_dir), name],
+                capture_output=True,
+                text=True,
+                # Prevents a cmd window from popping up
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+            )
+            
+            if process.returncode == 0:
+                lines = [line.strip() for line in process.stdout.splitlines() if line.strip()]
+                for line in lines:
+                    if line not in results:
+                        results.append(line)
                         if len(results) >= max_results:
                             break
-                if len(results) >= max_results:
-                    break
-        except PermissionError:
-            skipped += 1
+                            
+        except Exception:
+            pass
 
     return {
         "status":         "ok",
         "results":        results,
         "count":          len(results),
-        "skipped_dirs":   skipped,
         "roots_searched": [str(r) for r in search_roots],
         "pattern":        name,
     }
