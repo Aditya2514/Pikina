@@ -31,6 +31,8 @@ from core.registry.loader import CapabilityRegistry
 from core.router.tier1_win32 import Tier1Router
 from core.mcm.orchestrator import Orchestrator
 from core.daemons.file_indexer import FileIndexerDaemon
+from core.daemons.clipboard import ClipboardDaemon
+from core.daemons.file_watcher import FileWatcherDaemon
 import atexit
 
 # ---------------------------------------------------------------------------
@@ -48,12 +50,20 @@ OPENWEATHER_KEY  = os.getenv("OPENWEATHER_API_KEY", "")
 OPENWEATHER_CITY = os.getenv("OPENWEATHER_CITY", "Mumbai")
 PORT             = int(os.getenv("BACKEND_PORT", 5001))
 
-# Start File Indexer Daemon
+# Start Background Daemons
 indexer_daemon = FileIndexerDaemon()
 indexer_daemon.start()
 
+clipboard_daemon = ClipboardDaemon(bus=bus)
+clipboard_daemon.start()
+
+watcher_daemon = FileWatcherDaemon(bus=bus)
+watcher_daemon.start()
+
 def cleanup_daemons():
     indexer_daemon.stop()
+    clipboard_daemon.stop()
+    watcher_daemon.stop()
 
 atexit.register(cleanup_daemons)
 
