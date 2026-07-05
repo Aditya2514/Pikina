@@ -680,7 +680,6 @@ cmdInput.addEventListener('keydown', (e) => {
     if (text) {
       cmdSuggestions.classList.add("hidden");
       executeCommand(text);
-      cmdInput.value = '';
     }
   }
   if (e.key === 'Escape') {
@@ -696,7 +695,6 @@ cmdSend.addEventListener('click', () => {
   if (text) {
     cmdSuggestions.classList.add("hidden");
     executeCommand(text);
-    cmdInput.value = '';
   }
 });
 
@@ -789,6 +787,10 @@ let currentSuggestions = [];
 let selectedSuggestionIndex = -1;
 
 cmdInput.addEventListener("input", () => {
+  cmdResult.textContent = '';
+  cmdResult.className = 'cmd-result';
+  cmdResult.innerHTML = '';
+  
   const q = cmdInput.value;
   if (!q.trim()) {
     cmdSuggestions.classList.add("hidden");
