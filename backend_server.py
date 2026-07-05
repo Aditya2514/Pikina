@@ -151,6 +151,8 @@ def get_deadlines():
         return jsonify(json.loads(dl_file.read_text(encoding="utf-8")))
     return jsonify({"deadlines": []})
 
+from core.memory.graph_cache import GraphCache
+graph_cache = GraphCache()
 
 @app.route("/api/deadlines", methods=["POST"])
 def save_deadlines():
@@ -159,6 +161,51 @@ def save_deadlines():
     dl_file.parent.mkdir(exist_ok=True)
     dl_file.write_text(json.dumps(body, indent=2), encoding="utf-8")
     return jsonify({"status": "ok"})
+
+@app.route("/api/cache/path", methods=["POST"])
+def cache_path():
+    data = request.get_json(force=True, silent=True) or {}
+    path = data.get("path")
+    is_dir = data.get("is_dir", False)
+    if path:
+        graph_cache.add_path(path, is_dir)
+    return jsonify({"status": "ok"})
+
+@app.route("/api/suggest", methods=["GET"])
+def suggest():
+    q = request.args.get("q", "").strip().lower()
+    if not q:
+        return jsonify({"suggestions": []})
+
+    suggestions = []
+    
+    # Phase 1: Tier 1 commands
+    commands = ["open vs code", "open chrome", "open notepad", "open calc", "lock screen", "find file "]
+    for cmd in commands:
+        if cmd.startswith(q) or q in cmd:
+            suggestions.append({"text": cmd, "type": "command"})
+            
+    # Phase 2: Graph Cache Search
+    if "find file" in q or "open" in q or not suggestions:
+        file_q = q.replace("find file", "").replace("open", "").strip()
+        if file_q:
+            cached = graph_cache.search(file_q, limit=5)
+            for c in cached:
+                cmd_text = f"open {c['basename']}" if c['type'] == 'dir' else f"find file {c['basename']}"
+                suggestions.append({"text": cmd_text, "type": c["type"], "desc": c["path"]})
+                
+    # Phase 3: Fallback deep scan
+    if len(suggestions) < 3 and ("find file " in q):
+        file_q = q.replace("find file", "").strip()
+        if len(file_q) > 2:
+            from core.registry.capabilities.find_file import run as find_file_impl
+            res = find_file_impl({"name": f"*{file_q}*", "max_depth": 4, "max_results": 3})
+            for r in res.get("results", [])[:3]:
+                if not any(s.get("desc") == r for s in suggestions):
+                    basename = Path(r).name
+                    suggestions.append({"text": f"find file {basename}", "type": "file", "desc": r})
+
+    return jsonify({"suggestions": suggestions[:6]})
 
 
 # ---------------------------------------------------------------------------

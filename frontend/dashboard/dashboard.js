@@ -537,7 +537,7 @@ async function executeCommand(text) {
       pSpan.style.fontSize = '12px';
       pSpan.style.color = '#ccc';
       pSpan.style.cursor = 'pointer';
-      pSpan.onclick = () => window.pikina && window.pikina.openFile(path);
+      pSpan.onclick = () => handleOpenFile(path);
       pSpan.onmouseover = () => { pSpan.style.color = '#00ff88'; pSpan.style.textDecoration = 'underline'; };
       pSpan.onmouseout = () => { pSpan.style.color = '#ccc'; pSpan.style.textDecoration = 'none'; };
 
@@ -551,14 +551,14 @@ async function executeCommand(text) {
       btnF.className = 'action-btn';
       btnF.style.padding = '3px 8px';
       btnF.style.fontSize = '10px';
-      btnF.onclick = () => window.pikina && window.pikina.openFile(path);
+      btnF.onclick = () => handleOpenFile(path);
 
       const btnD = document.createElement('button');
       btnD.textContent = 'FOLDER';
       btnD.className = 'action-btn';
       btnD.style.padding = '3px 8px';
       btnD.style.fontSize = '10px';
-      btnD.onclick = () => window.pikina && window.pikina.openFolder(path);
+      btnD.onclick = () => handleOpenFolder(path);
 
       btnGroup.appendChild(btnF);
       btnGroup.appendChild(btnD);
@@ -663,3 +663,124 @@ setInterval(pollTelemetry, 2000);   // Telemetry every 2s
 setInterval(pollEvents,    5000);   // Events every 5s
 setInterval(pollWeather,   5 * 60 * 1000);  // Weather every 5min
 setInterval(pollStatus,    10000);  // Status every 10s
+
+
+// ---------------------------------------------------------------------------
+// Smart Autocomplete & Graph Cache Integration
+// ---------------------------------------------------------------------------
+
+async function cachePath(path, isDir) {
+  try {
+    await fetch(`${window.pikina ? window.pikina.BACKEND : "http://localhost:5001"}/api/cache/path`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({path: path, is_dir: isDir})
+    });
+  } catch(e) {}
+}
+
+function handleOpenFile(path) {
+  cachePath(path, false);
+  if (window.pikina) window.pikina.openFile(path);
+}
+
+function handleOpenFolder(path) {
+  cachePath(path, true);
+  if (window.pikina) window.pikina.openFolder(path);
+}
+
+const cmdSuggestions = document.getElementById("cmd-suggestions");
+let suggestionTimeout = null;
+let currentSuggestions = [];
+let selectedSuggestionIndex = -1;
+
+cmdInput.addEventListener("input", () => {
+  const q = cmdInput.value;
+  if (!q.trim()) {
+    cmdSuggestions.classList.add("hidden");
+    currentSuggestions = [];
+    return;
+  }
+
+  clearTimeout(suggestionTimeout);
+  suggestionTimeout = setTimeout(async () => {
+    try {
+      const res = await fetch(`${window.pikina ? window.pikina.BACKEND : "http://localhost:5001"}/api/suggest?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      currentSuggestions = data.suggestions || [];
+      renderSuggestions();
+    } catch (e) {
+      console.error(e);
+    }
+  }, 300);
+});
+
+function renderSuggestions() {
+  if (currentSuggestions.length === 0) {
+    cmdSuggestions.classList.add("hidden");
+    return;
+  }
+  
+  selectedSuggestionIndex = -1;
+  cmdSuggestions.innerHTML = "";
+  cmdSuggestions.classList.remove("hidden");
+
+  currentSuggestions.forEach((sugg, idx) => {
+    const item = document.createElement("div");
+    item.className = "suggestion-item";
+    item.onclick = () => {
+      cmdInput.value = sugg.text;
+      cmdSuggestions.classList.add("hidden");
+      executeCommand(sugg.text);
+    };
+
+    const txt = document.createElement("span");
+    txt.className = "sugg-text";
+    txt.textContent = sugg.text;
+    item.appendChild(txt);
+
+    if (sugg.desc) {
+      const desc = document.createElement("span");
+      desc.className = "sugg-desc";
+      desc.textContent = sugg.desc;
+      item.appendChild(desc);
+    }
+
+    cmdSuggestions.appendChild(item);
+  });
+}
+
+cmdInput.addEventListener("keydown", (e) => {
+  if (cmdSuggestions.classList.contains("hidden") || currentSuggestions.length === 0) return;
+
+  const items = cmdSuggestions.querySelectorAll(".suggestion-item");
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    selectedSuggestionIndex = (selectedSuggestionIndex + 1) % currentSuggestions.length;
+    updateSuggestionSelection(items);
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    selectedSuggestionIndex = selectedSuggestionIndex <= 0 ? currentSuggestions.length - 1 : selectedSuggestionIndex - 1;
+    updateSuggestionSelection(items);
+  } else if (e.key === "Enter" || e.key === "Tab") {
+    if (selectedSuggestionIndex >= 0) {
+      e.preventDefault();
+      cmdInput.value = currentSuggestions[selectedSuggestionIndex].text;
+      cmdSuggestions.classList.add("hidden");
+      if (e.key === "Enter") {
+        executeCommand(cmdInput.value);
+      }
+    }
+  }
+});
+
+function updateSuggestionSelection(items) {
+  items.forEach((item, idx) => {
+    if (idx === selectedSuggestionIndex) {
+      item.classList.add("selected");
+    } else {
+      item.classList.remove("selected");
+    }
+  });
+}
+
