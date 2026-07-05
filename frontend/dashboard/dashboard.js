@@ -536,15 +536,21 @@ async function executeCommand(text) {
       pSpan.style.fontFamily = 'monospace';
       pSpan.style.fontSize = '12px';
       pSpan.style.color = '#ccc';
+      pSpan.style.cursor = 'pointer';
+      pSpan.onclick = () => window.pikina && window.pikina.openFile(path);
+      pSpan.onmouseover = () => { pSpan.style.color = '#00ff88'; pSpan.style.textDecoration = 'underline'; };
+      pSpan.onmouseout = () => { pSpan.style.color = '#ccc'; pSpan.style.textDecoration = 'none'; };
 
       const btnGroup = document.createElement('div');
+      btnGroup.style.display = 'flex';
+      btnGroup.style.gap = '6px';
+      btnGroup.style.flexShrink = '0';
       
       const btnF = document.createElement('button');
       btnF.textContent = 'OPEN';
       btnF.className = 'action-btn';
       btnF.style.padding = '3px 8px';
       btnF.style.fontSize = '10px';
-      btnF.style.marginRight = '6px';
       btnF.onclick = () => window.pikina && window.pikina.openFile(path);
 
       const btnD = document.createElement('button');
