@@ -21,6 +21,10 @@ contextBridge.exposeInMainWorld('pikina', {
   windowMaximize: () => ipcRenderer.send('window-maximize'),
   windowClose:    () => ipcRenderer.send('window-close'),
 
+  // Native file actions
+  openFile:   (path) => ipcRenderer.send('open-file', path),
+  openFolder: (path) => ipcRenderer.send('open-folder', path),
+
   // Direct HTTP fetch to Python backend (renderer -> backend, no main involvement)
   BACKEND: 'http://localhost:5001',
 });

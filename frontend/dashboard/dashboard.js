@@ -513,8 +513,65 @@ async function executeCommand(text) {
     error:    `✗ ${result.reason || 'Unknown error'}`,
   };
 
-  cmdResult.textContent = messages[status] || `→ ${JSON.stringify(result).slice(0, 100)}`;
   cmdResult.className   = `cmd-result ${['ok'].includes(status) ? 'ok' : ['error', 'denied', 'rejected'].includes(status) ? 'error' : ''}`;
+
+  if (status === 'ok' && result.results && Array.isArray(result.results)) {
+    cmdResult.innerHTML = '';
+    const header = document.createElement('div');
+    header.textContent = `✓ Found ${result.count} files for '${result.pattern}':`;
+    header.style.marginBottom = '8px';
+    cmdResult.appendChild(header);
+
+    result.results.slice(0, 5).forEach(path => {
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
+      row.style.alignItems = 'center';
+      row.style.padding = '4px';
+      row.style.borderBottom = '1px solid rgba(0,255,136,0.15)';
+
+      const pSpan = document.createElement('span');
+      pSpan.textContent = path.length > 55 ? '...' + path.slice(-52) : path;
+      pSpan.title = path;
+      pSpan.style.fontFamily = 'monospace';
+      pSpan.style.fontSize = '12px';
+      pSpan.style.color = '#ccc';
+
+      const btnGroup = document.createElement('div');
+      
+      const btnF = document.createElement('button');
+      btnF.textContent = 'OPEN';
+      btnF.className = 'action-btn';
+      btnF.style.padding = '3px 8px';
+      btnF.style.fontSize = '10px';
+      btnF.style.marginRight = '6px';
+      btnF.onclick = () => window.pikina && window.pikina.openFile(path);
+
+      const btnD = document.createElement('button');
+      btnD.textContent = 'FOLDER';
+      btnD.className = 'action-btn';
+      btnD.style.padding = '3px 8px';
+      btnD.style.fontSize = '10px';
+      btnD.onclick = () => window.pikina && window.pikina.openFolder(path);
+
+      btnGroup.appendChild(btnF);
+      btnGroup.appendChild(btnD);
+      row.appendChild(pSpan);
+      row.appendChild(btnGroup);
+      cmdResult.appendChild(row);
+    });
+
+    if (result.count > 5) {
+      const more = document.createElement('div');
+      more.textContent = `+ ${result.count - 5} more matches...`;
+      more.style.fontSize = '11px';
+      more.style.opacity = '0.6';
+      more.style.marginTop = '6px';
+      cmdResult.appendChild(more);
+    }
+  } else {
+    cmdResult.textContent = messages[status] || `→ ${JSON.stringify(result).slice(0, 100)}`;
+  }
 
   // Publish to event log
   await pollEvents();

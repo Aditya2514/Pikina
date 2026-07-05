@@ -157,6 +157,11 @@ ipcMain.on('window-maximize', () => {
 });
 ipcMain.on('window-close', () => { if (dashboardWindow) dashboardWindow.close(); });
 
+// Native file system interactions
+const { shell } = require('electron');
+ipcMain.on('open-file',   (_, filePath) => shell.openPath(filePath));
+ipcMain.on('open-folder', (_, filePath) => shell.showItemInFolder(filePath));
+
 // ---------------------------------------------------------------------------
 // App lifecycle
 // ---------------------------------------------------------------------------
