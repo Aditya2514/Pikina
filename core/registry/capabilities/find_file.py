@@ -30,6 +30,7 @@ def run(params: dict) -> dict:
         home = Path.home()
         # Sensible user search targets if root is unspecified
         search_roots = [
+            Path.cwd(),
             home / "Desktop",
             home / "Documents",
             home / "Downloads",

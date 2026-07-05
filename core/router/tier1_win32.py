@@ -32,7 +32,7 @@ ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
     (re.compile(r"lock\s+(my\s+)?(screen|workstation|pc|computer|laptop)", re.I),
                                                                        "system.lock_screen", lambda m: {}),
     # Find file
-    (re.compile(r"find\s+(file\s+)?(?P<name>[\w.*\-]+)", re.I),       "fs.find_file",      lambda m: {"name": m.group("name"), "root": "."}),
+    (re.compile(r"find\s+(file\s+)?(?P<name>.+)", re.I),              "fs.find_file",      lambda m: {"name": m.group("name")}),
 ]
 
 
