@@ -399,6 +399,17 @@ function weatherEmoji(desc) {
   return '◈';
 }
 
+document.getElementById('panel-weather').addEventListener('click', () => {
+  const city = document.getElementById('w-city').textContent;
+  if (!city || city === '--') return;
+  const url = `https://openweathermap.org/find?q=${encodeURIComponent(city)}`;
+  if (window.pikina && window.pikina.openUrl) {
+    window.pikina.openUrl(url);
+  } else {
+    window.open(url, '_blank');
+  }
+});
+
 // ── Events ──
 async function pollEvents() {
   try {

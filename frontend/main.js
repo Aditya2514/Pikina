@@ -161,6 +161,7 @@ ipcMain.on('window-close', () => { if (dashboardWindow) dashboardWindow.close();
 const { shell } = require('electron');
 ipcMain.on('open-file',   (_, filePath) => shell.openPath(filePath));
 ipcMain.on('open-folder', (_, filePath) => shell.showItemInFolder(filePath));
+ipcMain.on('open-url',    (_, url)      => shell.openExternal(url).catch(err => console.error('Failed to open URL:', err)));
 
 // ---------------------------------------------------------------------------
 // App lifecycle

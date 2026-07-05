@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('pikina', {
   // Native file actions
   openFile:   (path) => ipcRenderer.send('open-file', path),
   openFolder: (path) => ipcRenderer.send('open-folder', path),
+  openUrl:    (url)  => ipcRenderer.send('open-url', url),
 
   // Direct HTTP fetch to Python backend (renderer -> backend, no main involvement)
   BACKEND: 'http://localhost:5001',
