@@ -14,6 +14,12 @@ class TrustEngine:
         self.bus = bus
         self.vector_store = VectorStore()
         
+        # Pre-load the embedding model in the main thread.
+        # Lazy-loading PyTorch/SentenceTransformers in a daemon thread (like EventBus._safe_call)
+        # causes deadlocks and silent crashes on Windows.
+        _ = self.vector_store.model
+
+        
         # Subscribe to all events. 
         # Using a wildcard or subscribing to specific sensory/user topics.
         # For now, we subscribe to specific known topics that generate memory context.

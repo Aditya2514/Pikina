@@ -7,6 +7,8 @@ import os
 # Suppress the scary huggingface_hub symlink warning on Windows without Developer Mode
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+# Enforce offline mode for embedding generation (model must be cached)
+os.environ["HF_HUB_OFFLINE"] = "1"
 
 class VectorStore:
     _instance = None
