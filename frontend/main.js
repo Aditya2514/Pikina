@@ -139,8 +139,9 @@ ipcMain.handle('send-command', async (_, text) => {
   }
 });
 
-// Pass hide-panel signal
-ipcMain.on('hide-panel', () => { if (panelWindow) panelWindow.hide(); });
+// Pass hide-panel and toggle-panel signals
+ipcMain.on('hide-panel',   () => { if (panelWindow) panelWindow.hide(); });
+ipcMain.on('toggle-panel', () => togglePanel());
 
 // Pass kill-switch signal
 ipcMain.on('kill-switch', () => {

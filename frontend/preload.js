@@ -9,8 +9,9 @@ contextBridge.exposeInMainWorld('pikina', {
   // Send a typed command to the Python backend via main process
   sendCommand: (text) => ipcRenderer.invoke('send-command', text),
 
-  // Signal to hide the quick panel
-  hidePanel: () => ipcRenderer.send('hide-panel'),
+  // Signal to hide or toggle the quick panel
+  hidePanel:   () => ipcRenderer.send('hide-panel'),
+  togglePanel: () => ipcRenderer.send('toggle-panel'),
 
   // Trigger the global kill-switch
   killSwitch: () => ipcRenderer.send('kill-switch'),

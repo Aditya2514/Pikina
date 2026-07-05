@@ -555,6 +555,12 @@ document.querySelectorAll('.action-btn[data-cmd]').forEach(btn => {
   });
 });
 
+document.getElementById('act-panel').addEventListener('click', () => {
+  if (window.pikina && window.pikina.togglePanel) {
+    window.pikina.togglePanel();
+  }
+});
+
 document.getElementById('act-events').addEventListener('click', () => {
   pollEvents();
 });
