@@ -9,8 +9,8 @@ An offline-first, event-driven personal operating layer for Windows.
 | Phase | Subsystems | Status |
 |---|---|---|
 | **1 — Foundation** | Event Bus, Intent Router (Tier 1), Permission Engine, Capability Registry | 🔧 In Progress |
-| **1.5 — Frontend** | Hotkey Quick Panel, Home Dashboard | ⏳ Pending |
-| **2 — Sensory** | File Interceptor, Clipboard Daemon | ⏳ Pending |
+| **1.5 — Frontend** | Hotkey Quick Panel, Home Dashboard | ✅ Done |
+| **2 — Sensory** | File Interceptor, Clipboard Daemon | ✅ Done |
 | **3 — Memory** | Trust Engine, Vector Memory, Knowledge Graph | ⏳ Pending |
 | **4 — Reasoning** | Tier 2/3 Routing, Multi-Agent Planner | ⏳ Deferred |
 | **5 — Voice & Vision** | Whisper.cpp, Kokoro, Gemini Flash Vision | ⏳ Deferred |
