@@ -489,8 +489,10 @@ const reactorStateEl = document.getElementById('reactor-state');
 
 function setReactorState(state) {
   reactorState = state;
-  reactorStateEl.className = `reactor-state ${state === 'idle' ? '' : state}`;
-  reactorStateEl.textContent = state.toUpperCase();
+  if (reactorStateEl) {
+    reactorStateEl.className = `reactor-state ${state === 'idle' ? '' : state}`;
+    reactorStateEl.textContent = state.toUpperCase();
+  }
 }
 const commandHistory = [];
 let historyIndex = -1;
@@ -542,6 +544,18 @@ async function executeCommand(text) {
     header.textContent = `✓ Found ${result.count} files for '${result.pattern}':`;
     header.style.marginBottom = '8px';
     cmdResult.appendChild(header);
+
+    const handleOpenFile = (filePath) => {
+      if (window.pikina && window.pikina.openFile) {
+        window.pikina.openFile(filePath);
+      }
+    };
+
+    const handleOpenFolder = (filePath) => {
+      if (window.pikina && window.pikina.openFolder) {
+        window.pikina.openFolder(filePath);
+      }
+    };
 
     result.results.slice(0, 5).forEach(path => {
       const row = document.createElement('div');
