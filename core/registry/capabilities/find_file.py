@@ -23,6 +23,9 @@ def run(params: dict) -> dict:
     if not name:
         return {"status": "error", "reason": "Missing required param: 'name'"}
 
+    if "*" not in name and "?" not in name:
+        name = f"*{name}*"
+
     # Determine search targets
     if root_param:
         search_roots = [Path(root_param)]

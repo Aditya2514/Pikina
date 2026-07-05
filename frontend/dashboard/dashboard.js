@@ -504,7 +504,7 @@ async function executeCommand(text) {
   historyIndex = commandHistory.length;
 
   setReactorState('thinking');
-  cmdResult.textContent = '';
+  cmdResult.textContent = 'Executing...';
   cmdResult.className   = 'cmd-result';
 
   let result;
