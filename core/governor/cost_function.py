@@ -3,6 +3,7 @@ Resource Governor — normalized cost function.
 Score > THRESHOLD -> downgrade tier or defer the action.
 """
 from .profiles import get_weights, THRESHOLD
+from .telemetry import get_telemetry
 
 
 def cost(
@@ -35,6 +36,31 @@ def cost(
         weights["privacy"] * privacy_flag
     )
     return round(score, 4)
+
+
+def calculate_capability_cost(manifest: dict, telemetry: dict = None, profile: str = None) -> float:
+    """
+    Evaluates the total resource impact of executing a capability using live telemetry
+    and the capability's declared estimated_cost and requires_network fields.
+    """
+    if telemetry is None:
+        telemetry = get_telemetry()
+
+    est_cost = manifest.get("estimated_cost", 0.1)
+    net_flag = 1 if manifest.get("requires_network", False) else 0
+
+    cpu_pct = telemetry.get("cpu", {}).get("percent", 0)
+    
+    # Base hardware load
+    hardware_score = cost(
+        cpu_pct=cpu_pct,
+        privacy_flag=net_flag,
+        profile=profile
+    )
+
+    # Combined score incorporating manifest estimated_cost factor
+    total_score = hardware_score + (est_cost * 0.5)
+    return round(total_score, 4)
 
 
 def should_downgrade(score: float) -> bool:

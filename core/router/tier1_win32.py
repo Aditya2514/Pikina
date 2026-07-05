@@ -32,7 +32,7 @@ ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
     (re.compile(r"lock\s+(my\s+)?(screen|workstation|pc|computer|laptop)", re.I),
                                                                        "system.lock_screen", lambda m: {}),
     # Find file
-    (re.compile(r"find\s+(file\s+)?(?P<name>[\w.*\-]+)", re.I),       "fs.find_file",      lambda m: {"name": m.group("name")}),
+    (re.compile(r"find\s+(file\s+)?(?P<name>[\w.*\-]+)", re.I),       "fs.find_file",      lambda m: {"name": m.group("name"), "root": "."}),
 ]
 
 
@@ -67,8 +67,8 @@ class Tier1Router:
 
         level = manifest["permission_level"]
 
-        # Gate Level 4+ with native Windows consent dialog
-        if level >= 4 or not manifest.get("supports_rollback", True):
+        # Gate Level 4+ and Level 3+ non-reversible actions with native Windows consent dialog
+        if level >= 4 or (level >= 3 and not manifest.get("supports_rollback", True)):
             if not request_consent(tool, manifest["description"], params):
                 self._bus.publish(
                     topic="router.denied",

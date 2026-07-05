@@ -5,6 +5,7 @@
   "estimated_cost": 0.05,
   "requires_network": false,
   "supports_rollback": false,
+  "rollback_action": null,
   "params_schema": {
     "type": "object",
     "required": ["name"],

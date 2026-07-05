@@ -2,6 +2,7 @@
 Resource Governor — live system telemetry via psutil.
 These are the same numbers the dashboard shows and the cost function uses.
 """
+import os
 import psutil
 from datetime import datetime, timezone
 
@@ -11,22 +12,28 @@ def get_telemetry() -> dict:
     Returns a snapshot of current system resource usage.
     Safe to call from any thread.
     """
-    cpu_pct = psutil.cpu_percent(interval=0.1)
+    cpu_pct = psutil.cpu_percent(interval=0.05)
     ram     = psutil.virtual_memory()
-    disk    = psutil.disk_usage("/")
+    
+    # Use system root drive on Windows to avoid network mount timeout
+    root_drive = os.path.abspath(os.sep)
+    disk       = psutil.disk_usage(root_drive)
 
     battery = None
-    bat = psutil.sensors_battery()
-    if bat:
-        secs = bat.secsleft
-        battery = {
-            "percent":  round(bat.percent, 1),
-            "plugged":  bat.power_plugged,
-            "secs_left": secs if secs not in (
-                psutil.POWER_TIME_UNLIMITED,
-                psutil.POWER_TIME_UNKNOWN,
-            ) else None,
-        }
+    try:
+        bat = psutil.sensors_battery()
+        if bat:
+            secs = bat.secsleft
+            battery = {
+                "percent":  round(bat.percent, 1),
+                "plugged":  bat.power_plugged,
+                "secs_left": secs if secs not in (
+                    psutil.POWER_TIME_UNLIMITED,
+                    psutil.POWER_TIME_UNKNOWN,
+                ) else None,
+            }
+    except Exception:
+        pass
 
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),

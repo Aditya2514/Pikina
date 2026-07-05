@@ -73,9 +73,32 @@ document.querySelectorAll('.qb[data-cmd]').forEach(btn => {
   btn.addEventListener('click', () => runCommand(btn.dataset.cmd));
 });
 
+document.getElementById('qb-mic').addEventListener('click', () => {
+  result.textContent = '🎤 Mic voice loop (Deferred to Phase 5)';
+  result.className   = 'panel-result';
+});
+
+document.getElementById('qb-tasks').addEventListener('click', async () => {
+  try {
+    const r = await fetch(`${BACKEND}/api/deadlines`);
+    const d = await r.json();
+    const count = (d.deadlines || []).length;
+    result.textContent = `✓ ${count} active objectives`;
+    result.className   = 'panel-result ok';
+  } catch {
+    result.textContent = 'Backend offline';
+    result.className   = 'panel-result error';
+  }
+});
+
+document.getElementById('qb-snip').addEventListener('click', () => {
+  result.textContent = '✂ Vision proxy / snip (Deferred to Phase 5)';
+  result.className   = 'panel-result';
+});
+
 document.getElementById('qb-kill').addEventListener('click', () => {
   if (window.pikina) window.pikina.killSwitch();
-  result.textContent = '⏻ Kill-switch triggered.';
+  result.textContent = '⏻ Kill-switch triggered — router & daemons halted.';
   result.className   = 'panel-result error';
   setState('idle');
 });
@@ -84,7 +107,7 @@ document.getElementById('qb-log').addEventListener('click', async () => {
   try {
     const r = await fetch(`${BACKEND}/api/events?since=30`);
     const d = await r.json();
-    result.textContent = `${d.count} events in last 30 min`;
+    result.textContent = `≡ ${d.count} events logged in last 30 min`;
     result.className   = 'panel-result ok';
   } catch {
     result.textContent = 'Backend offline';
