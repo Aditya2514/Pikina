@@ -213,6 +213,31 @@ def get_settings():
         return jsonify(json.loads(st_file.read_text(encoding="utf-8")))
     return jsonify({})
 
+def set_windows_wallpaper(image_url):
+    import urllib.request
+    import ctypes
+    from pathlib import Path
+    import os
+    try:
+        wp_path = Path(__file__).parent / "data" / "current_wallpaper.jpg"
+        wp_path.parent.mkdir(exist_ok=True)
+        # Download the image if it's an http url
+        if image_url.startswith("http"):
+            req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                wp_path.write_bytes(response.read())
+            abs_path = str(wp_path.resolve())
+        else:
+            # It's a local file path
+            abs_path = os.path.abspath(image_url)
+        
+        # Set Windows wallpaper
+        SPI_SETDESKWALLPAPER = 20
+        ctypes.windll.user32.SystemParametersInfoW(SPI_SETDESKWALLPAPER, 0, abs_path, 3)
+        print(f"Windows desktop wallpaper set to {abs_path}")
+    except Exception as e:
+        print(f"Failed to set Windows desktop wallpaper: {e}")
+
 @app.route("/api/settings", methods=["POST"])
 def save_settings():
     body = request.get_json(force=True, silent=True) or {}
@@ -226,11 +251,18 @@ def save_settings():
             pass
     current.update(body)
     st_file.write_text(json.dumps(current, indent=2), encoding="utf-8")
+    
+    if "wallpaperUrl" in body and body["wallpaperUrl"]:
+        # Run in background to avoid blocking response
+        import threading
+        threading.Thread(target=set_windows_wallpaper, args=(body["wallpaperUrl"],), daemon=True).start()
+        
     return jsonify({"status": "ok", "settings": current})
 
 @app.route("/api/wallpaper/random", methods=["POST"])
 def get_random_wallpaper():
     import urllib.request
+    import threading
     try:
         url = "https://wallhaven.cc/api/v1/search?q=anime+modern&purity=100&sorting=random"
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
@@ -248,6 +280,10 @@ def get_random_wallpaper():
                         pass
                 current["wallpaperUrl"] = image_url
                 st_file.write_text(json.dumps(current, indent=2), encoding="utf-8")
+                
+                # Set Windows wallpaper in background
+                threading.Thread(target=set_windows_wallpaper, args=(image_url,), daemon=True).start()
+                
                 return jsonify({"status": "ok", "wallpaperUrl": image_url})
     except Exception as e:
         print("Failed to fetch wallpaper from Wallhaven:", e)
