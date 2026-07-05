@@ -206,6 +206,52 @@ def suggest():
                     suggestions.append({"text": f"find file {basename}", "type": "file", "desc": r})
 
     return jsonify({"suggestions": suggestions[:6]})
+@app.route("/api/settings", methods=["GET"])
+def get_settings():
+    st_file = Path(__file__).parent / "data" / "settings.json"
+    if st_file.exists():
+        return jsonify(json.loads(st_file.read_text(encoding="utf-8")))
+    return jsonify({})
+
+@app.route("/api/settings", methods=["POST"])
+def save_settings():
+    body = request.get_json(force=True, silent=True) or {}
+    st_file = Path(__file__).parent / "data" / "settings.json"
+    st_file.parent.mkdir(exist_ok=True)
+    current = {}
+    if st_file.exists():
+        try:
+            current = json.loads(st_file.read_text(encoding="utf-8"))
+        except:
+            pass
+    current.update(body)
+    st_file.write_text(json.dumps(current, indent=2), encoding="utf-8")
+    return jsonify({"status": "ok", "settings": current})
+
+@app.route("/api/wallpaper/random", methods=["POST"])
+def get_random_wallpaper():
+    import urllib.request
+    try:
+        url = "https://wallhaven.cc/api/v1/search?q=anime+modern&purity=100&sorting=random"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode())
+            if data.get("data"):
+                image_url = data["data"][0]["path"]
+                st_file = Path(__file__).parent / "data" / "settings.json"
+                st_file.parent.mkdir(exist_ok=True)
+                current = {}
+                if st_file.exists():
+                    try:
+                        current = json.loads(st_file.read_text(encoding="utf-8"))
+                    except:
+                        pass
+                current["wallpaperUrl"] = image_url
+                st_file.write_text(json.dumps(current, indent=2), encoding="utf-8")
+                return jsonify({"status": "ok", "wallpaperUrl": image_url})
+    except Exception as e:
+        print("Failed to fetch wallpaper from Wallhaven:", e)
+    return jsonify({"error": "Failed to fetch wallpaper"}), 500
 
 
 # ---------------------------------------------------------------------------

@@ -28,4 +28,7 @@ contextBridge.exposeInMainWorld('pikina', {
 
   // Direct HTTP fetch to Python backend (renderer -> backend, no main involvement)
   BACKEND: 'http://localhost:5001',
+
+  // Listeners for main -> renderer events
+  onTriggerWallpaper: (callback) => ipcRenderer.on('trigger-wallpaper', callback),
 });

@@ -26,6 +26,7 @@
       <span id="clock-date" class="clock-date">--- -- ----</span>
     </div>
     <div class="titlebar-controls">
+      <button class="wc-btn wc-settings" id="btn-settings" title="Settings">⚙</button>
       <button class="wc-btn wc-min"   id="btn-min"   title="Minimize">—</button>
       <button class="wc-btn wc-max"   id="btn-max"   title="Maximize">⬜</button>
       <button class="wc-btn wc-close" id="btn-close" title="Close">✕</button>
@@ -183,6 +184,19 @@
     </div>
     <div class="event-list" id="event-list">
       <div class="event-item event-empty">Awaiting events...</div>
+    </div>
+  </div>
+
+  <div class="modal-panel hidden panel" id="panel-settings" style="width: 400px; height: auto;">
+    <div class="panel-header">
+      SETTINGS
+      <button class="modal-close" id="modal-close-settings" title="Close">✕</button>
+    </div>
+    <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+      <label style="font-family: 'Orbitron', sans-serif; font-size: 10px; color: var(--c-cyan);">WALLPAPER URL</label>
+      <input type="text" id="settings-wallpaper-url" class="cmd-input" placeholder="https://..." style="width: 100%;" />
+      <button class="cmd-send" id="settings-save-btn" style="width: 100%; margin-top: 8px;">SAVE SETTINGS</button>
+      <div id="settings-status" style="font-family: 'Consolas', monospace; font-size: 11px; color: var(--c-ok); min-height: 14px;"></div>
     </div>
   </div>
 

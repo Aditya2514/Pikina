@@ -176,6 +176,14 @@ app.whenReady().then(() => {
   globalShortcut.register('CommandOrControl+Shift+Space', togglePanel);
   console.log('[Main] Global hotkey registered: Ctrl+Shift+Space');
 
+  // Global hotkey: Ctrl+Shift+W -> toggle wallpaper
+  globalShortcut.register('CommandOrControl+Shift+W', () => {
+    if (dashboardWindow) {
+      dashboardWindow.webContents.send('trigger-wallpaper');
+    }
+  });
+  console.log('[Main] Global hotkey registered: Ctrl+Shift+W');
+
   app.on('activate', () => { if (!dashboardWindow) createDashboard(); });
 });
 

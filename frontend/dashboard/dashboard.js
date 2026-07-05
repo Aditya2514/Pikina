@@ -864,3 +864,89 @@ if (modalBackdrop) {
   });
 }
 
+
+// -- Settings & Wallpaper --
+const btnSettings = document.getElementById("btn-settings");
+const modalSettings = document.getElementById("panel-settings");
+const btnCloseSettings = document.getElementById("modal-close-settings");
+const inputWallpaperUrl = document.getElementById("settings-wallpaper-url");
+const btnSaveSettings = document.getElementById("settings-save-btn");
+const statusSettings = document.getElementById("settings-status");
+
+function applyWallpaper(url) {
+  if (url) {
+    document.body.style.backgroundImage = `url("${url}")`;
+  } else {
+    document.body.style.backgroundImage = "none";
+  }
+}
+
+async function loadSettings() {
+  try {
+    const res = await fetch(`${BACKEND}/api/settings`);
+    const data = await res.json();
+    if (data.wallpaperUrl) {
+      applyWallpaper(data.wallpaperUrl);
+      inputWallpaperUrl.value = data.wallpaperUrl;
+    }
+  } catch(e) {}
+}
+
+if (btnSettings) {
+  btnSettings.addEventListener("click", () => {
+    modalSettings.classList.remove("hidden");
+    modalBackdrop.classList.remove("hidden");
+  });
+}
+if (btnCloseSettings) {
+  btnCloseSettings.addEventListener("click", () => {
+    modalSettings.classList.add("hidden");
+    modalBackdrop.classList.add("hidden");
+    statusSettings.textContent = "";
+  });
+}
+
+// Extend backdrop close logic
+if (modalBackdrop) {
+  modalBackdrop.addEventListener("click", () => {
+    if (modalSettings) modalSettings.classList.add("hidden");
+  });
+}
+
+if (btnSaveSettings) {
+  btnSaveSettings.addEventListener("click", async () => {
+    const url = inputWallpaperUrl.value.trim();
+    statusSettings.textContent = "Saving...";
+    try {
+      const res = await fetch(`${BACKEND}/api/settings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallpaperUrl: url })
+      });
+      if (res.ok) {
+        statusSettings.textContent = "Saved!";
+        applyWallpaper(url);
+      } else {
+        statusSettings.textContent = "Failed to save.";
+      }
+    } catch(e) {
+      statusSettings.textContent = "Error saving settings.";
+    }
+  });
+}
+
+if (window.pikina && window.pikina.onTriggerWallpaper) {
+  window.pikina.onTriggerWallpaper(async () => {
+    try {
+      const res = await fetch(`${BACKEND}/api/wallpaper/random`, { method: "POST" });
+      const data = await res.json();
+      if (data.wallpaperUrl) {
+        applyWallpaper(data.wallpaperUrl);
+        inputWallpaperUrl.value = data.wallpaperUrl;
+      }
+    } catch(e) {}
+  });
+}
+
+loadSettings();
+
