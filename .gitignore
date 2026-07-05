@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Node / Electron
+node_modules/
+.npm
+*.log
+npm-debug.log*
+
+# Secrets & Vault
+security/vault/vault.bin
+.env
+*.key
+*.pem
+
+# SQLite replay store
+core/eventbus/replay_store.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Ollama model blobs (never commit weights)
+*.gguf
+*.ggml
+
+# Compiled / packaged
+out/
+dist/
