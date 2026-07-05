@@ -34,6 +34,9 @@ def run(params: dict) -> dict:
             home / "Desktop",
             home / "Documents",
             home / "Downloads",
+            home / "OneDrive" / "Desktop",
+            home / "OneDrive" / "Documents",
+            home / "OneDrive" / "Downloads",
         ]
         search_roots = [r for r in search_roots if r.exists()]
 
