@@ -30,6 +30,8 @@ from core.governor.profiles import get_profile, set_profile, PROFILE_WEIGHTS
 from core.registry.loader import CapabilityRegistry
 from core.router.tier1_win32 import Tier1Router
 from core.mcm.orchestrator import Orchestrator
+from core.daemons.file_indexer import FileIndexerDaemon
+import atexit
 
 # ---------------------------------------------------------------------------
 # App init
@@ -45,6 +47,15 @@ mcm      = Orchestrator(router=router)
 OPENWEATHER_KEY  = os.getenv("OPENWEATHER_API_KEY", "")
 OPENWEATHER_CITY = os.getenv("OPENWEATHER_CITY", "Mumbai")
 PORT             = int(os.getenv("BACKEND_PORT", 5001))
+
+# Start File Indexer Daemon
+indexer_daemon = FileIndexerDaemon()
+indexer_daemon.start()
+
+def cleanup_daemons():
+    indexer_daemon.stop()
+
+atexit.register(cleanup_daemons)
 
 # ---------------------------------------------------------------------------
 # Routes

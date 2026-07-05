@@ -1,6 +1,7 @@
 import os
 import subprocess
 from pathlib import Path
+from core.daemons.file_indexer import FileIndexerDaemon
 
 def run(params: dict) -> dict:
     name        = params.get("name", "").strip()
@@ -31,10 +32,26 @@ def run(params: dict) -> dict:
         search_roots = [r for r in search_roots if r.exists()]
 
     results = []
+    
+    # Fast path: Query the SQLite index first
+    try:
+        db_results = FileIndexerDaemon.search(name, limit=max_results)
+        if root_param:
+            # Filter results by root if specific root requested
+            root_str = str(Path(root_param).resolve())
+            db_results = [r for r in db_results if r.startswith(root_str)]
+            
+        for r in db_results:
+            if r not in results:
+                results.append(r)
+    except Exception:
+        pass
 
-    for root_dir in search_roots:
-        if len(results) >= max_results:
-            break
+    if len(results) < max_results:
+        # Fallback to slow Windows WHERE if we need more results
+        for root_dir in search_roots:
+            if len(results) >= max_results:
+                break
             
         try:
             # Native Windows WHERE command is orders of magnitude faster than os.walk
