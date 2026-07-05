@@ -837,3 +837,30 @@ function updateSuggestionSelection(items) {
   });
 }
 
+
+// -- Modal Events --
+const btnEvents = document.getElementById("act-events");
+const modalEvents = document.getElementById("panel-events");
+const modalBackdrop = document.getElementById("modal-backdrop");
+const btnCloseEvents = document.getElementById("modal-close-events");
+
+if (btnEvents) {
+  btnEvents.addEventListener("click", () => {
+    modalEvents.classList.remove("hidden");
+    modalBackdrop.classList.remove("hidden");
+    pollEvents();
+  });
+}
+if (btnCloseEvents) {
+  btnCloseEvents.addEventListener("click", () => {
+    modalEvents.classList.add("hidden");
+    modalBackdrop.classList.add("hidden");
+  });
+}
+if (modalBackdrop) {
+  modalBackdrop.addEventListener("click", () => {
+    modalEvents.classList.add("hidden");
+    modalBackdrop.classList.add("hidden");
+  });
+}
+

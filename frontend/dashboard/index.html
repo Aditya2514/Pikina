@@ -71,13 +71,6 @@
         </div>
       </div>
 
-      <!-- Event log panel -->
-      <div class="panel panel-events" id="panel-events">
-        <div class="panel-header">EVENT LOG <span class="panel-sub" id="event-count">—</span></div>
-        <div class="event-list" id="event-list">
-          <div class="event-item event-empty">Awaiting events...</div>
-        </div>
-      </div>
 
     </aside>
 
@@ -180,6 +173,18 @@
 
     </aside>
   </div><!-- /hud-layout -->
+
+  <!-- Modal overlay for events -->
+  <div class="modal-backdrop hidden" id="modal-backdrop"></div>
+  <div class="modal-panel hidden panel panel-events" id="panel-events">
+    <div class="panel-header">
+      EVENT LOG <span class="panel-sub" id="event-count">—</span>
+      <button class="modal-close" id="modal-close-events" title="Close">✕</button>
+    </div>
+    <div class="event-list" id="event-list">
+      <div class="event-item event-empty">Awaiting events...</div>
+    </div>
+  </div>
 
   <script src="dashboard.js"></script>
 </body>
