@@ -584,9 +584,38 @@ async function executeCommand(text) {
 }
 
 cmdInput.addEventListener('keydown', (e) => {
+  const isSuggestionsOpen = !cmdSuggestions.classList.contains("hidden") && currentSuggestions.length > 0;
+  
+  if (isSuggestionsOpen) {
+    const items = cmdSuggestions.querySelectorAll(".suggestion-item");
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      selectedSuggestionIndex = (selectedSuggestionIndex + 1) % currentSuggestions.length;
+      updateSuggestionSelection(items);
+      return;
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      selectedSuggestionIndex = selectedSuggestionIndex <= 0 ? currentSuggestions.length - 1 : selectedSuggestionIndex - 1;
+      updateSuggestionSelection(items);
+      return;
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      if (selectedSuggestionIndex >= 0) {
+        e.preventDefault();
+        cmdInput.value = currentSuggestions[selectedSuggestionIndex].text;
+        cmdSuggestions.classList.add("hidden");
+        if (e.key === "Enter") {
+          executeCommand(cmdInput.value);
+          cmdInput.value = '';
+        }
+        return;
+      }
+    }
+  }
+
   if (e.key === 'Enter') {
     const text = cmdInput.value.trim();
     if (text) {
+      cmdSuggestions.classList.add("hidden");
       executeCommand(text);
       cmdInput.value = '';
     }
@@ -595,12 +624,14 @@ cmdInput.addEventListener('keydown', (e) => {
     cmdInput.value = '';
     cmdResult.textContent = '';
     cmdResult.className = 'cmd-result';
+    cmdSuggestions.classList.add("hidden");
   }
 });
 
 cmdSend.addEventListener('click', () => {
   const text = cmdInput.value.trim();
   if (text) {
+    cmdSuggestions.classList.add("hidden");
     executeCommand(text);
     cmdInput.value = '';
   }
@@ -749,30 +780,6 @@ function renderSuggestions() {
     cmdSuggestions.appendChild(item);
   });
 }
-
-cmdInput.addEventListener("keydown", (e) => {
-  if (cmdSuggestions.classList.contains("hidden") || currentSuggestions.length === 0) return;
-
-  const items = cmdSuggestions.querySelectorAll(".suggestion-item");
-  if (e.key === "ArrowDown") {
-    e.preventDefault();
-    selectedSuggestionIndex = (selectedSuggestionIndex + 1) % currentSuggestions.length;
-    updateSuggestionSelection(items);
-  } else if (e.key === "ArrowUp") {
-    e.preventDefault();
-    selectedSuggestionIndex = selectedSuggestionIndex <= 0 ? currentSuggestions.length - 1 : selectedSuggestionIndex - 1;
-    updateSuggestionSelection(items);
-  } else if (e.key === "Enter" || e.key === "Tab") {
-    if (selectedSuggestionIndex >= 0) {
-      e.preventDefault();
-      cmdInput.value = currentSuggestions[selectedSuggestionIndex].text;
-      cmdSuggestions.classList.add("hidden");
-      if (e.key === "Enter") {
-        executeCommand(cmdInput.value);
-      }
-    }
-  }
-});
 
 function updateSuggestionSelection(items) {
   items.forEach((item, idx) => {

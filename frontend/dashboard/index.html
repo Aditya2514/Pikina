@@ -100,22 +100,24 @@
         </div>
       </div>
 
-      <!-- Command bar -->
-      <div class="command-bar">
-        <div class="cmd-prefix">›_</div>
-        <input
-          type="text"
-          id="cmd-input"
-          class="cmd-input"
-          placeholder="Type a command... (open vs code, lock screen, find file *.pdf)"
-          autocomplete="off"
-          spellcheck="false"
-        />
-        <button class="cmd-send" id="cmd-send" title="Execute (Enter)">EXECUTE</button>
-      </div>
+      <!-- Command bar and Autocomplete -->
+      <div style="position: relative; width: 100%;">
+        <div class="command-bar">
+          <div class="cmd-prefix">›_</div>
+          <input
+            type="text"
+            id="cmd-input"
+            class="cmd-input"
+            placeholder="Type a command... (open vs code, lock screen, find file *.pdf)"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button class="cmd-send" id="cmd-send" title="Execute (Enter)">EXECUTE</button>
+        </div>
 
-      <!-- Autocomplete Dropdown -->
-      <div id="cmd-suggestions" class="cmd-suggestions hidden"></div>
+        <!-- Autocomplete Dropdown -->
+        <div id="cmd-suggestions" class="cmd-suggestions hidden"></div>
+      </div>
 
       <!-- Command result feedback -->
       <div class="cmd-result" id="cmd-result"></div>
