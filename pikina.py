@@ -85,7 +85,7 @@ def main():
         else:
             result = mcm.receive(raw, source="user_typed")
             status = result.get("status", "unknown")
-            icon   = "✓" if status == "ok" else ("✗" if status in ("error", "denied") else "→")
+            icon   = "[OK]" if status == "ok" else ("[X]" if status in ("error", "denied") else "->")
             print(f"  {icon} {result}")
 
 
