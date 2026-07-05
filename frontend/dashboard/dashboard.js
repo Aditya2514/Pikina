@@ -12,9 +12,9 @@ const BACKEND = (window.pikina && window.pikina.BACKEND) || 'http://localhost:50
 // ============================================================
 
 const canvas  = document.getElementById('reactor-canvas');
-const ctx     = canvas.getContext('2d');
-const CX      = canvas.width  / 2;
-const CY      = canvas.height / 2;
+const ctx     = canvas ? canvas.getContext('2d') : null;
+const CX      = canvas ? canvas.width  / 2 : 0;
+const CY      = canvas ? canvas.height / 2 : 0;
 
 // Reactor state: idle | thinking | listening
 let reactorState = 'idle';
@@ -230,6 +230,7 @@ function drawStatusText(colors) {
 }
 
 function drawFrame(ts) {
+  if (!ctx) return;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   const colors = STATE_COLORS[reactorState] || STATE_COLORS.idle;
@@ -271,7 +272,9 @@ function drawFrame(ts) {
   requestAnimationFrame(drawFrame);
 }
 
-requestAnimationFrame(drawFrame);
+if (canvas) {
+  requestAnimationFrame(drawFrame);
+}
 
 
 // ============================================================
