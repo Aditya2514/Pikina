@@ -2,6 +2,11 @@ import sqlite3
 import numpy as np
 from datetime import datetime, timezone
 import threading
+import os
+
+# Suppress the scary huggingface_hub symlink warning on Windows without Developer Mode
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class VectorStore:
     _instance = None
