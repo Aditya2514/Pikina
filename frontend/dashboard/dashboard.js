@@ -590,13 +590,28 @@ cmdInput.addEventListener('keydown', (e) => {
     const items = cmdSuggestions.querySelectorAll(".suggestion-item");
     if (e.key === "ArrowDown") {
       e.preventDefault();
+      if (selectedSuggestionIndex === -1) cmdInput.dataset.original = cmdInput.value;
       selectedSuggestionIndex = (selectedSuggestionIndex + 1) % currentSuggestions.length;
       updateSuggestionSelection(items);
+      cmdInput.value = currentSuggestions[selectedSuggestionIndex].text;
       return;
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      selectedSuggestionIndex = selectedSuggestionIndex <= 0 ? currentSuggestions.length - 1 : selectedSuggestionIndex - 1;
-      updateSuggestionSelection(items);
+      if (selectedSuggestionIndex === -1) {
+        cmdInput.dataset.original = cmdInput.value;
+        selectedSuggestionIndex = currentSuggestions.length - 1;
+      } else {
+        selectedSuggestionIndex = selectedSuggestionIndex - 1;
+      }
+      
+      if (selectedSuggestionIndex < 0) {
+        selectedSuggestionIndex = -1;
+        cmdInput.value = cmdInput.dataset.original || '';
+        updateSuggestionSelection(items);
+      } else {
+        updateSuggestionSelection(items);
+        cmdInput.value = currentSuggestions[selectedSuggestionIndex].text;
+      }
       return;
     } else if (e.key === "Enter" || e.key === "Tab") {
       if (selectedSuggestionIndex >= 0) {
