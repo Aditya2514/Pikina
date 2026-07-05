@@ -1,0 +1,25 @@
+{
+  "deadlines": [
+    {
+      "id": "1",
+      "title": "LexGuard CI tests",
+      "due": "2026-07-07",
+      "priority": "high",
+      "notes": "2 failing tests from last night"
+    },
+    {
+      "id": "2",
+      "title": "Pikina Phase 1 exit check",
+      "due": "2026-07-12",
+      "priority": "high",
+      "notes": "Use CLI for 3+ commands daily"
+    },
+    {
+      "id": "3",
+      "title": "Pikina frontend polish",
+      "due": "2026-07-14",
+      "priority": "medium",
+      "notes": "Session 1.5f — status ring glow only"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "tool": "app.open",
+  "description": "Launches an application by executable name or full path.",
+  "permission_level": 1,
+  "estimated_cost": 0.05,
+  "requires_network": false,
+  "supports_rollback": false,
+  "params_schema": {
+    "type": "object",
+    "required": ["path"],
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Executable name (e.g. 'code') or full path"
+      }
+    }
+  }
+}

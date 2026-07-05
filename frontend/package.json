@@ -1,0 +1,18 @@
+{
+  "name": "pikina-frontend",
+  "version": "0.1.0",
+  "description": "Pikina OS — JARVIS HUD Frontend",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  },
+  "author": "Aditya",
+  "license": "MIT"
+}

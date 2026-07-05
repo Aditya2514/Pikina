@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pikina OS — JARVIS HUD</title>
+  <meta name="description" content="Pikina OS personal operating layer dashboard" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/theme.css" />
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════════════════════
+       TITLE BAR (frameless window controls)
+  ════════════════════════════════════════════════════════════ -->
+  <div class="titlebar" id="titlebar">
+    <div class="titlebar-brand">
+      <span class="brand-pill">PIKINA OS</span>
+      <span class="brand-version">v0.1-phase1</span>
+    </div>
+    <div class="titlebar-clock">
+      <span id="clock-time" class="clock-time">--:--:--</span>
+      <span id="clock-date" class="clock-date">--- -- ----</span>
+    </div>
+    <div class="titlebar-controls">
+      <button class="wc-btn wc-min"   id="btn-min"   title="Minimize">—</button>
+      <button class="wc-btn wc-max"   id="btn-max"   title="Maximize">⬜</button>
+      <button class="wc-btn wc-close" id="btn-close" title="Close">✕</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       MAIN HUD LAYOUT
+  ════════════════════════════════════════════════════════════ -->
+  <div class="hud-layout">
+
+    <!-- LEFT COLUMN — System metrics -->
+    <aside class="col-left">
+
+      <!-- System info panel -->
+      <div class="panel panel-system" id="panel-system">
+        <div class="panel-header">SYSTEM DIAGNOSTICS</div>
+        <div class="metric-row">
+          <span class="metric-label">CPU</span>
+          <div class="bar-track"><div class="bar-fill bar-cpu" id="bar-cpu"></div></div>
+          <span class="metric-val" id="val-cpu">--%</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">RAM</span>
+          <div class="bar-track"><div class="bar-fill bar-ram" id="bar-ram"></div></div>
+          <span class="metric-val" id="val-ram">--%</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">DISK</span>
+          <div class="bar-track"><div class="bar-fill bar-disk" id="bar-disk"></div></div>
+          <span class="metric-val" id="val-disk">--%</span>
+        </div>
+        <div class="metric-row" id="row-battery">
+          <span class="metric-label">BAT</span>
+          <div class="bar-track"><div class="bar-fill bar-bat" id="bar-bat"></div></div>
+          <span class="metric-val" id="val-bat">--%</span>
+        </div>
+        <div class="sys-detail">
+          <span class="sys-kv"><span class="sk">RAM</span><span class="sv" id="detail-ram">-- / -- GB</span></span>
+          <span class="sys-kv"><span class="sk">DISK</span><span class="sv" id="detail-disk">-- / -- GB</span></span>
+          <span class="sys-kv"><span class="sk">CORES</span><span class="sv" id="detail-cores">--</span></span>
+          <span class="sys-kv"><span class="sk">PROFILE</span><span class="sv" id="detail-profile">--</span></span>
+        </div>
+      </div>
+
+      <!-- Event log panel -->
+      <div class="panel panel-events" id="panel-events">
+        <div class="panel-header">EVENT LOG <span class="panel-sub" id="event-count">—</span></div>
+        <div class="event-list" id="event-list">
+          <div class="event-item event-empty">Awaiting events...</div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- CENTER — Arc Reactor + status ring -->
+    <main class="col-center">
+
+      <!-- Backend status banner -->
+      <div class="backend-status" id="backend-status">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-label" id="status-label">CONNECTING...</span>
+        <span class="status-tier" id="status-tier">TIER 1</span>
+      </div>
+
+      <!-- THE ARC REACTOR -->
+      <div class="reactor-wrapper">
+        <canvas id="reactor-canvas" width="480" height="480"></canvas>
+        <div class="reactor-center-info">
+          <div class="reactor-state" id="reactor-state">IDLE</div>
+          <div class="reactor-sub">PIKINA CORE</div>
+        </div>
+      </div>
+
+      <!-- Command bar -->
+      <div class="command-bar">
+        <div class="cmd-prefix">›_</div>
+        <input
+          type="text"
+          id="cmd-input"
+          class="cmd-input"
+          placeholder="Type a command... (open vs code, lock screen, find file *.pdf)"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="cmd-send" id="cmd-send" title="Execute (Enter)">EXECUTE</button>
+      </div>
+
+      <!-- Command result feedback -->
+      <div class="cmd-result" id="cmd-result"></div>
+
+    </main>
+
+    <!-- RIGHT COLUMN — Weather, deadlines, actions -->
+    <aside class="col-right">
+
+      <!-- Weather panel -->
+      <div class="panel panel-weather" id="panel-weather">
+        <div class="panel-header">ATMOSPHERE</div>
+        <div class="weather-main">
+          <div class="weather-temp" id="weather-temp">--°</div>
+          <div class="weather-icon" id="weather-icon">◈</div>
+        </div>
+        <div class="weather-desc" id="weather-desc">Loading...</div>
+        <div class="weather-details">
+          <span class="wd-kv"><span class="wk">CITY</span><span class="wv" id="w-city">--</span></span>
+          <span class="wd-kv"><span class="wk">FEELS</span><span class="wv" id="w-feels">--°</span></span>
+          <span class="wd-kv"><span class="wk">HUMIDITY</span><span class="wv" id="w-humidity">--%</span></span>
+          <span class="wd-kv"><span class="wk">WIND</span><span class="wv" id="w-wind">-- km/h</span></span>
+        </div>
+      </div>
+
+      <!-- Deadlines panel -->
+      <div class="panel panel-deadlines" id="panel-deadlines">
+        <div class="panel-header">OBJECTIVES</div>
+        <div class="deadline-list" id="deadline-list">
+          <div class="deadline-empty">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Quick action buttons -->
+      <div class="panel panel-actions" id="panel-actions">
+        <div class="panel-header">ACTIONS</div>
+        <div class="action-grid">
+          <button class="action-btn" id="act-panel"  data-cmd="open quick panel"  title="Quick Panel">
+            <span class="action-icon">⌨</span>
+            <span class="action-label">PANEL</span>
+          </button>
+          <button class="action-btn" id="act-clip"   data-cmd="clipboard"         title="Clipboard">
+            <span class="action-icon">📋</span>
+            <span class="action-label">CLIP</span>
+          </button>
+          <button class="action-btn" id="act-events" data-action="refresh-events" title="Refresh Events">
+            <span class="action-icon">↺</span>
+            <span class="action-label">EVENTS</span>
+          </button>
+          <button class="action-btn" id="act-lock"   data-cmd="lock screen"       title="Lock Screen">
+            <span class="action-icon">🔒</span>
+            <span class="action-label">LOCK</span>
+          </button>
+          <button class="action-btn action-btn--kill" id="act-kill" title="KILL SWITCH — Halt all processes">
+            <span class="action-icon">⏻</span>
+            <span class="action-label">KILL</span>
+          </button>
+        </div>
+      </div>
+
+    </aside>
+  </div><!-- /hud-layout -->
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

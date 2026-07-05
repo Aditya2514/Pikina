@@ -1,0 +1,173 @@
+"""
+Pikina OS — Backend API Server (Phase 1.5)
+Bridges the Python Phase 1 core to the Electron frontend.
+Runs on localhost:5001 only — never exposed externally.
+"""
+import os
+import sys
+import json
+import requests
+from pathlib import Path
+from datetime import datetime, timezone
+
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+
+# Ensure project root is on the path
+sys.path.insert(0, str(Path(__file__).parent))
+
+# Load .env if present
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+from core.eventbus.bus import EventBus
+from core.eventbus.replay import ReplayStore
+from core.governor.telemetry import get_telemetry
+from core.governor.profiles import get_profile, set_profile, PROFILE_WEIGHTS
+from core.registry.loader import CapabilityRegistry
+from core.router.tier1_win32 import Tier1Router
+from core.mcm.orchestrator import Orchestrator
+
+# ---------------------------------------------------------------------------
+# App init
+# ---------------------------------------------------------------------------
+app = Flask(__name__)
+CORS(app, origins=["http://localhost:*", "null", "file://*"])
+
+bus      = EventBus()
+registry = CapabilityRegistry()
+router   = Tier1Router(registry=registry)
+mcm      = Orchestrator(router=router)
+
+OPENWEATHER_KEY  = os.getenv("OPENWEATHER_API_KEY", "")
+OPENWEATHER_CITY = os.getenv("OPENWEATHER_CITY", "Mumbai")
+PORT             = int(os.getenv("BACKEND_PORT", 5001))
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+@app.route("/api/status")
+def status():
+    return jsonify({
+        "status":    "online",
+        "version":   "0.1.0-phase1",
+        "profile":   get_profile(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
+
+
+@app.route("/api/telemetry")
+def telemetry():
+    return jsonify(get_telemetry())
+
+
+@app.route("/api/events")
+def events():
+    since  = int(request.args.get("since", 30))
+    topic  = request.args.get("topic") or None
+    store  = ReplayStore()
+    data   = store.query(since_minutes=since, topic=topic)
+    return jsonify({"events": data, "count": len(data)})
+
+
+@app.route("/api/command", methods=["POST"])
+def command():
+    body   = request.get_json(force=True, silent=True) or {}
+    text   = (body.get("text") or "").strip()
+    source = body.get("source", "user_typed")
+
+    if not text:
+        return jsonify({"status": "error", "reason": "Empty command"}), 400
+
+    result = mcm.receive(text, source=source)
+    return jsonify(result)
+
+
+@app.route("/api/tools")
+def tools():
+    return jsonify({"tools": registry.list_tools()})
+
+
+@app.route("/api/profile", methods=["GET"])
+def get_profile_route():
+    return jsonify({
+        "profile":   get_profile(),
+        "available": list(PROFILE_WEIGHTS.keys()),
+    })
+
+
+@app.route("/api/profile", methods=["POST"])
+def set_profile_route():
+    body    = request.get_json(force=True, silent=True) or {}
+    profile = body.get("profile", "productivity")
+    try:
+        set_profile(profile)
+        return jsonify({"status": "ok", "profile": profile})
+    except ValueError as exc:
+        return jsonify({"status": "error", "reason": str(exc)}), 400
+
+
+@app.route("/api/weather")
+def weather():
+    if not OPENWEATHER_KEY:
+        return jsonify({
+            "error": "OPENWEATHER_API_KEY not configured",
+            "hint":  "Add OPENWEATHER_API_KEY=<key> to your .env file",
+        }), 503
+
+    city = request.args.get("city", OPENWEATHER_CITY)
+    try:
+        resp = requests.get(
+            "https://api.openweathermap.org/data/2.5/weather",
+            params={"q": city, "appid": OPENWEATHER_KEY, "units": "metric"},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        d = resp.json()
+        return jsonify({
+            "city":        d["name"],
+            "country":     d["sys"]["country"],
+            "temp_c":      round(d["main"]["temp"]),
+            "feels_like":  round(d["main"]["feels_like"]),
+            "humidity":    d["main"]["humidity"],
+            "description": d["weather"][0]["description"].title(),
+            "icon_code":   d["weather"][0]["icon"],
+            "wind_kmh":    round(d["wind"]["speed"] * 3.6),
+        })
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "Weather API timed out"}), 504
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@app.route("/api/deadlines", methods=["GET"])
+def get_deadlines():
+    dl_file = Path(__file__).parent / "data" / "deadlines.json"
+    if dl_file.exists():
+        return jsonify(json.loads(dl_file.read_text(encoding="utf-8")))
+    return jsonify({"deadlines": []})
+
+
+@app.route("/api/deadlines", methods=["POST"])
+def save_deadlines():
+    body    = request.get_json(force=True, silent=True) or {}
+    dl_file = Path(__file__).parent / "data" / "deadlines.json"
+    dl_file.parent.mkdir(exist_ok=True)
+    dl_file.write_text(json.dumps(body, indent=2), encoding="utf-8")
+    return jsonify({"status": "ok"})
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    print(f"\n{'='*55}")
+    print(f"  Pikina OS Backend  —  http://localhost:{PORT}")
+    print(f"  Profile : {get_profile()}")
+    print(f"  Weather : {OPENWEATHER_CITY}")
+    print(f"{'='*55}\n")
+    app.run(host="127.0.0.1", port=PORT, debug=False, use_reloader=False)

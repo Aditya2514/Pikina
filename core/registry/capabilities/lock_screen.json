@@ -1,0 +1,12 @@
+{
+  "tool": "system.lock_screen",
+  "description": "Locks the Windows workstation immediately via LockWorkStation().",
+  "permission_level": 1,
+  "estimated_cost": 0.01,
+  "requires_network": false,
+  "supports_rollback": false,
+  "params_schema": {
+    "type": "object",
+    "properties": {}
+  }
+}

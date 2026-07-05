@@ -1,0 +1,217 @@
+/* Pikina OS — Quick Panel Styles */
+
+html, body {
+  width:  480px;
+  height: 340px;
+  background: transparent;
+  overflow: hidden;
+}
+
+.panel-shell {
+  width:  100%;
+  height: 100%;
+  background: rgba(2, 10, 22, 0.96);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px rgba(0, 212, 255, 0.08),
+    0 0 40px rgba(0, 212, 255, 0.12),
+    0 20px 60px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle corner brackets */
+.panel-shell::before,
+.panel-shell::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-color: rgba(0, 212, 255, 0.4);
+  border-style: solid;
+}
+.panel-shell::before { top: 6px; left: 6px;   border-width: 1px 0 0 1px; }
+.panel-shell::after  { bottom: 6px; right: 6px; border-width: 0 1px 1px 0; }
+
+/* ── Status bar ── */
+.panel-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* THE signature element: glowing status ring */
+.status-ring {
+  width:  28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--c-cyan);
+  box-shadow:
+    0 0 8px  var(--c-cyan-glow),
+    0 0 16px rgba(0, 212, 255, 0.25),
+    inset 0 0 8px rgba(0, 212, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--tx-slow), box-shadow var(--tx-slow);
+  animation: ring-pulse 3s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.status-ring.thinking {
+  border-color: var(--c-warn);
+  box-shadow: 0 0 8px rgba(255,140,0,0.6), 0 0 20px rgba(255,140,0,0.3), inset 0 0 8px rgba(255,140,0,0.15);
+  animation: ring-spin 1s linear infinite;
+}
+
+.status-ring.listening {
+  border-color: var(--c-ok);
+  box-shadow: 0 0 8px rgba(0,255,136,0.6), 0 0 20px rgba(0,255,136,0.3), inset 0 0 8px rgba(0,255,136,0.15);
+}
+
+@keyframes ring-pulse {
+  0%, 100% { box-shadow: 0 0 8px var(--c-cyan-glow), 0 0 16px rgba(0,212,255,0.25), inset 0 0 8px rgba(0,212,255,0.15); }
+  50%       { box-shadow: 0 0 14px var(--c-cyan-glow), 0 0 28px rgba(0,212,255,0.35), inset 0 0 12px rgba(0,212,255,0.2); }
+}
+
+@keyframes ring-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ring-inner {
+  width:  10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--c-cyan);
+  box-shadow: 0 0 8px var(--c-cyan);
+  transition: background var(--tx-slow);
+}
+
+.status-text {
+  font-family: var(--font-hud);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--c-cyan);
+  flex: 1;
+  transition: color var(--tx-slow);
+}
+
+.tier-badge {
+  font-family: var(--font-hud);
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--c-text-dim);
+  background: rgba(0,212,255,0.06);
+  border: 1px solid var(--c-panel-border);
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+
+/* ── Quick action grid ── */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.qb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  background: rgba(0, 212, 255, 0.04);
+  border: 1px solid var(--c-panel-border);
+  border-radius: 3px;
+  transition: all var(--tx-fast);
+  cursor: pointer;
+}
+
+.qb:hover {
+  background: rgba(0, 212, 255, 0.12);
+  border-color: var(--c-cyan);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,212,255,0.15);
+}
+
+.qb:active { transform: scale(0.94); }
+
+.qb-icon { font-size: 16px; }
+.qb-lbl  {
+  font-family: var(--font-hud);
+  font-size: 6px;
+  letter-spacing: 1.5px;
+  color: var(--c-text-dim);
+}
+
+/* Kill switch — always visually distinct */
+.qb--kill {
+  background: rgba(255, 45, 85, 0.06);
+  border-color: rgba(255, 45, 85, 0.25);
+}
+.qb--kill .qb-icon { color: var(--c-danger); }
+.qb--kill .qb-lbl  { color: var(--c-danger); }
+.qb--kill:hover {
+  background: rgba(255, 45, 85, 0.15);
+  border-color: var(--c-danger);
+  box-shadow: 0 4px 16px rgba(255,45,85,0.3);
+}
+
+/* ── Command input ── */
+.panel-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 212, 255, 0.05);
+  border: 1px solid var(--c-panel-border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  transition: border-color var(--tx-fast);
+}
+
+.panel-input-row:focus-within {
+  border-color: var(--c-cyan);
+  box-shadow: 0 0 0 1px rgba(0,212,255,0.15);
+}
+
+.panel-prefix {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--c-cyan);
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.panel-input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--c-text-bright);
+  background: transparent;
+  caret-color: var(--c-cyan);
+  user-select: text;
+}
+
+.panel-input::placeholder {
+  color: var(--c-text-dim);
+  font-size: 10px;
+}
+
+/* ── Result ── */
+.panel-result {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--c-text-dim);
+  text-align: center;
+  min-height: 16px;
+  transition: color var(--tx-fast);
+}
+.panel-result.ok     { color: var(--c-ok); }
+.panel-result.error  { color: var(--c-danger); }

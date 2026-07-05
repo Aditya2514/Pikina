@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Capability Manifest",
+  "description": "Every capability in the registry must conform to this schema.",
+  "type": "object",
+  "required": ["tool", "description", "permission_level", "estimated_cost", "requires_network", "supports_rollback"],
+  "properties": {
+    "tool": {
+      "type": "string",
+      "description": "Unique dot-namespaced identifier, e.g. 'app.open', 'git.commit'"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description shown in consent dialogs and logs."
+    },
+    "permission_level": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5,
+      "description": "0=read-only, 1=interface, 2=file-write, 3=state-mutation, 4=destructive, 5=financial/identity"
+    },
+    "estimated_cost": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Normalized resource cost estimate [0, 1] for the Resource Governor."
+    },
+    "requires_network": {
+      "type": "boolean"
+    },
+    "supports_rollback": {
+      "type": "boolean",
+      "description": "If false, this action gets Level-4-style explicit confirmation regardless of declared level."
+    },
+    "rollback_action": {
+      "type": "string",
+      "description": "Tool name to call to undo this action. Required when supports_rollback=true."
+    },
+    "params_schema": {
+      "type": "object",
+      "description": "JSON Schema fragment for accepted params. Used by the Action Validation Layer."
+    }
+  }
+}

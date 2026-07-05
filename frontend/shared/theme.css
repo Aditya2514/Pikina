@@ -1,0 +1,81 @@
+/* =====================================================================
+   Pikina OS — Shared Theme
+   Design system tokens & global resets.
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
+
+/* ── Tokens ── */
+:root {
+  /* Colors */
+  --c-bg:           #020810;
+  --c-bg-deep:      #010508;
+  --c-panel:        rgba(0, 18, 36, 0.88);
+  --c-panel-border: rgba(0, 212, 255, 0.18);
+  --c-cyan:         #00d4ff;
+  --c-cyan-dim:     #006d99;
+  --c-cyan-glow:    rgba(0, 212, 255, 0.55);
+  --c-cyan-faint:   rgba(0, 212, 255, 0.08);
+  --c-text:         #c8f0fa;
+  --c-text-dim:     rgba(200, 240, 250, 0.5);
+  --c-text-bright:  #e8f8ff;
+  --c-warn:         #ff8c00;
+  --c-danger:       #ff2d55;
+  --c-ok:           #00ff88;
+  --c-grid:         rgba(0, 212, 255, 0.04);
+
+  /* Typography */
+  --font-hud:   'Orbitron', sans-serif;
+  --font-mono:  'Share Tech Mono', monospace;
+
+  /* Spacing */
+  --gap-sm:  8px;
+  --gap-md:  14px;
+  --gap-lg:  20px;
+
+  /* Borders */
+  --radius:  4px;
+
+  /* Transitions */
+  --tx-fast:  150ms ease;
+  --tx-slow:  400ms ease;
+}
+
+/* ── Reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width:  100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font-mono);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button {
+  cursor: pointer;
+  font-family: var(--font-hud);
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input {
+  font-family: var(--font-mono);
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--c-text-bright);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--c-cyan-dim); border-radius: 2px; }

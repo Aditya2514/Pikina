@@ -1,0 +1,26 @@
+{
+  "tool": "fs.find_file",
+  "description": "Searches for files matching a name pattern within a root directory.",
+  "permission_level": 0,
+  "estimated_cost": 0.05,
+  "requires_network": false,
+  "supports_rollback": false,
+  "params_schema": {
+    "type": "object",
+    "required": ["name"],
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "File name or glob pattern (e.g. '*.pdf', 'resume*')"
+      },
+      "root": {
+        "type": "string",
+        "description": "Root directory to search from. Defaults to user home directory."
+      },
+      "max_results": {
+        "type": "integer",
+        "description": "Maximum results to return. Default 20."
+      }
+    }
+  }
+}
