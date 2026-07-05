@@ -5,3 +5,7 @@ pywin32>=306
 watchdog>=3.0.0
 requests>=2.31.0
 python-dotenv>=1.0.0
+sentence-transformers>=3.0.0
+torch>=2.3.0
+networkx>=3.0.0
+

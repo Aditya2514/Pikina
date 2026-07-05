@@ -33,6 +33,8 @@ from core.mcm.orchestrator import Orchestrator
 from core.daemons.file_indexer import FileIndexerDaemon
 from core.daemons.clipboard import ClipboardDaemon
 from core.daemons.file_watcher import FileWatcherDaemon
+from core.memory.trust_engine import TrustEngine
+from core.memory.forgetting_engine import ForgettingEngine
 import atexit
 
 # ---------------------------------------------------------------------------
@@ -51,6 +53,13 @@ OPENWEATHER_CITY = os.getenv("OPENWEATHER_CITY", "Mumbai")
 PORT             = int(os.getenv("BACKEND_PORT", 5001))
 
 # Start Background Daemons
+print("[Backend] Initializing Memory Systems...")
+trust_engine = TrustEngine(bus=bus)
+
+forgetting_engine = ForgettingEngine(sweep_interval_sec=3600, max_age_hours=24, promotion_threshold=3)
+forgetting_engine.start()
+
+print("[Backend] Initializing Sensory Daemons...")
 indexer_daemon = FileIndexerDaemon()
 indexer_daemon.start()
 
@@ -61,9 +70,11 @@ watcher_daemon = FileWatcherDaemon(bus=bus)
 watcher_daemon.start()
 
 def cleanup_daemons():
+    print("\n[Backend] Shutting down daemons...")
     indexer_daemon.stop()
     clipboard_daemon.stop()
     watcher_daemon.stop()
+    forgetting_engine.stop()
 
 atexit.register(cleanup_daemons)
 
