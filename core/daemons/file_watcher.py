@@ -19,11 +19,17 @@ class _FileEventHandler(FileSystemEventHandler):
             self._publish_event("fs.file_modified", event.src_path)
 
     def _publish_event(self, topic, path):
-        # We don't want to publish temp files from browsers like .crdownload or .tmp
+        # 1. Ignore browser temp files
         ext = os.path.splitext(path)[1].lower()
-        if ext in ('.crdownload', '.tmp', '.part'):
+        if ext in {'.crdownload', '.tmp', '.part'}:
             return
-            
+
+        # 2. Ignore anything inside the Pikina project root to prevent feedback loops
+        #    __file__ is core/daemons/file_watcher.py, so parent.parent.parent is Pikina root
+        project_root = str(Path(__file__).parent.parent.parent.resolve())
+        if str(Path(path).resolve()).startswith(project_root):
+            return
+
         self.bus.publish(
             topic=topic,
             payload={"path": path},
@@ -54,3 +60,4 @@ class FileWatcherDaemon:
     def stop(self):
         self.observer.stop()
         self.observer.join(timeout=2.0)
+
