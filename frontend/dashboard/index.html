@@ -73,12 +73,11 @@
       </div>
 
       <!-- Chronology (Calendar) panel -->
-      <div class="panel panel-calendar collapsed" id="panel-calendar" style="width: 100%; margin-top: 12px; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); max-height: 42px; overflow: hidden;">
-        <div class="panel-header" id="panel-calendar-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; width: 100%; margin-bottom: 0; border-bottom: none;">
+      <div class="panel panel-calendar" id="panel-calendar" style="width: 100%; margin-top: 12px; cursor: pointer; user-select: none;">
+        <div class="panel-header" style="margin-bottom: 0; border-bottom: none; display: flex; justify-content: space-between; align-items: center; width: 100%;">
           <span>CHRONOLOGY</span>
-          <span class="panel-sub" id="calendar-toggle-icon">[+]</span>
+          <span class="panel-sub" style="font-family: var(--font-hud); color: var(--c-cyan); font-weight: bold; letter-spacing: 1px;">[OPEN]</span>
         </div>
-        <div id="calendar" style="padding: 12px 4px 4px 4px; display: none;"></div>
       </div>
 
     </aside>
@@ -202,6 +201,15 @@
       <button class="cmd-send" id="settings-save-btn" style="width: 100%; margin-top: 8px;">SAVE SETTINGS</button>
       <div id="settings-status" style="font-family: 'Consolas', monospace; font-size: 11px; color: var(--c-ok); min-height: 14px;"></div>
     </div>
+  </div>
+
+  <!-- Detailed Calendar Modal -->
+  <div class="modal-panel hidden panel" id="panel-calendar-modal" style="width: 800px; max-width: 90vw; height: 600px; max-height: 80vh; z-index: 1000; display: flex; flex-direction: column;">
+    <div class="panel-header">
+      CHRONOLOGY DETAILED VIEW
+      <button class="modal-close" id="modal-close-calendar" title="Close">✕</button>
+    </div>
+    <div id="calendar" style="flex-grow: 1; padding: 12px; min-height: 0; overflow-y: auto;"></div>
   </div>
 
   <script src="../node_modules/@fullcalendar/core/index.global.min.js"></script>

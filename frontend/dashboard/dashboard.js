@@ -1078,54 +1078,35 @@ function initCalendar() {
 // Initialize calendar
 initCalendar();
 
-// Toggle Chronology Collapsible Panel
-const panelCalendar = document.getElementById('panel-calendar');
-const calendarHeader = document.getElementById('panel-calendar-header');
-const calendarToggleIcon = document.getElementById('calendar-toggle-icon');
-const calendarEl = document.getElementById('calendar');
+// Toggle Chronology Modal (Popup detailed view)
+const btnOpenCalendarModal = document.getElementById('panel-calendar');
+const modalCalendar = document.getElementById('panel-calendar-modal');
+const btnCloseCalendarModal = document.getElementById('modal-close-calendar');
 
-if (panelCalendar && calendarHeader) {
-  calendarHeader.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isCollapsed = panelCalendar.classList.contains('collapsed');
-    if (isCollapsed) {
-      // Expand panel
-      panelCalendar.classList.remove('collapsed');
-      panelCalendar.classList.add('expanded');
-      panelCalendar.style.maxHeight = '500px';
-      
-      // Update header styling for open state
-      calendarHeader.style.marginBottom = 'var(--gap-md)';
-      calendarHeader.style.borderBottom = '1px solid var(--c-panel-border)';
-      
-      calendarToggleIcon.textContent = '[-]';
-      calendarEl.style.display = 'block';
-      
-      // Force FullCalendar to recalculate size since it was hidden
-      setTimeout(() => {
-        if (calendarObj) {
-          calendarObj.updateSize();
-        }
-      }, 50);
-    } else {
-      // Collapse panel
-      panelCalendar.classList.remove('expanded');
-      panelCalendar.classList.add('collapsed');
-      panelCalendar.style.maxHeight = '42px';
-      
-      // Update header styling for collapsed state
-      calendarHeader.style.marginBottom = '0';
-      calendarHeader.style.borderBottom = 'none';
-      
-      calendarToggleIcon.textContent = '[+]';
-      
-      // Wait for transition before hiding element
-      setTimeout(() => {
-        if (panelCalendar.classList.contains('collapsed')) {
-          calendarEl.style.display = 'none';
-        }
-      }, 300);
-    }
+if (btnOpenCalendarModal && modalCalendar && modalBackdrop) {
+  btnOpenCalendarModal.addEventListener('click', () => {
+    modalCalendar.classList.remove('hidden');
+    modalBackdrop.classList.remove('hidden');
+    
+    // Force FullCalendar to recalculate bounds after making container visible
+    setTimeout(() => {
+      if (calendarObj) {
+        calendarObj.updateSize();
+      }
+    }, 50);
+  });
+}
+
+if (btnCloseCalendarModal) {
+  btnCloseCalendarModal.addEventListener('click', () => {
+    modalCalendar.classList.add('hidden');
+    modalBackdrop.classList.add('hidden');
+  });
+}
+
+if (modalBackdrop) {
+  modalBackdrop.addEventListener('click', () => {
+    if (modalCalendar) modalCalendar.classList.add('hidden');
   });
 }
 
