@@ -69,6 +69,15 @@ clipboard_daemon.start()
 watcher_daemon = FileWatcherDaemon(bus=bus)
 watcher_daemon.start()
 
+# Sync India public holidays for the current year at startup
+try:
+    from core.calendar.holiday_sync import sync_year
+    from datetime import datetime
+    sync_res = sync_year(datetime.now().year)
+    print(f"[Backend] Public holidays synced: {sync_res}")
+except Exception as e:
+    print(f"[Backend] Failed to sync public holidays: {e}")
+
 def cleanup_daemons():
     print("\n[Backend] Shutting down daemons...")
     indexer_daemon.stop()
@@ -201,6 +210,42 @@ def get_deadlines():
 def save_deadlines():
     # Deprecated/NOP since we now use proper todo capabilities to write to SQLite
     return jsonify({"status": "ok", "message": "Deprecated. Use todo.add capability."})
+
+@app.route("/api/calendar", methods=["GET"])
+def get_calendar_events():
+    start_str = request.args.get("start")
+    end_str = request.args.get("end")
+    
+    if not start_str or not end_str:
+        from datetime import date, timedelta
+        start_date = date.today().isoformat()
+        end_date = (date.today() + timedelta(days=30)).isoformat()
+    else:
+        start_date = start_str.split("T")[0]
+        end_date = end_str.split("T")[0]
+
+    from core.calendar.calendar_store import CalendarStore
+    store = CalendarStore()
+    events = store.query_range(start_date, end_date)
+    
+    fc_events = []
+    for ev in events:
+        start_val = ev["date"]
+        if ev.get("time"):
+            start_val += f"T{ev['time']}:00"
+            
+        fc_events.append({
+            "id": ev["id"],
+            "title": ev["title"],
+            "start": start_val,
+            "allDay": not ev.get("time"),
+            "extendedProps": {
+                "type": ev["type"],
+                "source": ev["source"],
+                "recurring": ev["recurring"]
+            }
+        })
+    return jsonify(fc_events)
 
 from core.memory.graph_cache import GraphCache
 graph_cache = GraphCache()

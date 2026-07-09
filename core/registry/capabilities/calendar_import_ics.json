@@ -1,0 +1,19 @@
+{
+  "tool": "calendar.import_ics",
+  "description": "Imports events from an iCalendar (.ics) file into your local calendar.",
+  "permission_level": 0,
+  "estimated_cost": 0.05,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["filepath"],
+    "properties": {
+      "filepath": {
+        "type": "string",
+        "description": "Absolute path to the .ics file."
+      }
+    }
+  }
+}
