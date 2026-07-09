@@ -46,7 +46,7 @@ def test_backend_api():
     
     for path, method in endpoints.items():
         try:
-            r = urllib.request.urlopen(f"http://localhost:5001{path}", timeout=5)
+            r = urllib.request.urlopen(f"http://127.0.0.1:5001{path}", timeout=5)
             data = json.loads(r.read().decode())
             record("Backend API", f"{method} {path}", True, f"HTTP {r.status}")
         except Exception as e:
@@ -55,7 +55,7 @@ def test_backend_api():
     # POST test
     try:
         body = json.dumps({"text": "open notepad"}).encode()
-        req = urllib.request.Request("http://localhost:5001/api/command", data=body, 
+        req = urllib.request.Request("http://127.0.0.1:5001/api/command", data=body, 
                                      headers={"Content-Type": "application/json"})
         r = urllib.request.urlopen(req, timeout=10)
         data = json.loads(r.read().decode())
@@ -413,6 +413,17 @@ if __name__ == "__main__":
     print(f"  PIKINA OS — DEEP SYSTEM SCAN")
     print(f"  Phases 1 through 3")
     print(f"{'═'*60}")
+    
+    # Clean old test data to ensure corroboration/dedup checks don't bypass test insertions
+    try:
+        from core.memory.vector_store import VectorStore
+        vs = VectorStore()
+        with sqlite3.connect(vs.db_path) as conn:
+            conn.execute("DELETE FROM ephemeral_vectors WHERE id LIKE 'deepscan%' OR content LIKE '%TrustEngineTest%'")
+            conn.execute("DELETE FROM permanent_vectors WHERE id LIKE 'deepscan%' OR content LIKE '%TrustedTest%'")
+            conn.commit()
+    except Exception as e:
+        print(f"Warning: Failed to clean old test data: {e}")
     
     test_backend_api()
     test_event_bus()
