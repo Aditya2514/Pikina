@@ -11,7 +11,7 @@ def run(params: dict) -> dict:
     if not title:
         return {"status": "error", "reason": "Missing required param: 'title'"}
     if not date_input:
-        return {"status": "error", "reason": "Missing required param: 'date'"}
+        return {"status": "error", "reason": "Please specify a date/time using 'on' or 'at' (e.g. 'add event dentist on tomorrow at 3pm')."}
 
     parsed_date = date_input
     parsed_time = time_input

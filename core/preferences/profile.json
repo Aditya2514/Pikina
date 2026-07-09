@@ -1,0 +1,10 @@
+{
+  "preferred_name": "Aditya",
+  "formality": "casual",
+  "verbosity": "concise",
+  "humor": "occasional",
+  "quiet_hours": [
+    "23:00",
+    "07:00"
+  ]
+}

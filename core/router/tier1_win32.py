@@ -98,13 +98,22 @@ ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
     # Add event (explicit "on" or "at" connector)
     (re.compile(r"add\s+(?:appointment|event|meeting)\s+(?P<title>.+?)\s+(?:on|at|date)\s+(?P<date>.+)", re.I), "calendar.add_event", _calendar_add_params),
     # Add event (fallback/simple trigger)
-    (re.compile(r"add\s+(?:appointment|event|meeting)\s+(?P<title>.+)", re.I), lambda m: {"status": "error", "reason": "Please specify a date/time using 'on' or 'at' (e.g. 'add event dentist on tomorrow at 3pm')."}),
+    (re.compile(r"add\s+(?:appointment|event|meeting)\s+(?P<title>.+)", re.I), "calendar.add_event", lambda m: {"title": m.group("title"), "date": ""}),
     # Query calendar range ("this week", "next week")
     (re.compile(r"what(?:\s+do\s+I\s+have|\s+'s|\s+is\s+happening)?\s+(?P<range>(?:this|next)\s+week)\b", re.I), "calendar.query", _calendar_range_params),
     # Query calendar date
     (re.compile(r"what(?:'s|is)\s+on\s+(?P<date>.+)", re.I),          "calendar.query",    lambda m: {"date": m.group("date")}),
     # Remove event
     (re.compile(r"(?:remove|delete)\s+(?:event|appointment)\s+(?P<text>.+)", re.I), "calendar.remove_event", lambda m: {"text": m.group("text")}),
+    # --- Phase 3.5f: Preferences Profile management ---
+    # Preferred name: "call me Aditya" or "call me John"
+    (re.compile(r"call\s+me\s+(?P<name>.+)", re.I),                   "prefs.update",      lambda m: {"field": "preferred_name", "value": m.group("name")}),
+    # Formality: "be formal" or "be casual"
+    (re.compile(r"be\s+(?P<form>casual|formal|neutral)", re.I),       "prefs.update",      lambda m: {"field": "formality", "value": m.group("form")}),
+    # Verbosity: "be concise" or "be detailed"
+    (re.compile(r"be\s+(?P<verb>concise|detailed|balanced)", re.I),   "prefs.update",      lambda m: {"field": "verbosity", "value": m.group("verb")}),
+    # Quiet hours: "quiet hours from 23:00 to 07:00"
+    (re.compile(r"quiet\s+hours\s+from\s+(?P<start>\d{2}:\d{2})\s+to\s+(?P<end>\d{2}:\d{2})", re.I), "prefs.update", lambda m: {"field": "quiet_hours", "value": [m.group("start"), m.group("end")]}),
 ]
 
 

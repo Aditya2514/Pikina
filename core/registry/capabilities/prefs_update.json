@@ -1,0 +1,23 @@
+{
+  "tool": "prefs.update",
+  "description": "Updates a specific field in your conversational preferences profile.",
+  "permission_level": 0,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["field", "value"],
+    "properties": {
+      "field": {
+        "type": "string",
+        "enum": ["preferred_name", "formality", "verbosity", "humor", "quiet_hours"],
+        "description": "The profile field to update."
+      },
+      "value": {
+        "description": "The new value to assign. Can be string or array for quiet_hours."
+      }
+    }
+  }
+}
