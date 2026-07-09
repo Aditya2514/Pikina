@@ -13,11 +13,35 @@ let dashboardWindow = null;
 let panelWindow     = null;
 let tray            = null;
 
+// Single Instance Lock: Prevent duplicate processes from spawning and choking resources
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+  return;
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (dashboardWindow) {
+      if (dashboardWindow.isMinimized()) dashboardWindow.restore();
+      dashboardWindow.show();
+      dashboardWindow.focus();
+    }
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Dashboard window
 // ---------------------------------------------------------------------------
 
 function createDashboard() {
+  // Load icon safely — don't crash if file is missing/corrupt
+  let winIcon;
+  try {
+    winIcon = nativeImage.createFromPath(path.join(__dirname, 'shared', 'icon.png'));
+    if (winIcon.isEmpty()) winIcon = nativeImage.createEmpty();
+  } catch (_) {
+    winIcon = nativeImage.createEmpty();
+  }
+
   dashboardWindow = new BrowserWindow({
     width:  1280,
     height: 800,
@@ -28,12 +52,40 @@ function createDashboard() {
     titleBarStyle: 'hidden',
     transparent: false,
     resizable: true,
+    show: false,  // Hidden until ready-to-show fires
     webPreferences: {
       preload:          path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration:  false,
     },
-    icon: path.join(__dirname, 'shared', 'icon.png'),
+    icon: winIcon,
+  });
+
+  // Guarantee the window becomes visible once DOM is ready
+  dashboardWindow.once('ready-to-show', () => {
+    console.log('[Main] ready-to-show fired — showing dashboard');
+    dashboardWindow.center();
+    dashboardWindow.setAlwaysOnTop(true); // Force to front of all windows
+    dashboardWindow.show();
+    dashboardWindow.focus();
+    // Release always-on-top after 3 seconds
+    setTimeout(() => {
+      if (dashboardWindow) dashboardWindow.setAlwaysOnTop(false);
+    }, 3000);
+  });
+
+  // Fallback: force-show after 5s if ready-to-show never fires
+  setTimeout(() => {
+    if (dashboardWindow && !dashboardWindow.isVisible()) {
+      console.log('[Main] Fallback: forcing dashboard show after timeout');
+      dashboardWindow.show();
+      dashboardWindow.focus();
+    }
+  }, 5000);
+
+  // Log any page load failures
+  dashboardWindow.webContents.on('did-fail-load', (event, errorCode, errorDesc) => {
+    console.error('[Main] Dashboard failed to load:', errorCode, errorDesc);
   });
 
   dashboardWindow.loadFile(path.join(__dirname, 'dashboard', 'index.html'));
