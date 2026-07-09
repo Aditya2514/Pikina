@@ -815,4 +815,52 @@ body::after {
   overflow: hidden;
 }
 
+/* --- Mini Calendar Sidebar Styling Overrides --- */
+#calendar-mini {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px !important;
+}
+#calendar-mini .fc-header-toolbar,
+#calendar-mini .fc-toolbar {
+  display: flex !important;
+  margin-bottom: 4px !important;
+  justify-content: center !important;
+}
+#calendar-mini .fc-toolbar-title {
+  font-size: 10px !important;
+  text-shadow: none !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.5px !important;
+  color: var(--c-cyan) !important;
+}
+#calendar-mini .fc-theme-standard th {
+  padding: 2px 0 !important;
+  font-size: 8px !important;
+  font-weight: 500 !important;
+}
+#calendar-mini .fc-daygrid-day-number {
+  font-size: 8px !important;
+  padding: 1px !important;
+  color: #778f9f !important;
+}
+#calendar-mini .fc-daygrid-event {
+  font-size: 7px !important;
+  padding: 0 1px !important;
+  margin: 0.5px 0.5px !important;
+  line-height: 1.1 !important;
+  border-width: 1px !important;
+}
+#calendar-mini .fc-event-title {
+  font-size: 7px !important;
+}
+#calendar-mini .fc-daygrid-day-frame {
+  min-height: 28px !important; /* Slightly taller to allow 1 compact event line */
+}
+#calendar-mini .fc-day-today {
+  background: rgba(0, 212, 255, 0.15) !important;
+}
+#calendar-mini .fc-daygrid-day-bg {
+  z-index: 1 !important;
+}
+
 

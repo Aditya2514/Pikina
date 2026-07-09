@@ -73,11 +73,12 @@
       </div>
 
       <!-- Chronology (Calendar) panel -->
-      <div class="panel panel-calendar" id="panel-calendar" style="width: 100%; margin-top: 12px; cursor: pointer; user-select: none;">
-        <div class="panel-header" style="margin-bottom: 0; border-bottom: none; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <div class="panel panel-calendar" id="panel-calendar" style="width: 100%; margin-top: 12px; cursor: pointer; user-select: none; padding: 10px;">
+        <div class="panel-header" style="margin-bottom: 8px; border-bottom: 1px solid var(--c-panel-border); display: flex; justify-content: space-between; align-items: center; width: 100%;">
           <span>CHRONOLOGY</span>
-          <span class="panel-sub" style="font-family: var(--font-hud); color: var(--c-cyan); font-weight: bold; letter-spacing: 1px;">[OPEN]</span>
+          <span class="panel-sub" style="font-family: var(--font-hud); color: var(--c-cyan); font-weight: bold; letter-spacing: 1px;">[ZOOM]</span>
         </div>
+        <div id="calendar-mini"></div>
       </div>
 
     </aside>
@@ -204,12 +205,12 @@
   </div>
 
   <!-- Detailed Calendar Modal -->
-  <div class="modal-panel hidden panel" id="panel-calendar-modal" style="width: 800px; max-width: 90vw; height: 600px; max-height: 80vh; z-index: 1000; display: flex; flex-direction: column;">
+  <div class="modal-panel hidden panel" id="panel-calendar-modal" style="width: 800px; max-width: 90vw; height: 600px; max-height: 80vh; z-index: 1000; display: none; flex-direction: column;">
     <div class="panel-header">
       CHRONOLOGY DETAILED VIEW
       <button class="modal-close" id="modal-close-calendar" title="Close">✕</button>
     </div>
-    <div id="calendar" style="flex-grow: 1; padding: 12px; min-height: 0; overflow-y: auto;"></div>
+    <div id="calendar-detailed" style="flex-grow: 1; padding: 12px; min-height: 0; overflow-y: auto;"></div>
   </div>
 
   <script src="../node_modules/@fullcalendar/core/index.global.min.js"></script>

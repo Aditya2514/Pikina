@@ -7,7 +7,8 @@
 
 const BACKEND = (window.pikina && window.pikina.BACKEND) || 'http://localhost:5001';
 
-let calendarObj = null;
+let calendarMiniObj = null;
+let calendarDetailedObj = null;
 
 // ============================================================
 // ARC REACTOR — Canvas animation
@@ -655,8 +656,11 @@ async function executeCommand(text) {
   // Reload deadlines (todos) and refetch calendar events
   try {
     loadDeadlines();
-    if (calendarObj) {
-      calendarObj.refetchEvents();
+    if (calendarMiniObj) {
+      calendarMiniObj.refetchEvents();
+    }
+    if (calendarDetailedObj) {
+      calendarDetailedObj.refetchEvents();
     }
   } catch (e) {}
 }
@@ -1017,11 +1021,48 @@ loadSettings();
 // CHRONOLOGY (CALENDAR) INTEGRATION
 // ============================================================
 
-function initCalendar() {
-  const calendarEl = document.getElementById('calendar');
-  if (!calendarEl || typeof FullCalendar === 'undefined') return;
+function initMiniCalendar() {
+  const el = document.getElementById('calendar-mini');
+  if (!el || typeof FullCalendar === 'undefined') return;
 
-  calendarObj = new FullCalendar.Calendar(calendarEl, {
+  calendarMiniObj = new FullCalendar.Calendar(el, {
+    initialView: 'dayGridMonth',
+    headerToolbar: {
+      left: '',
+      center: 'title',
+      right: ''
+    },
+    editable: false,
+    selectable: false,
+    dayMaxEvents: 1, // Restrict to max 1 event visually in mini calendar
+    events: async function(info, successCallback, failureCallback) {
+      try {
+        const start = info.startStr;
+        const end = info.endStr;
+        const res = await fetch(`${BACKEND}/api/calendar?start=${start}&end=${end}`, { signal: AbortSignal.timeout(3000) });
+        const events = await res.json();
+        
+        const mapped = events.map(ev => {
+          const type = (ev.extendedProps && ev.extendedProps.type) || 'personal';
+          return {
+            ...ev,
+            className: `fc-event-${type}`
+          };
+        });
+        successCallback(mapped);
+      } catch (err) {
+        failureCallback(err);
+      }
+    }
+  });
+  calendarMiniObj.render();
+}
+
+function initDetailedCalendar() {
+  const el = document.getElementById('calendar-detailed');
+  if (!el || typeof FullCalendar === 'undefined') return;
+
+  calendarDetailedObj = new FullCalendar.Calendar(el, {
     initialView: 'dayGridMonth',
     headerToolbar: {
       left: 'prev',
@@ -1038,7 +1079,6 @@ function initCalendar() {
         const res = await fetch(`${BACKEND}/api/calendar?start=${start}&end=${end}`, { signal: AbortSignal.timeout(3000) });
         const events = await res.json();
         
-        // Map types to corresponding CSS class names for styling borders
         const mapped = events.map(ev => {
           const type = (ev.extendedProps && ev.extendedProps.type) || 'personal';
           return {
@@ -1071,12 +1111,12 @@ function initCalendar() {
       `;
     }
   });
-
-  calendarObj.render();
+  calendarDetailedObj.render();
 }
 
-// Initialize calendar
-initCalendar();
+// Initialize calendars
+initMiniCalendar();
+initDetailedCalendar();
 
 // Toggle Chronology Modal (Popup detailed view)
 const btnOpenCalendarModal = document.getElementById('panel-calendar');
@@ -1086,12 +1126,13 @@ const btnCloseCalendarModal = document.getElementById('modal-close-calendar');
 if (btnOpenCalendarModal && modalCalendar && modalBackdrop) {
   btnOpenCalendarModal.addEventListener('click', () => {
     modalCalendar.classList.remove('hidden');
+    modalCalendar.style.display = 'flex';
     modalBackdrop.classList.remove('hidden');
     
     // Force FullCalendar to recalculate bounds after making container visible
     setTimeout(() => {
-      if (calendarObj) {
-        calendarObj.updateSize();
+      if (calendarDetailedObj) {
+        calendarDetailedObj.updateSize();
       }
     }, 50);
   });
@@ -1100,13 +1141,17 @@ if (btnOpenCalendarModal && modalCalendar && modalBackdrop) {
 if (btnCloseCalendarModal) {
   btnCloseCalendarModal.addEventListener('click', () => {
     modalCalendar.classList.add('hidden');
+    modalCalendar.style.display = 'none';
     modalBackdrop.classList.add('hidden');
   });
 }
 
 if (modalBackdrop) {
   modalBackdrop.addEventListener('click', () => {
-    if (modalCalendar) modalCalendar.classList.add('hidden');
+    if (modalCalendar) {
+      modalCalendar.classList.add('hidden');
+      modalCalendar.style.display = 'none';
+    }
   });
 }
 
