@@ -70,8 +70,14 @@
           <span class="sys-kv"><span class="sk">CORES</span><span class="sv" id="detail-cores">--</span></span>
           <span class="sys-kv"><span class="sk">PROFILE</span><span class="sv" id="detail-profile">--</span></span>
         </div>
+      <!-- Chronology (Calendar) panel -->
+      <div class="panel panel-calendar collapsed" id="panel-calendar" style="width: 100%; margin-top: 12px; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); max-height: 42px; overflow: hidden;">
+        <div class="panel-header" id="panel-calendar-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; width: 100%; margin-bottom: 0; border-bottom: none;">
+          <span>CHRONOLOGY</span>
+          <span class="panel-sub" id="calendar-toggle-icon">[+]</span>
+        </div>
+        <div id="calendar" style="padding: 12px 4px 4px 4px; display: none;"></div>
       </div>
-
 
     </aside>
 
@@ -108,12 +114,6 @@
 
       <!-- Command result feedback -->
       <div class="cmd-result" id="cmd-result"></div>
-
-      <!-- Chronology (Calendar) panel -->
-      <div class="panel panel-calendar" id="panel-calendar" style="width: 100%; margin-top: 12px; flex-grow: 1; display: flex; flex-direction: column; min-height: 400px;">
-        <div class="panel-header">CHRONOLOGY</div>
-        <div id="calendar" style="flex-grow: 1; padding: 12px;"></div>
-      </div>
 
     </main>
 
