@@ -1,0 +1,25 @@
+{
+  "tool": "todo.list",
+  "description": "Lists tasks from your to-do list, optionally filtered by status and/or bucket.",
+  "permission_level": 0,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": [],
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": ["pending", "done", "all"],
+        "description": "Filter by status. Defaults to pending."
+      },
+      "bucket": {
+        "type": "string",
+        "enum": ["today", "tomorrow", "this_week", "backlog"],
+        "description": "Filter by a specific time bucket."
+      }
+    }
+  }
+}

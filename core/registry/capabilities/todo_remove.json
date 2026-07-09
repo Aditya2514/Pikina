@@ -1,0 +1,19 @@
+{
+  "tool": "todo.remove",
+  "description": "Deletes a task from your to-do list entirely by its text description or 8-character ID.",
+  "permission_level": 1,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["text"],
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "The task ID or substring text to remove."
+      }
+    }
+  }
+}

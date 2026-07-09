@@ -24,6 +24,27 @@ def _app_params(match) -> dict:
     return {"path": name}  # open_app.py handles alias resolution
 
 
+def _todo_add_params(match) -> dict:
+    text = match.group("text").strip()
+    bucket = "backlog"
+    due_date = None
+    
+    # Try to extract "bucket today/tomorrow/this_week/backlog"
+    bucket_match = re.search(r"\b(bucket|in)\s+(today|tomorrow|this_week|backlog)\b", text, re.I)
+    if bucket_match:
+        bucket = bucket_match.group(2).lower()
+        # Remove bucket pattern from text
+        text = text[:bucket_match.start()] + text[bucket_match.end():]
+        
+    # Try to extract "due <date>" or "by <date>" at the end
+    due_match = re.search(r"\b(due|by|at)\s+(?P<date>.+)$", text, re.I)
+    if due_match:
+        due_date = due_match.group("date").strip()
+        text = text[:due_match.start()].strip()
+        
+    return {"text": text.strip(), "bucket": bucket, "due_date": due_date}
+
+
 ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
     # Open VS Code (explicit variants first)
     (re.compile(r"open\s+(?P<app>vs\s*code|vscode)", re.I),          "app.open",          _app_params),
@@ -41,6 +62,19 @@ ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
     (re.compile(r"(list|show)\s+aliases?", re.I),                     "alias.list",        lambda m: {}),
     # Remove alias  — capture everything after 'remove alias'
     (re.compile(r"remove\s+alias\s+(?P<trigger>.+)", re.I),           "alias.remove",      lambda m: {"trigger": m.group("trigger")}),
+    # --- Phase 3.5b: To-Do management ---
+    # Add to-do
+    (re.compile(r"(?:add\s+)?(?:todo|task)\s+(?P<text>.+)", re.I),     "todo.add",          _todo_add_params),
+    # Complete to-do
+    (re.compile(r"(?:mark\s+)?(?:complete|done)\s+(?P<text>.+)", re.I), "todo.complete",     lambda m: {"text": m.group("text")}),
+    # List done to-dos
+    (re.compile(r"(?:list|show)\s+done\s+(?:todos|tasks|list)", re.I), "todo.list",         lambda m: {"status": "done"}),
+    # List all to-dos (done + pending)
+    (re.compile(r"(?:list|show)\s+all\s+(?:todos|tasks|list)", re.I),  "todo.list",         lambda m: {"status": "all"}),
+    # List pending to-dos
+    (re.compile(r"(?:list|show)\s+(?:todos|tasks|list)", re.I),        "todo.list",         lambda m: {"status": "pending"}),
+    # Remove to-do
+    (re.compile(r"(?:remove|delete)\s+(?:todo|task)\s+(?P<text>.+)", re.I), "todo.remove",    lambda m: {"text": m.group("text")}),
 ]
 
 

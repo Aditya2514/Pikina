@@ -176,23 +176,34 @@ def weather():
         return jsonify({"error": str(exc)}), 502
 
 
+from core.todo.todo_store import ToDoStore
+todo_store = ToDoStore()
+
 @app.route("/api/deadlines", methods=["GET"])
 def get_deadlines():
-    dl_file = Path(__file__).parent / "data" / "deadlines.json"
-    if dl_file.exists():
-        return jsonify(json.loads(dl_file.read_text(encoding="utf-8")))
-    return jsonify({"deadlines": []})
-
-from core.memory.graph_cache import GraphCache
-graph_cache = GraphCache()
+    todos = todo_store.list_todos(status="pending")
+    deadlines = []
+    for t in todos:
+        priority = "low"
+        if t.get("bucket") == "today":
+            priority = "high"
+        elif t.get("bucket") == "tomorrow":
+            priority = "medium"
+        deadlines.append({
+            "id": t["id"],
+            "title": t["text"],
+            "due": t.get("due_date") or "No due date",
+            "priority": priority
+        })
+    return jsonify({"deadlines": deadlines})
 
 @app.route("/api/deadlines", methods=["POST"])
 def save_deadlines():
-    body    = request.get_json(force=True, silent=True) or {}
-    dl_file = Path(__file__).parent / "data" / "deadlines.json"
-    dl_file.parent.mkdir(exist_ok=True)
-    dl_file.write_text(json.dumps(body, indent=2), encoding="utf-8")
-    return jsonify({"status": "ok"})
+    # Deprecated/NOP since we now use proper todo capabilities to write to SQLite
+    return jsonify({"status": "ok", "message": "Deprecated. Use todo.add capability."})
+
+from core.memory.graph_cache import GraphCache
+graph_cache = GraphCache()
 
 @app.route("/api/cache/path", methods=["POST"])
 def cache_path():

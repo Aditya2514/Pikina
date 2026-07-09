@@ -1,0 +1,28 @@
+{
+  "tool": "todo.add",
+  "description": "Adds a new task to your to-do list with optional bucket and due date.",
+  "permission_level": 0,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["text"],
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "The description of the task."
+      },
+      "bucket": {
+        "type": "string",
+        "enum": ["today", "tomorrow", "this_week", "backlog"],
+        "description": "The time bucket for the task. Defaults to backlog."
+      },
+      "due_date": {
+        "type": "string",
+        "description": "Optional due date or natural language date (e.g. 'Friday', 'tomorrow', '2026-07-15')."
+      }
+    }
+  }
+}

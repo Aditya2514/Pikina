@@ -1,0 +1,19 @@
+{
+  "tool": "todo.complete",
+  "description": "Marks a pending task as complete using its text description or 8-character ID.",
+  "permission_level": 0,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["text"],
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "The task ID or substring text to complete."
+      }
+    }
+  }
+}
