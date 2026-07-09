@@ -3,6 +3,17 @@ Pikina OS — Backend API Server (Phase 1.5)
 Bridges the Python Phase 1 core to the Electron frontend.
 Runs on localhost:5001 only — never exposed externally.
 """
+import socket
+import sys
+
+# Prevent multiple backend server instances from running
+try:
+    _instance_lock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    _instance_lock.bind(("127.0.0.1", 5052))
+except OSError:
+    print("[Backend] Another instance is already running. Exiting immediately.")
+    sys.exit(0)
+
 import os
 import sys
 import json
