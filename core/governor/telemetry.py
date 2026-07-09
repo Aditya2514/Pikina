@@ -12,7 +12,7 @@ def get_telemetry() -> dict:
     Returns a snapshot of current system resource usage.
     Safe to call from any thread.
     """
-    cpu_pct = psutil.cpu_percent(interval=0.05)
+    cpu_pct = psutil.cpu_percent(interval=None)
     ram     = psutil.virtual_memory()
     
     # Use system root drive on Windows to avoid network mount timeout

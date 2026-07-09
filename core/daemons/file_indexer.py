@@ -5,7 +5,7 @@ import threading
 from pathlib import Path
 
 class FileIndexerDaemon:
-    def __init__(self, db_path="data/index.db", scan_interval=300):
+    def __init__(self, db_path="data/index.db", scan_interval=3600):
         self.db_path = Path(db_path)
         self.scan_interval = scan_interval
         self.running = False
