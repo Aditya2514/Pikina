@@ -115,9 +115,22 @@ class VectorStore:
                 c = conn.cursor()
                 rows = c.execute(f'SELECT id, content, vector FROM {table}').fetchall()
                 
+                query_lower = query.lower()
+                query_words = set(query_lower.split())
+
                 for row_id, content, vec_bytes in rows:
                     vec = np.frombuffer(vec_bytes, dtype=np.float32)
-                    sim = np.dot(query_vec, vec) / (np.linalg.norm(query_vec) * np.linalg.norm(vec))
+                    sim = float(np.dot(query_vec, vec) / (np.linalg.norm(query_vec) * np.linalg.norm(vec)))
+                    
+                    # Basic Hybrid Keyword Boosting
+                    content_lower = content.lower()
+                    if query_lower in content_lower:
+                        sim += 0.4  # Massive boost for exact phrase match
+                    else:
+                        # Minor boost for individual word matches (excluding common stop words)
+                        match_count = sum(1 for w in query_words if len(w) > 3 and w in content_lower)
+                        sim += (0.05 * match_count)
+                        
                     results.append((sim, row_id, content))
                     
             results.sort(key=lambda x: x[0], reverse=True)
