@@ -109,6 +109,12 @@
       <!-- Command result feedback -->
       <div class="cmd-result" id="cmd-result"></div>
 
+      <!-- Chronology (Calendar) panel -->
+      <div class="panel panel-calendar" id="panel-calendar" style="width: 100%; margin-top: 12px; flex-grow: 1; display: flex; flex-direction: column; min-height: 400px;">
+        <div class="panel-header">CHRONOLOGY</div>
+        <div id="calendar" style="flex-grow: 1; padding: 12px;"></div>
+      </div>
+
     </main>
 
     <!-- RIGHT COLUMN — Weather, deadlines, actions -->
@@ -196,6 +202,8 @@
     </div>
   </div>
 
+  <script src="../node_modules/@fullcalendar/core/index.global.min.js"></script>
+  <script src="../node_modules/@fullcalendar/daygrid/index.global.min.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>

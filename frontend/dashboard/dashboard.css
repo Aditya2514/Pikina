@@ -298,6 +298,8 @@ body::after {
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
+  min-width: 0;
+  width: 100%;
 }
 
 /* Backend status bar */
@@ -452,6 +454,9 @@ body::after {
 /* Result feedback */
 .cmd-result {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
   min-height: 24px;
   font-family: var(--font-mono);
   font-size: 10px;
@@ -704,4 +709,110 @@ body::after {
   margin-top: -2px;
 }
 .modal-close:hover { color: #fff; }
+
+
+/* ---------------------------------------------------------------------------
+ * Chronology (Calendar) panel & FullCalendar overrides
+ * --------------------------------------------------------------------------- */
+.panel-calendar {
+  background: rgba(2, 8, 16, 0.65);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.05);
+  backdrop-filter: blur(8px);
+}
+
+.fc {
+  --fc-border-color: rgba(0, 212, 255, 0.15);
+  --fc-button-text-color: #00d4ff;
+  --fc-button-bg-color: rgba(2, 8, 16, 0.8);
+  --fc-button-border-color: rgba(0, 212, 255, 0.3);
+  --fc-button-hover-bg-color: rgba(0, 212, 255, 0.15);
+  --fc-button-hover-border-color: #00d4ff;
+  --fc-button-active-bg-color: rgba(0, 212, 255, 0.25);
+  --fc-button-active-border-color: #00d4ff;
+  --fc-page-bg-color: transparent;
+  
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+}
+
+.fc-theme-standard th {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.05);
+  padding: 6px 0;
+  border-bottom: 2px solid rgba(0, 212, 255, 0.3) !important;
+}
+
+.fc-daygrid-day-number {
+  color: #88a0b0;
+  font-size: 11px;
+  padding: 4px !important;
+  text-decoration: none !important;
+}
+
+.fc-day-today {
+  background: rgba(0, 212, 255, 0.07) !important;
+}
+
+.fc-day-today .fc-daygrid-day-number {
+  color: #00ff88;
+  font-weight: bold;
+  text-shadow: 0 0 6px rgba(0, 255, 136, 0.5);
+}
+
+.fc-daygrid-event {
+  background: rgba(0, 212, 255, 0.05) !important;
+  border: 1px solid rgba(0, 212, 255, 0.2) !important;
+  border-left: 3px solid #00d4ff !important;
+  border-radius: 2px !important;
+  padding: 2px 4px !important;
+  margin: 1px 2px !important;
+}
+
+.fc-event-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: #c0e0f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fc-daygrid-event.fc-event-holiday {
+  border-left-color: #ff8c00 !important;
+  background: rgba(255, 140, 0, 0.05) !important;
+}
+
+.fc-daygrid-event.fc-event-college {
+  border-left-color: #a855f7 !important;
+  background: rgba(168, 85, 247, 0.05) !important;
+}
+
+.fc-daygrid-event.fc-event-appointment {
+  border-left-color: #00ff88 !important;
+  background: rgba(0, 255, 136, 0.05) !important;
+}
+
+.fc-header-toolbar {
+  margin-bottom: 8px !important;
+}
+
+.fc-toolbar-title {
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  color: #00d4ff !important;
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.4);
+}
+
+.fc-scrollgrid {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
 

@@ -8,6 +8,8 @@
     "dev": "electron . --dev"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.21",
+    "@fullcalendar/daygrid": "^6.1.21",
     "electron-store": "^8.2.0"
   },
   "devDependencies": {

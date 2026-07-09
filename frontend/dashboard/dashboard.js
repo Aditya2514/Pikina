@@ -7,6 +7,8 @@
 
 const BACKEND = (window.pikina && window.pikina.BACKEND) || 'http://localhost:5001';
 
+let calendarObj = null;
+
 // ============================================================
 // ARC REACTOR — Canvas animation
 // ============================================================
@@ -610,12 +612,53 @@ async function executeCommand(text) {
       more.style.marginTop = '6px';
       cmdResult.appendChild(more);
     }
+  } else if (status === 'success' && result.results && result.results.length > 0) {
+    cmdResult.innerHTML = '';
+    
+    result.results.forEach((memString, index) => {
+        const memoryBox = document.createElement('div');
+        memoryBox.style.cursor = 'pointer';
+        memoryBox.style.whiteSpace = 'nowrap';
+        memoryBox.style.overflow = 'hidden';
+        memoryBox.style.textOverflow = 'ellipsis';
+        memoryBox.style.maxWidth = '100%';
+        memoryBox.style.textAlign = 'left';
+        memoryBox.style.color = '#00d4ff';
+        memoryBox.style.padding = '4px 0';
+        if (index > 0) memoryBox.style.borderTop = '1px solid rgba(0, 212, 255, 0.1)';
+        memoryBox.textContent = `→ ${memString}`;
+        
+        // Toggle full text on click
+        memoryBox.onclick = () => {
+           if (memoryBox.style.whiteSpace === 'nowrap') {
+               memoryBox.style.whiteSpace = 'pre-wrap';
+               memoryBox.style.padding = '8px';
+               memoryBox.style.border = '1px solid rgba(0, 212, 255, 0.3)';
+               memoryBox.style.background = 'rgba(0, 212, 255, 0.05)';
+           } else {
+               memoryBox.style.whiteSpace = 'nowrap';
+               memoryBox.style.padding = '4px 0';
+               memoryBox.style.border = 'none';
+               if (index > 0) memoryBox.style.borderTop = '1px solid rgba(0, 212, 255, 0.1)';
+               memoryBox.style.background = 'transparent';
+           }
+        };
+        cmdResult.appendChild(memoryBox);
+    });
   } else {
     cmdResult.textContent = messages[status] || `→ ${JSON.stringify(result).slice(0, 100)}`;
   }
 
   // Publish to event log
   await pollEvents();
+  
+  // Reload deadlines (todos) and refetch calendar events
+  try {
+    loadDeadlines();
+    if (calendarObj) {
+      calendarObj.refetchEvents();
+    }
+  } catch (e) {}
 }
 
 cmdInput.addEventListener('keydown', (e) => {
@@ -968,4 +1011,70 @@ if (window.pikina && window.pikina.onTriggerWallpaper) {
 }
 
 loadSettings();
+
+
+// ============================================================
+// CHRONOLOGY (CALENDAR) INTEGRATION
+// ============================================================
+
+function initCalendar() {
+  const calendarEl = document.getElementById('calendar');
+  if (!calendarEl || typeof FullCalendar === 'undefined') return;
+
+  calendarObj = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    headerToolbar: {
+      left: 'prev',
+      center: 'title',
+      right: 'next'
+    },
+    editable: false,
+    selectable: false,
+    dayMaxEvents: 2,
+    events: async function(info, successCallback, failureCallback) {
+      try {
+        const start = info.startStr;
+        const end = info.endStr;
+        const res = await fetch(`${BACKEND}/api/calendar?start=${start}&end=${end}`, { signal: AbortSignal.timeout(3000) });
+        const events = await res.json();
+        
+        // Map types to corresponding CSS class names for styling borders
+        const mapped = events.map(ev => {
+          const type = (ev.extendedProps && ev.extendedProps.type) || 'personal';
+          return {
+            ...ev,
+            className: `fc-event-${type}`
+          };
+        });
+        successCallback(mapped);
+      } catch (err) {
+        failureCallback(err);
+      }
+    },
+    eventClick: function(info) {
+      const ev = info.event;
+      const startStr = ev.start.toISOString().split('T')[0];
+      const timeStr = ev.allDay ? 'All Day' : ev.start.toTimeString().split(' ')[0].substring(0, 5);
+      const type = (ev.extendedProps && ev.extendedProps.type) || 'personal';
+      const source = (ev.extendedProps && ev.extendedProps.source) || 'user';
+      
+      cmdResult.className = 'cmd-result ok';
+      cmdResult.innerHTML = `
+        <div style="font-family: 'Orbitron', sans-serif; font-size: 11px; color: var(--c-cyan); margin-bottom: 4px; border-bottom: 1px solid rgba(0, 212, 255, 0.2); padding-bottom: 2px;">EVENT DETAILS</div>
+        <div style="font-family: 'Share Tech Mono', monospace; font-size: 11px; line-height: 1.4;">
+          <strong>Title:</strong> ${ev.title}<br>
+          <strong>Date:</strong> ${startStr}<br>
+          <strong>Time:</strong> ${timeStr}<br>
+          <strong>Type:</strong> ${type.toUpperCase()}<br>
+          <strong>Source:</strong> ${source.replace('_', ' ').toUpperCase()}
+        </div>
+      `;
+    }
+  });
+
+  calendarObj.render();
+}
+
+// Initialize calendar
+initCalendar();
 
