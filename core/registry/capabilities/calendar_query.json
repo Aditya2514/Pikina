@@ -1,0 +1,27 @@
+{
+  "tool": "calendar.query",
+  "description": "Queries events on a specific date or within a date range.",
+  "permission_level": 0,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": [],
+    "properties": {
+      "date": {
+        "type": "string",
+        "description": "Query specific date or relative expression (e.g. 'today', '2026-07-20')."
+      },
+      "start_date": {
+        "type": "string",
+        "description": "Start date for a range query."
+      },
+      "end_date": {
+        "type": "string",
+        "description": "End date for a range query."
+      }
+    }
+  }
+}

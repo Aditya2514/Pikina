@@ -1,0 +1,37 @@
+{
+  "tool": "calendar.add_event",
+  "description": "Adds an event to your calendar with optional time, type, and recurrence.",
+  "permission_level": 0,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["title", "date"],
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "The title of the event."
+      },
+      "date": {
+        "type": "string",
+        "description": "Date or natural language date expression (e.g. 'tomorrow', 'July 20th at 3pm')."
+      },
+      "time": {
+        "type": "string",
+        "description": "Optional time (e.g. '15:00', '3:00 PM')."
+      },
+      "type": {
+        "type": "string",
+        "enum": ["personal", "college", "appointment", "holiday"],
+        "description": "Category of the event. Defaults to personal."
+      },
+      "recurring": {
+        "type": "string",
+        "enum": ["none", "yearly"],
+        "description": "Recurrence pattern. Defaults to none."
+      }
+    }
+  }
+}

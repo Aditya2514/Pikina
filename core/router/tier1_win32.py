@@ -45,6 +45,25 @@ def _todo_add_params(match) -> dict:
     return {"text": text.strip(), "bucket": bucket, "due_date": due_date}
 
 
+def _calendar_add_params(match) -> dict:
+    title = match.group("title").strip()
+    date_str = match.group("date").strip()
+    return {"title": title, "date": date_str}
+
+
+def _calendar_range_params(match) -> dict:
+    range_type = match.group("range").strip().lower()
+    from datetime import date, timedelta
+    today = date.today()
+    if "next" in range_type:
+        start_date = (today + timedelta(days=7)).isoformat()
+        end_date = (today + timedelta(days=14)).isoformat()
+    else:
+        start_date = today.isoformat()
+        end_date = (today + timedelta(days=7)).isoformat()
+    return {"start_date": start_date, "end_date": end_date}
+
+
 ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
     # Open VS Code (explicit variants first)
     (re.compile(r"open\s+(?P<app>vs\s*code|vscode)", re.I),          "app.open",          _app_params),
@@ -75,6 +94,17 @@ ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
     (re.compile(r"(?:list|show)\s+(?:todos|tasks|list)", re.I),        "todo.list",         lambda m: {"status": "pending"}),
     # Remove to-do
     (re.compile(r"(?:remove|delete)\s+(?:todo|task)\s+(?P<text>.+)", re.I), "todo.remove",    lambda m: {"text": m.group("text")}),
+    # --- Phase 3.5c: Calendar management ---
+    # Add event (explicit "on" or "at" connector)
+    (re.compile(r"add\s+(?:appointment|event|meeting)\s+(?P<title>.+?)\s+(?:on|at|date)\s+(?P<date>.+)", re.I), "calendar.add_event", _calendar_add_params),
+    # Add event (fallback/simple trigger)
+    (re.compile(r"add\s+(?:appointment|event|meeting)\s+(?P<title>.+)", re.I), lambda m: {"status": "error", "reason": "Please specify a date/time using 'on' or 'at' (e.g. 'add event dentist on tomorrow at 3pm')."}),
+    # Query calendar range ("this week", "next week")
+    (re.compile(r"what(?:\s+do\s+I\s+have|\s+'s|\s+is\s+happening)?\s+(?P<range>(?:this|next)\s+week)\b", re.I), "calendar.query", _calendar_range_params),
+    # Query calendar date
+    (re.compile(r"what(?:'s|is)\s+on\s+(?P<date>.+)", re.I),          "calendar.query",    lambda m: {"date": m.group("date")}),
+    # Remove event
+    (re.compile(r"(?:remove|delete)\s+(?:event|appointment)\s+(?P<text>.+)", re.I), "calendar.remove_event", lambda m: {"text": m.group("text")}),
 ]
 
 
