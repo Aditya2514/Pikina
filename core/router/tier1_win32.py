@@ -10,6 +10,7 @@ from core.registry.loader import CapabilityRegistry
 from core.registry.gatekeeper import request_consent
 from core.eventbus.bus import EventBus
 from core.mcm.provenance import TRUSTED
+from core.router.alias_resolver import AliasResolver
 
 # ---------------------------------------------------------------------------
 # Route table
@@ -33,20 +34,34 @@ ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
                                                                        "system.lock_screen", lambda m: {}),
     # Find file
     (re.compile(r"find\s+(file\s+)?(?P<name>.+)", re.I),              "fs.find_file",      lambda m: {"name": m.group("name")}),
+    # Recall memory
+    (re.compile(r"recall\s+(?P<query>.+)", re.I),                     "memory.recall",     lambda m: {"query": m.group("query")}),
+    # --- Phase 3.5a: Alias management ---
+    # List aliases
+    (re.compile(r"(list|show)\s+aliases?", re.I),                     "alias.list",        lambda m: {}),
+    # Remove alias  — capture everything after 'remove alias'
+    (re.compile(r"remove\s+alias\s+(?P<trigger>.+)", re.I),           "alias.remove",      lambda m: {"trigger": m.group("trigger")}),
 ]
 
 
 class Tier1Router:
     def __init__(self, registry: Optional[CapabilityRegistry] = None):
-        self._registry = registry or CapabilityRegistry()
-        self._bus      = EventBus()
+        self._registry       = registry or CapabilityRegistry()
+        self._bus            = EventBus()
+        self._alias_resolver = AliasResolver()
 
     def route(self, text: str) -> dict:
         """
         Match text against ROUTES and execute the first match.
+        Alias phrases are checked FIRST, before the regex route table.
         Returns a result dict. Never blocks waiting for a model.
         """
         text = text.strip()
+
+        # --- Phase 3.5a: Alias check (runs before regex ROUTES) ---
+        alias = self._alias_resolver.resolve(text)
+        if alias:
+            return self._execute_alias(alias, raw=text)
 
         for pattern, tool, params_fn in ROUTES:
             match = pattern.fullmatch(text) or pattern.match(text)
@@ -56,7 +71,7 @@ class Tier1Router:
         return {
             "status":  "no_match",
             "message": f"No Tier 1 route matched: '{text}'",
-            "hint":    "Try: 'open vs code', 'lock screen', 'find file resume.pdf'",
+            "hint":    "Try: 'open vs code', 'lock screen', 'find file resume.pdf', 'list aliases'",
         }
 
     def _execute(self, tool: str, params: dict, raw: str) -> dict:
@@ -95,3 +110,44 @@ class Tier1Router:
         )
 
         return result
+
+    def _execute_alias(self, alias: dict, raw: str) -> dict:
+        """
+        Execute a multi-step alias sequence.
+        Every step runs through the full permission/consent gate.
+        Stops on first failure and reports which step failed.
+        """
+        steps   = alias.get("steps", [])
+        trigger = alias.get("trigger", raw)
+        results = []
+
+        self._bus.publish(
+            topic="alias.started",
+            payload={"trigger": trigger, "steps": len(steps), "raw": raw},
+            provenance=TRUSTED,
+            permission_level=0,
+        )
+
+        for i, step in enumerate(steps):
+            tool   = step.get("tool", "")
+            params = step.get("params", {})
+            result = self._execute(tool, params, raw=f"{raw} [alias step {i+1}/{len(steps)}]")
+            results.append({"step": i + 1, "tool": tool, "result": result})
+
+            # Stop the sequence on any failure or denial
+            if result.get("status") in ("error", "denied"):
+                return {
+                    "status":  result["status"],
+                    "reason":  f"Alias '{trigger}' stopped at step {i+1} ({tool}): {result.get('reason', result.get('message', 'unknown error'))}",
+                    "steps_completed": i,
+                    "steps_total":     len(steps),
+                    "results":         results,
+                }
+
+        return {
+            "status":          "ok",
+            "message":         f"Alias '{trigger}' completed all {len(steps)} step(s).",
+            "steps_completed": len(steps),
+            "steps_total":     len(steps),
+            "results":         results,
+        }

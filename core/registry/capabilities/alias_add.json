@@ -1,0 +1,31 @@
+{
+  "tool": "alias.add",
+  "description": "Defines a new personal alias: a trigger phrase that expands to one or more capability steps.",
+  "permission_level": 0,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["trigger", "steps"],
+    "properties": {
+      "trigger": {
+        "type": "string",
+        "description": "The exact phrase that will trigger this alias (case-insensitive)."
+      },
+      "steps": {
+        "type": "array",
+        "description": "Ordered list of capability steps to execute.",
+        "items": {
+          "type": "object",
+          "required": ["tool", "params"],
+          "properties": {
+            "tool": {"type": "string"},
+            "params": {"type": "object"}
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "tool": "alias.remove",
+  "description": "Removes a personal alias by its trigger phrase.",
+  "permission_level": 1,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["trigger"],
+    "properties": {
+      "trigger": {
+        "type": "string",
+        "description": "The exact trigger phrase of the alias to remove."
+      }
+    }
+  }
+}

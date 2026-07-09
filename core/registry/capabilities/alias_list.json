@@ -1,0 +1,14 @@
+{
+  "tool": "alias.list",
+  "description": "Lists all currently defined personal aliases and their steps.",
+  "permission_level": 0,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": [],
+    "properties": {}
+  }
+}
