@@ -114,6 +114,15 @@ ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
     (re.compile(r"be\s+(?P<verb>concise|detailed|balanced)", re.I),   "prefs.update",      lambda m: {"field": "verbosity", "value": m.group("verb")}),
     # Quiet hours: "quiet hours from 23:00 to 07:00"
     (re.compile(r"quiet\s+hours\s+from\s+(?P<start>\d{2}:\d{2})\s+to\s+(?P<end>\d{2}:\d{2})", re.I), "prefs.update", lambda m: {"field": "quiet_hours", "value": [m.group("start"), m.group("end")]}),
+    # --- Utilities (Stopwatch & Calculator) ---
+    # Math expressions
+    (re.compile(r"(?:calculate|calc)\s+(?P<expr>.+)", re.I),           "utility.calculate", lambda m: {"expr": m.group("expr")}),
+    # Stopwatch start
+    (re.compile(r"(?:start|start\s+the)\s+stopwatch", re.I),           "utility.stopwatch", lambda m: {"action": "start"}),
+    # Stopwatch pause
+    (re.compile(r"(?:stop|pause|stop\s+the|pause\s+the)\s+stopwatch", re.I), "utility.stopwatch", lambda m: {"action": "pause"}),
+    # Stopwatch reset
+    (re.compile(r"reset\s+(the\s+)?stopwatch", re.I),                  "utility.stopwatch", lambda m: {"action": "reset"}),
 ]
 
 

@@ -244,6 +244,5 @@ app.on('will-quit', () => {
 });
 
 app.on('window-all-closed', () => {
-  // Keep running in tray on Windows/Linux
-  if (process.platform === 'darwin') app.quit();
+  app.quit();
 });

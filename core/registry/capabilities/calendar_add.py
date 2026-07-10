@@ -44,5 +44,7 @@ def run(params: dict) -> dict:
         except ImportError:
             pass
 
+    description = params.get("description", "").strip()
+
     store = CalendarStore()
-    return store.add_event(title, parsed_date, parsed_time, event_type, "user", recurring)
+    return store.add_event(title, parsed_date, parsed_time, event_type, "user", recurring, description)

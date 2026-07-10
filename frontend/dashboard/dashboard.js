@@ -531,6 +531,30 @@ async function executeCommand(text) {
   const status = result.status || 'unknown';
   setReactorState('idle');
 
+  // Intercept utility commands to update UI components live
+  if (status === 'ok') {
+    if (result.tool === 'utility.stopwatch') {
+      const act = result.action;
+      if (act === 'start') {
+        const btn = document.getElementById('timer-start');
+        if (btn) btn.click();
+      } else if (act === 'pause') {
+        const btn = document.getElementById('timer-pause');
+        if (btn) btn.click();
+      } else if (act === 'reset') {
+        const btn = document.getElementById('timer-reset');
+        if (btn) btn.click();
+      }
+    } else if (result.tool === 'utility.calculate') {
+      const screen = document.getElementById('calc-screen');
+      if (screen) {
+        screen.textContent = Number(result.result.toFixed(6));
+        const tab = document.getElementById('tab-calc');
+        if (tab) tab.click();
+      }
+    }
+  }
+
   const messages = {
     ok:       `✓ ${result.message || result.launched || JSON.stringify(result).slice(0, 80)}`,
     denied:   `⊘ Denied — ${result.reason || 'user declined'}`,
@@ -1093,22 +1117,224 @@ function initDetailedCalendar() {
     },
     eventClick: function(info) {
       const ev = info.event;
-      const startStr = ev.start.toISOString().split('T')[0];
-      const timeStr = ev.allDay ? 'All Day' : ev.start.toTimeString().split(' ')[0].substring(0, 5);
+      // Fix date timezone offset shift using local Date properties
+      const yr = ev.start.getFullYear();
+      const mo = String(ev.start.getMonth() + 1).padStart(2, '0');
+      const dy = String(ev.start.getDate()).padStart(2, '0');
+      const startStr = `${yr}-${mo}-${dy}`;
+      
+      const timeStr = ev.allDay ? '' : ev.start.toTimeString().split(' ')[0].substring(0, 5);
       const type = (ev.extendedProps && ev.extendedProps.type) || 'personal';
       const source = (ev.extendedProps && ev.extendedProps.source) || 'user';
+      const recurring = (ev.extendedProps && ev.extendedProps.recurring) || 'none';
+      const description = (ev.extendedProps && ev.extendedProps.description) || '';
       
-      cmdResult.className = 'cmd-result ok';
-      cmdResult.innerHTML = `
-        <div style="font-family: 'Orbitron', sans-serif; font-size: 11px; color: var(--c-cyan); margin-bottom: 4px; border-bottom: 1px solid rgba(0, 212, 255, 0.2); padding-bottom: 2px;">EVENT DETAILS</div>
-        <div style="font-family: 'Share Tech Mono', monospace; font-size: 11px; line-height: 1.4;">
-          <strong>Title:</strong> ${ev.title}<br>
-          <strong>Date:</strong> ${startStr}<br>
-          <strong>Time:</strong> ${timeStr}<br>
-          <strong>Type:</strong> ${type.toUpperCase()}<br>
-          <strong>Source:</strong> ${source.replace('_', ' ').toUpperCase()}
-        </div>
-      `;
+      const detailBody = document.getElementById('event-detail-body');
+      const detailModal = document.getElementById('panel-event-detail-modal');
+      const toggleBtn = document.getElementById('btn-edit-event-toggle');
+      
+      if (!detailBody || !detailModal) return;
+
+      function renderViewMode() {
+        if (toggleBtn) toggleBtn.style.display = 'block'; // Show Edit Icon
+        detailBody.innerHTML = `
+          <div style="margin-bottom: 12px; border-bottom: 1px solid rgba(0, 212, 255, 0.15); padding-bottom: 6px;">
+            <strong style="color: var(--c-cyan); font-family: 'Orbitron', sans-serif; font-size: 13px;">${ev.title}</strong>
+          </div>
+          <div style="margin-bottom: 8px; font-size: 11px;">
+            <span style="color: #778f9f; font-weight: bold; width: 80px; display: inline-block;">DATE:</span>
+            <span style="color: #fff;">${startStr}</span>
+          </div>
+          <div style="margin-bottom: 8px; font-size: 11px;">
+            <span style="color: #778f9f; font-weight: bold; width: 80px; display: inline-block;">TIME:</span>
+            <span style="color: #fff;">${timeStr || 'All Day'}</span>
+          </div>
+          <div style="margin-bottom: 8px; font-size: 11px;">
+            <span style="color: #778f9f; font-weight: bold; width: 80px; display: inline-block;">TYPE:</span>
+            <span style="color: #fff;">${type.toUpperCase()}</span>
+          </div>
+          <div style="margin-bottom: 12px; font-size: 11px;">
+            <span style="color: #778f9f; font-weight: bold; width: 80px; display: inline-block;">RECURRING:</span>
+            <span style="color: #fff;">${recurring.toUpperCase()}</span>
+          </div>
+          <div style="border-top: 1px solid rgba(0, 212, 255, 0.1); padding-top: 8px;">
+            <span style="color: #778f9f; font-size: 10px; font-weight: bold; display: block; margin-bottom: 4px;">DESCRIPTION:</span>
+            <div style="color: #ccc; white-space: pre-wrap; font-size: 11px; max-height: 120px; overflow-y: auto; background: rgba(0,0,0,0.15); padding: 8px; border: 1px solid rgba(0,212,255,0.1); border-radius: 2px;">
+              ${description || 'No description provided.'}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderEditMode() {
+        if (toggleBtn) toggleBtn.style.display = 'none'; // Hide Edit Icon during editing
+        
+        // Generate time options dropdown
+        let timeOptionsHtml = `<option value="" ${!timeStr ? 'selected' : ''}>All Day</option>`;
+        let isStandardTime = !timeStr;
+        for (let h = 0; h < 24; h++) {
+          for (let m of ['00', '30']) {
+            const hh = String(h).padStart(2, '0');
+            const timeVal = `${hh}:${m}`;
+            const selected = (timeStr === timeVal) ? 'selected' : '';
+            if (selected) isStandardTime = true;
+            timeOptionsHtml += `<option value="${timeVal}" ${selected}>${timeVal}</option>`;
+          }
+        }
+
+        detailBody.innerHTML = `
+          <input type="hidden" id="edit-event-id" value="${ev.id}">
+          <input type="hidden" id="edit-event-source" value="${source}">
+          
+          <div style="margin-bottom: 10px;">
+            <label style="color: var(--c-cyan); font-weight: bold; display: block; margin-bottom: 2px; font-size: 10px;">TITLE</label>
+            <input type="text" id="edit-event-title" class="cmd-input" placeholder="${ev.title.replace(/"/g, '&quot;')}" value="${ev.title.replace(/"/g, '&quot;')}" style="width: 100%; box-sizing: border-box; padding: 6px; font-family: inherit; font-size: 11px; background: rgba(0,0,0,0.3); border: 1px solid rgba(0, 212, 255, 0.2); color: #fff;">
+          </div>
+          
+          <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <div style="flex: 1;">
+              <label style="color: var(--c-cyan); font-weight: bold; display: block; margin-bottom: 2px; font-size: 10px;">DATE</label>
+              <input type="date" id="edit-event-date" class="cmd-input" value="${startStr}" style="width: 100%; box-sizing: border-box; padding: 5px; font-family: inherit; font-size: 11px; background: rgba(0,0,0,0.3); border: 1px solid rgba(0, 212, 255, 0.2); color: #fff;">
+            </div>
+            <div style="flex: 1;">
+              <label style="color: var(--c-cyan); font-weight: bold; display: block; margin-bottom: 2px; font-size: 10px;">TIME</label>
+              <select id="edit-event-time" class="cmd-input" style="width: 100%; box-sizing: border-box; padding: 6px; font-family: inherit; font-size: 11px; background: #020810; border: 1px solid rgba(0, 212, 255, 0.2); color: #fff;">
+                ${timeOptionsHtml}
+                <option value="custom" ${!isStandardTime ? 'selected' : ''}>Custom...</option>
+              </select>
+              <input type="text" id="edit-event-time-custom" class="cmd-input" placeholder="e.g. 14:15" value="${!isStandardTime ? timeStr : ''}" style="display: ${!isStandardTime ? 'block' : 'none'}; margin-top: 4px; width: 100%; box-sizing: border-box; padding: 5px; font-family: inherit; font-size: 11px; background: rgba(0,0,0,0.3); border: 1px solid rgba(0,212,255,0.2); color: #fff;">
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <div style="flex: 1;">
+              <label style="color: var(--c-cyan); font-weight: bold; display: block; margin-bottom: 2px; font-size: 10px;">TYPE</label>
+              <select id="edit-event-type" class="cmd-input" style="width: 100%; box-sizing: border-box; padding: 6px; font-family: inherit; font-size: 11px; background: #020810; border: 1px solid rgba(0, 212, 255, 0.2); color: #fff;">
+                <option value="personal" ${type === 'personal' ? 'selected' : ''}>PERSONAL</option>
+                <option value="work" ${type === 'work' ? 'selected' : ''}>WORK</option>
+                <option value="holiday" ${type === 'holiday' ? 'selected' : ''}>HOLIDAY</option>
+                <option value="other" ${type === 'other' ? 'selected' : ''}>OTHER</option>
+              </select>
+            </div>
+            <div style="flex: 1;">
+              <label style="color: var(--c-cyan); font-weight: bold; display: block; margin-bottom: 2px; font-size: 10px;">RECURRING</label>
+              <select id="edit-event-recurring" class="cmd-input" style="width: 100%; box-sizing: border-box; padding: 6px; font-family: inherit; font-size: 11px; background: #020810; border: 1px solid rgba(0, 212, 255, 0.2); color: #fff;">
+                <option value="none" ${recurring === 'none' ? 'selected' : ''}>NONE</option>
+                <option value="daily" ${recurring === 'daily' ? 'selected' : ''}>DAILY</option>
+                <option value="weekly" ${recurring === 'weekly' ? 'selected' : ''}>WEEKLY</option>
+                <option value="monthly" ${recurring === 'monthly' ? 'selected' : ''}>MONTHLY</option>
+                <option value="yearly" ${recurring === 'yearly' ? 'selected' : ''}>YEARLY</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 14px;">
+            <label style="color: var(--c-cyan); font-weight: bold; display: block; margin-bottom: 2px; font-size: 10px;">DESCRIPTION</label>
+            <textarea id="edit-event-desc" class="cmd-input" placeholder="${description.replace(/"/g, '&quot;')}" style="width: 100%; box-sizing: border-box; padding: 6px; font-family: inherit; font-size: 11px; background: rgba(0,0,0,0.3); border: 1px solid rgba(0, 212, 255, 0.2); color: #fff; height: 50px; resize: vertical;">${description.replace(/"/g, '&quot;')}</textarea>
+          </div>
+          
+          <div style="display: flex; gap: 8px; width: 100%;">
+            <button class="cmd-send" id="btn-edit-event-save" style="flex: 1; padding: 6px; font-size: 10px; font-family: inherit;">SAVE CHANGES</button>
+            <button class="cmd-send" id="btn-edit-event-delete" style="flex: 1; padding: 6px; font-size: 10px; font-family: inherit; background: rgba(255, 45, 85, 0.1); border-color: rgba(255, 45, 85, 0.3); color: #ff2d55;">DELETE</button>
+          </div>
+        `;
+
+        // Bind Custom Time change listener
+        const timeSelect = document.getElementById('edit-event-time');
+        const customTimeInput = document.getElementById('edit-event-time-custom');
+        if (timeSelect && customTimeInput) {
+          timeSelect.onchange = () => {
+            if (timeSelect.value === 'custom') {
+              customTimeInput.style.display = 'block';
+              customTimeInput.focus();
+            } else {
+              customTimeInput.style.display = 'none';
+            }
+          };
+        }
+
+        // Bind Save click
+        document.getElementById('btn-edit-event-save').onclick = async () => {
+          const id = document.getElementById('edit-event-id').value;
+          const source = document.getElementById('edit-event-source').value;
+          
+          // Use input values or fallback to original values if left empty/blank
+          const title = document.getElementById('edit-event-title').value.trim() || ev.title;
+          const date = document.getElementById('edit-event-date').value || startStr;
+          
+          let selectedTime = document.getElementById('edit-event-time').value;
+          if (selectedTime === 'custom') {
+            selectedTime = document.getElementById('edit-event-time-custom').value.trim() || null;
+          }
+          
+          const typeVal = document.getElementById('edit-event-type').value || type;
+          const recurringVal = document.getElementById('edit-event-recurring').value || recurring;
+          const descriptionVal = document.getElementById('edit-event-desc').value.trim() || description;
+
+          try {
+            const res = await fetch(`${BACKEND}/api/capability`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                tool: 'calendar.update_event',
+                params: { event_id: id, title, date, time, type: typeVal, recurring: recurringVal, source, description: descriptionVal }
+              })
+            });
+            const data = await res.json();
+            if (data.status === 'ok') {
+              detailModal.classList.add('hidden');
+              detailModal.style.display = 'none';
+              if (calendarMiniObj) calendarMiniObj.refetchEvents();
+              if (calendarDetailedObj) calendarDetailedObj.refetchEvents();
+            } else {
+              alert(`Error saving: ${data.reason || 'Unknown error'}`);
+            }
+          } catch (e) {
+            alert(`Network error: ${e.message}`);
+          }
+        };
+
+        // Bind Delete click
+        document.getElementById('btn-edit-event-delete').onclick = async () => {
+          const id = document.getElementById('edit-event-id').value;
+          if (!confirm("Are you sure you want to delete this event?")) return;
+
+          try {
+            const res = await fetch(`${BACKEND}/api/capability`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                tool: 'calendar.remove_event',
+                params: { text: id }
+              })
+            });
+            const data = await res.json();
+            if (data.status === 'ok') {
+              detailModal.classList.add('hidden');
+              detailModal.style.display = 'none';
+              if (calendarMiniObj) calendarMiniObj.refetchEvents();
+              if (calendarDetailedObj) calendarDetailedObj.refetchEvents();
+            } else {
+              alert(`Error deleting: ${data.reason || 'Unknown error'}`);
+            }
+          } catch (e) {
+            alert(`Network error: ${e.message}`);
+          }
+        };
+      }
+
+      // Initial show in View-Only mode
+      renderViewMode();
+
+      // Bind toggle to Edit mode
+      if (toggleBtn) {
+        toggleBtn.onclick = () => {
+          renderEditMode();
+        };
+      }
+
+      detailModal.classList.remove('hidden');
+      detailModal.style.display = 'block';
     }
   });
   calendarDetailedObj.render();
@@ -1146,12 +1372,272 @@ if (btnCloseCalendarModal) {
   });
 }
 
+const modalEventDetail = document.getElementById('panel-event-detail-modal');
+const btnCloseEventDetail = document.getElementById('modal-close-event-detail');
+
+if (btnCloseEventDetail && modalEventDetail) {
+  btnCloseEventDetail.addEventListener('click', () => {
+    modalEventDetail.classList.add('hidden');
+    modalEventDetail.style.display = 'none';
+  });
+}
+
 if (modalBackdrop) {
   modalBackdrop.addEventListener('click', () => {
     if (modalCalendar) {
       modalCalendar.classList.add('hidden');
       modalCalendar.style.display = 'none';
     }
+    if (modalEventDetail) {
+      modalEventDetail.classList.add('hidden');
+      modalEventDetail.style.display = 'none';
+    }
   });
 }
+
+// ============================================================
+// UTILITIES — Calculator and Stopwatch
+// ============================================================
+
+// 1. Collapsible Toggling and View Switching
+const btnUtilCalc = document.getElementById('btn-utility-calc');
+const btnUtilTimer = document.getElementById('btn-utility-timer');
+const utilExpandContainer = document.getElementById('utilities-expand-container');
+const calcView = document.getElementById('util-calc-view');
+const timeView = document.getElementById('util-time-view');
+
+let currentActiveUtil = null; // 'calc' or 'timer' or null (collapsed)
+
+function toggleUtility(target) {
+  if (currentActiveUtil === target) {
+    // Collapse
+    utilExpandContainer.style.display = 'none';
+    currentActiveUtil = null;
+    if (btnUtilCalc) {
+      btnUtilCalc.style.background = 'none';
+      btnUtilCalc.style.borderColor = 'rgba(0, 212, 255, 0.15)';
+    }
+    if (btnUtilTimer) {
+      btnUtilTimer.style.background = 'none';
+      btnUtilTimer.style.borderColor = 'rgba(0, 212, 255, 0.15)';
+    }
+  } else {
+    // Expand & Swap
+    utilExpandContainer.style.display = 'block';
+    currentActiveUtil = target;
+    
+    if (target === 'calc') {
+      if (calcView) calcView.style.display = 'block';
+      if (timeView) timeView.style.display = 'none';
+      
+      if (btnUtilCalc) {
+        btnUtilCalc.style.background = 'rgba(0, 212, 255, 0.15)';
+        btnUtilCalc.style.borderColor = 'var(--c-cyan)';
+      }
+      if (btnUtilTimer) {
+        btnUtilTimer.style.background = 'none';
+        btnUtilTimer.style.borderColor = 'rgba(0, 212, 255, 0.15)';
+      }
+    } else {
+      if (calcView) calcView.style.display = 'none';
+      if (timeView) timeView.style.display = 'flex';
+      
+      if (btnUtilTimer) {
+        btnUtilTimer.style.background = 'rgba(0, 212, 255, 0.15)';
+        btnUtilTimer.style.borderColor = 'var(--c-cyan)';
+      }
+      if (btnUtilCalc) {
+        btnUtilCalc.style.background = 'none';
+        btnUtilCalc.style.borderColor = 'rgba(0, 212, 255, 0.15)';
+      }
+    }
+  }
+}
+
+if (btnUtilCalc && btnUtilTimer && utilExpandContainer && calcView && timeView) {
+  btnUtilCalc.onclick = () => toggleUtility('calc');
+  btnUtilTimer.onclick = () => toggleUtility('timer');
+}
+
+// 2. Calculator Logic
+const calcScreen = document.getElementById('calc-screen');
+let displayExpression = '';
+let codeExpression = '';
+
+function clearCalcExpression() {
+  displayExpression = '';
+  codeExpression = '';
+  if (calcScreen) calcScreen.textContent = '0';
+}
+
+function backspaceCalcExpression() {
+  if (displayExpression.length > 0) {
+    displayExpression = displayExpression.slice(0, -1);
+    if (codeExpression.length > 0) {
+      codeExpression = codeExpression.slice(0, -1);
+    }
+    if (calcScreen) {
+      calcScreen.textContent = displayExpression || '0';
+    }
+  }
+}
+
+function appendCalcExpression(displayVal, codeVal) {
+  if (calcScreen) {
+    if (calcScreen.textContent === '0' || calcScreen.textContent === 'ERR') {
+      displayExpression = '';
+      codeExpression = '';
+    }
+  }
+  displayExpression += displayVal;
+  codeExpression += codeVal;
+  if (calcScreen) {
+    calcScreen.textContent = displayExpression;
+  }
+}
+
+function evaluateCalcExpression() {
+  try {
+    if (codeExpression.trim()) {
+      // Expose math functions as variables to make execution more robust
+      const mathScope = {
+        sin: Math.sin,
+        cos: Math.cos,
+        tan: Math.tan,
+        log: Math.log,
+        sqrt: Math.sqrt,
+        PI: Math.PI,
+        E: Math.E
+      };
+      const result = new Function(
+        ...Object.keys(mathScope),
+        `return (${codeExpression})`
+      )(...Object.values(mathScope));
+      
+      const roundedResult = Number(Number(result).toFixed(8));
+      if (calcScreen) calcScreen.textContent = isNaN(roundedResult) ? 'ERR' : roundedResult;
+      displayExpression = isNaN(roundedResult) ? '' : String(roundedResult);
+      codeExpression = isNaN(roundedResult) ? '' : String(roundedResult);
+    }
+  } catch (e) {
+    if (calcScreen) calcScreen.textContent = 'ERR';
+    displayExpression = '';
+    codeExpression = '';
+  }
+}
+
+document.querySelectorAll('.calc-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const displayVal = btn.dataset.display;
+    const codeVal = btn.dataset.code;
+    
+    if (codeVal === 'C') {
+      clearCalcExpression();
+    } else if (codeVal === '=') {
+      evaluateCalcExpression();
+    } else {
+      appendCalcExpression(displayVal, codeVal);
+    }
+  });
+});
+
+// Bind keyboard listener for calculator inputs
+document.addEventListener('keydown', (e) => {
+  // Only process if the calculator widget is currently expanded
+  if (currentActiveUtil !== 'calc') return;
+
+  // Ignore keyboard inputs if user is typing in a form input field, textarea or select dropdown
+  const activeEl = document.activeElement;
+  if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
+    return;
+  }
+
+  const key = e.key;
+  if (/[0-9]/.test(key)) {
+    appendCalcExpression(key, key);
+    e.preventDefault();
+  } else if (key === '.') {
+    appendCalcExpression('.', '.');
+    e.preventDefault();
+  } else if (key === '+') {
+    appendCalcExpression('+', '+');
+    e.preventDefault();
+  } else if (key === '-') {
+    appendCalcExpression('-', '-');
+    e.preventDefault();
+  } else if (key === '*') {
+    appendCalcExpression('*', '*');
+    e.preventDefault();
+  } else if (key === '/') {
+    appendCalcExpression('/', '/');
+    e.preventDefault();
+  } else if (key === '(') {
+    appendCalcExpression('(', '(');
+    e.preventDefault();
+  } else if (key === ')') {
+    appendCalcExpression(')', ')');
+    e.preventDefault();
+  } else if (key === '^') {
+    appendCalcExpression('^', '**');
+    e.preventDefault();
+  } else if (key === '%') {
+    appendCalcExpression('%', '/100');
+    e.preventDefault();
+  } else if (key === 'Enter' || key === '=') {
+    evaluateCalcExpression();
+    e.preventDefault();
+  } else if (key === 'Backspace') {
+    backspaceCalcExpression();
+    e.preventDefault();
+  } else if (key === 'Escape' || key === 'c' || key === 'C') {
+    clearCalcExpression();
+    e.preventDefault();
+  }
+});
+
+// 3. Stopwatch / Timer Logic
+const timerDisplay = document.getElementById('timer-display');
+const btnTimerStart = document.getElementById('timer-start');
+const btnTimerPause = document.getElementById('timer-pause');
+const btnTimerReset = document.getElementById('timer-reset');
+
+let timerInterval = null;
+let timerMs = 0;
+
+function updateTimerDisplay() {
+  const ms = Math.floor((timerMs % 1000) / 100);
+  const totalSecs = Math.floor(timerMs / 1000);
+  const secs = totalSecs % 60;
+  const mins = Math.floor(totalSecs / 60) % 60;
+  const hrs = Math.floor(totalSecs / 3600);
+  
+  const pad = (n) => String(n).padStart(2, '0');
+  timerDisplay.textContent = `${pad(hrs)}:${pad(mins)}:${pad(secs)}.${ms}`;
+}
+
+if (btnTimerStart && btnTimerPause && btnTimerReset) {
+  btnTimerStart.addEventListener('click', () => {
+    if (timerInterval) return;
+    let lastTime = Date.now();
+    timerInterval = setInterval(() => {
+      const now = Date.now();
+      timerMs += (now - lastTime);
+      lastTime = now;
+      updateTimerDisplay();
+    }, 50);
+  });
+  
+  btnTimerPause.addEventListener('click', () => {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  });
+  
+  btnTimerReset.addEventListener('click', () => {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    timerMs = 0;
+    updateTimerDisplay();
+  });
+}
+
 

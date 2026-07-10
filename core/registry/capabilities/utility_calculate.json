@@ -1,0 +1,19 @@
+{
+  "tool": "utility.calculate",
+  "description": "Evaluates a mathematical expression.",
+  "permission_level": 0,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["expr"],
+    "properties": {
+      "expr": {
+        "type": "string",
+        "description": "The math expression to evaluate (e.g. '25 * 40')."
+      }
+    }
+  }
+}

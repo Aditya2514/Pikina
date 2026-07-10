@@ -64,9 +64,7 @@ OPENWEATHER_CITY = os.getenv("OPENWEATHER_CITY", "Mumbai")
 PORT             = int(os.getenv("BACKEND_PORT", 5001))
 
 # Start Background Daemons
-print("[Backend] Initializing Memory Systems...")
-trust_engine = TrustEngine(bus=bus)
-
+# Start Background Daemons
 forgetting_engine = ForgettingEngine(sweep_interval_sec=3600, max_age_hours=24, promotion_threshold=3)
 forgetting_engine.start()
 
@@ -80,14 +78,29 @@ clipboard_daemon.start()
 watcher_daemon = FileWatcherDaemon(bus=bus)
 watcher_daemon.start()
 
-# Sync India public holidays for the current year at startup
-try:
-    from core.calendar.holiday_sync import sync_year
-    from datetime import datetime
-    sync_res = sync_year(datetime.now().year)
-    print(f"[Backend] Public holidays synced: {sync_res}")
-except Exception as e:
-    print(f"[Backend] Failed to sync public holidays: {e}")
+trust_engine = None
+
+def _bg_init():
+    global trust_engine
+    print("[Backend] Initializing Memory Systems (TrustEngine) in background...")
+    try:
+        # Pre-loading PyTorch/SentenceTransformers in a non-daemon background thread
+        # prevents startup blocking of the HTTP server.
+        trust_engine = TrustEngine(bus=bus)
+        print("[Backend] TrustEngine loaded and active.")
+    except Exception as e:
+        print(f"[Backend] Failed to initialize TrustEngine: {e}")
+
+    try:
+        from core.calendar.holiday_sync import sync_year
+        from datetime import datetime
+        sync_res = sync_year(datetime.now().year)
+        print(f"[Backend] Public holidays synced: {sync_res}")
+    except Exception as e:
+        print(f"[Backend] Failed to sync public holidays: {e}")
+
+import threading
+threading.Thread(target=_bg_init, daemon=False).start()
 
 def cleanup_daemons():
     print("\n[Backend] Shutting down daemons...")
@@ -137,6 +150,22 @@ def command():
 
     result = mcm.receive(text, source=source)
     return jsonify(result)
+
+
+@app.route("/api/capability", methods=["POST"])
+def execute_capability():
+    body   = request.get_json(force=True, silent=True) or {}
+    tool   = body.get("tool")
+    params = body.get("params", {})
+
+    if not tool:
+        return jsonify({"status": "error", "reason": "Missing tool parameter."}), 400
+
+    try:
+        result = registry.execute(tool, params)
+        return jsonify(result)
+    except Exception as exc:
+        return jsonify({"status": "error", "reason": str(exc)}), 500
 
 
 @app.route("/api/tools")
@@ -253,7 +282,8 @@ def get_calendar_events():
             "extendedProps": {
                 "type": ev["type"],
                 "source": ev["source"],
-                "recurring": ev["recurring"]
+                "recurring": ev["recurring"],
+                "description": ev.get("description") or ""
             }
         })
     return jsonify(fc_events)

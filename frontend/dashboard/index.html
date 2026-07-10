@@ -72,13 +72,21 @@
         </div>
       </div>
 
-      <!-- Chronology (Calendar) panel -->
+      <!-- Calendar panel -->
       <div class="panel panel-calendar" id="panel-calendar" style="width: 100%; margin-top: 12px; cursor: pointer; user-select: none; padding: 10px;">
         <div class="panel-header" style="margin-bottom: 8px; border-bottom: 1px solid var(--c-panel-border); display: flex; justify-content: space-between; align-items: center; width: 100%;">
-          <span>CHRONOLOGY</span>
+          <span>CALENDAR</span>
           <span class="panel-sub" style="font-family: var(--font-hud); color: var(--c-cyan); font-weight: bold; letter-spacing: 1px;">[ZOOM]</span>
         </div>
         <div id="calendar-mini"></div>
+      </div>
+
+      <!-- Deadlines panel -->
+      <div class="panel panel-deadlines" id="panel-deadlines" style="width: 100%; margin-top: 12px;">
+        <div class="panel-header">OBJECTIVES</div>
+        <div class="deadline-list" id="deadline-list">
+          <div class="deadline-empty">Loading...</div>
+        </div>
       </div>
 
     </aside>
@@ -138,11 +146,70 @@
         </div>
       </div>
 
-      <!-- Deadlines panel -->
-      <div class="panel panel-deadlines" id="panel-deadlines">
-        <div class="panel-header">OBJECTIVES</div>
-        <div class="deadline-list" id="deadline-list">
-          <div class="deadline-empty">Loading...</div>
+      <!-- Utilities panel -->
+      <div class="panel panel-utilities" id="panel-utilities" style="margin-top: 12px; display: flex; flex-direction: column; padding: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span style="font-family: var(--font-hud); font-size: 10px; font-weight: bold; color: var(--c-text-dim); letter-spacing: 1px;">UTILITIES</span>
+          <div style="display: flex; gap: 8px;">
+            <button id="btn-utility-calc" title="Calculator" style="background: none; border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 3px; color: var(--c-cyan); cursor: pointer; font-size: 13px; padding: 2px 6px; display: flex; align-items: center; justify-content: center; font-family: inherit;">🖩</button>
+            <button id="btn-utility-timer" title="Stopwatch" style="background: none; border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 3px; color: var(--c-cyan); cursor: pointer; font-size: 13px; padding: 2px 6px; display: flex; align-items: center; justify-content: center; font-family: inherit;">⏱</button>
+          </div>
+        </div>
+        
+        <!-- Expanded container -->
+        <div id="utilities-expand-container" style="display: none; margin-top: 10px; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 10px;">
+          
+          <!-- Calculator Interface -->
+          <div id="util-calc-view" class="util-view" style="display: none;">
+            <div class="calc-screen" id="calc-screen">0</div>
+            <div class="calc-grid sc">
+              <button class="calc-btn op" data-display="sin(" data-code="Math.sin(">sin</button>
+              <button class="calc-btn op" data-display="cos(" data-code="Math.cos(">cos</button>
+              <button class="calc-btn op" data-display="tan(" data-code="Math.tan(">tan</button>
+              <button class="calc-btn op" data-display="ln(" data-code="Math.log(">ln</button>
+              <button class="calc-btn op" data-display="" data-code="C">C</button>
+              
+              <button class="calc-btn op" data-display="√(" data-code="Math.sqrt(">√</button>
+              <button class="calc-btn op" data-display="^" data-code="**">^</button>
+              <button class="calc-btn op" data-display="(" data-code="(">(</button>
+              <button class="calc-btn op" data-display=")" data-code=")">)</button>
+              <button class="calc-btn op" data-display="/" data-code="/">/</button>
+              
+              <button class="calc-btn" data-display="7" data-code="7">7</button>
+              <button class="calc-btn" data-display="8" data-code="8">8</button>
+              <button class="calc-btn" data-display="9" data-code="9">9</button>
+              <button class="calc-btn op" data-display="π" data-code="Math.PI">π</button>
+              <button class="calc-btn op" data-display="*" data-code="*">*</button>
+              
+              <button class="calc-btn" data-display="4" data-code="4">4</button>
+              <button class="calc-btn" data-display="5" data-code="5">5</button>
+              <button class="calc-btn" data-display="6" data-code="6">6</button>
+              <button class="calc-btn op" data-display="e" data-code="Math.E">e</button>
+              <button class="calc-btn op" data-display="-" data-code="-">-</button>
+              
+              <button class="calc-btn" data-display="1" data-code="1">1</button>
+              <button class="calc-btn" data-display="2" data-code="2">2</button>
+              <button class="calc-btn" data-display="3" data-code="3">3</button>
+              <button class="calc-btn op" data-display="." data-code=".">.</button>
+              <button class="calc-btn op" data-display="+" data-code="+">+</button>
+              
+              <button class="calc-btn" data-display="0" data-code="0">0</button>
+              <button class="calc-btn" data-display="00" data-code="00">00</button>
+              <button class="calc-btn op" data-display="%" data-code="/100">%</button>
+              <button class="calc-btn op" style="grid-column: span 2;" data-display="" data-code="=">=</button>
+            </div>
+          </div>
+          
+          <!-- Timer/Stopwatch Interface -->
+          <div id="util-time-view" class="util-view" style="display: none; flex-direction: column; align-items: center; justify-content: center;">
+            <div class="timer-display" id="timer-display" style="font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 700; color: var(--c-cyan); margin: 0 0 10px 0; text-shadow: 0 0 10px var(--c-cyan-glow);">00:00:00.0</div>
+            <div style="display: flex; gap: 8px; width: 100%;">
+              <button class="cmd-send" id="timer-start" style="flex: 1; padding: 4px; font-size: 10px;">START</button>
+              <button class="cmd-send" id="timer-pause" style="flex: 1; padding: 4px; font-size: 10px; background: rgba(255, 140, 0, 0.1); border-color: rgba(255, 140, 0, 0.3); color: #ff8c00;">PAUSE</button>
+              <button class="cmd-send" id="timer-reset" style="flex: 1; padding: 4px; font-size: 10px; background: rgba(255, 45, 85, 0.1); border-color: rgba(255, 45, 85, 0.3); color: #ff2d55;">RESET</button>
+            </div>
+          </div>
+          
         </div>
       </div>
 
@@ -207,10 +274,24 @@
   <!-- Detailed Calendar Modal -->
   <div class="modal-panel hidden panel" id="panel-calendar-modal" style="width: 800px; max-width: 90vw; height: 600px; max-height: 80vh; z-index: 1000; display: none; flex-direction: column;">
     <div class="panel-header">
-      CHRONOLOGY DETAILED VIEW
+      CALENDAR DETAILED VIEW
       <button class="modal-close" id="modal-close-calendar" title="Close">✕</button>
     </div>
     <div id="calendar-detailed" style="flex-grow: 1; padding: 12px; min-height: 0; overflow-y: auto;"></div>
+  </div>
+
+  <!-- Event Details Modal (Pops up when clicking a calendar event) -->
+  <div class="modal-panel hidden panel" id="panel-event-detail-modal" style="width: 400px; height: auto; z-index: 1100; display: none;">
+    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <span>EVENT DETAILS</span>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="modal-edit" id="btn-edit-event-toggle" title="Edit Event" style="background: none; border: none; color: var(--c-cyan); cursor: pointer; font-size: 13px; font-family: inherit;">✎</button>
+        <button class="modal-close" id="modal-close-event-detail" title="Close" style="position: static; margin-left: 0;">✕</button>
+      </div>
+    </div>
+    <div id="event-detail-body" style="padding: 16px; font-family: 'Share Tech Mono', monospace; font-size: 12px; line-height: 1.6;">
+      <!-- Populated dynamically -->
+    </div>
   </div>
 
   <script src="../node_modules/@fullcalendar/core/index.global.min.js"></script>

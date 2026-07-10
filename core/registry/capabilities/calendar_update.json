@@ -1,0 +1,45 @@
+{
+  "tool": "calendar.update_event",
+  "description": "Updates an existing event in your calendar.",
+  "permission_level": 0,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["event_id", "title", "date"],
+    "properties": {
+      "event_id": {
+        "type": "string",
+        "description": "The unique 8-character ID of the event to update."
+      },
+      "title": {
+        "type": "string",
+        "description": "The new title of the event."
+      },
+      "date": {
+        "type": "string",
+        "description": "The new date of the event (YYYY-MM-DD)."
+      },
+      "time": {
+        "type": "string",
+        "description": "Optional new start time (HH:MM)."
+      },
+      "type": {
+        "type": "string",
+        "enum": ["personal", "work", "holiday", "other"],
+        "description": "Optional event type."
+      },
+      "source": {
+        "type": "string",
+        "description": "Optional source (defaults to user)."
+      },
+      "recurring": {
+        "type": "string",
+        "enum": ["none", "daily", "weekly", "monthly", "yearly"],
+        "description": "Optional recurrence schedule."
+      }
+    }
+  }
+}

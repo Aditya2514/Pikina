@@ -4,7 +4,27 @@ These are the same numbers the dashboard shows and the cost function uses.
 """
 import os
 import psutil
+import threading
+import time
 from datetime import datetime, timezone
+
+_cached_cpu_percent = 0.0
+
+def _cpu_monitor():
+    global _cached_cpu_percent
+    # Initialize
+    psutil.cpu_percent(interval=None)
+    while True:
+        try:
+            # Measure over 1 second intervals
+            _cached_cpu_percent = psutil.cpu_percent(interval=1.0)
+        except Exception:
+            pass
+        time.sleep(1.0)
+
+# Start background thread immediately on module import
+_monitor_thread = threading.Thread(target=_cpu_monitor, name="CPUMonitorThread", daemon=True)
+_monitor_thread.start()
 
 
 def get_telemetry() -> dict:
@@ -12,7 +32,7 @@ def get_telemetry() -> dict:
     Returns a snapshot of current system resource usage.
     Safe to call from any thread.
     """
-    cpu_pct = psutil.cpu_percent(interval=None)
+    cpu_pct = _cached_cpu_percent
     ram     = psutil.virtual_memory()
     
     # Use system root drive on Windows to avoid network mount timeout

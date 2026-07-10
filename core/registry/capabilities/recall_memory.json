@@ -1,0 +1,19 @@
+{
+  "tool": "memory.recall",
+  "description": "Searches the semantic vector memory for past clipboard snippets, files, or facts matching the query.",
+  "permission_level": 0,
+  "estimated_cost": 0.01,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["query"],
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "The concept, keyword, or semantic query to search for in memory."
+      }
+    }
+  }
+}

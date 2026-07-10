@@ -863,4 +863,78 @@ body::after {
   z-index: 1 !important;
 }
 
+/* --- Utilities Panel & Calculator styling --- */
+.calc-screen {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  color: var(--c-cyan);
+  text-align: right;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  text-shadow: 0 0 4px var(--c-cyan-glow);
+}
+
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.calc-grid.sc {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.calc-grid.sc .calc-btn {
+  font-size: 10px !important;
+  padding: 3px 0 !important;
+}
+
+.calc-btn {
+  background: rgba(0, 212, 255, 0.05);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 2px;
+  color: #ccc;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  padding: 4px 0;
+  cursor: pointer;
+  transition: all var(--tx-fast);
+}
+
+.calc-btn:hover {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--c-cyan);
+  border-color: var(--c-cyan);
+}
+
+.calc-btn.op {
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--c-cyan);
+}
+
+.calc-btn.op:hover {
+  background: rgba(0, 212, 255, 0.25);
+}
+
+.util-tab {
+  transition: all var(--tx-fast);
+}
+.util-tab:hover {
+  color: var(--c-cyan) !important;
+}
+
+/* Webkit calendar picker indicator styling */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) sepia(1) saturate(5) hue-rotate(175deg); /* Styles it as glowing cyan */
+  cursor: pointer;
+  opacity: 0.8;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+
 

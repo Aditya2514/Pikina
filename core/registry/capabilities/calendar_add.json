@@ -31,6 +31,10 @@
         "type": "string",
         "enum": ["none", "yearly"],
         "description": "Recurrence pattern. Defaults to none."
+      },
+      "description": {
+        "type": "string",
+        "description": "Optional detailed description of the event."
       }
     }
   }

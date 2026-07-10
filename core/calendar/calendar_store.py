@@ -22,14 +22,23 @@ class CalendarStore:
                     type TEXT DEFAULT 'personal',
                     source TEXT DEFAULT 'user',
                     recurring TEXT DEFAULT 'none',
+                    description TEXT,
                     linked_reminder_task TEXT
                 )
             """)
             conn.commit()
+            
+            # Simple migration to add description column if database was initialized in an older phase
+            try:
+                conn.execute("ALTER TABLE calendar_events ADD COLUMN description TEXT")
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass # Already exists
 
-    def add_event(self, title: str, date: str, time: str = None, event_type: str = "personal", source: str = "user", recurring: str = "none") -> dict:
+    def add_event(self, title: str, date: str, time: str = None, event_type: str = "personal", source: str = "user", recurring: str = "none", description: str = "") -> dict:
         title = title.strip()
         date = date.strip()
+        desc = (description or "").strip()
         if not title:
             return {"status": "error", "reason": "Event title cannot be empty."}
         if not date:
@@ -39,8 +48,8 @@ class CalendarStore:
 
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "INSERT INTO calendar_events (id, title, date, time, type, source, recurring) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (event_id, title, date, time, event_type, source, recurring)
+                "INSERT INTO calendar_events (id, title, date, time, type, source, recurring, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (event_id, title, date, time, event_type, source, recurring, desc)
             )
             conn.commit()
 
@@ -53,7 +62,8 @@ class CalendarStore:
                 "time": time,
                 "type": event_type,
                 "source": source,
-                "recurring": recurring
+                "recurring": recurring,
+                "description": desc
             }
         }
 
@@ -160,3 +170,33 @@ class CalendarStore:
         # Sort expanded events by date then time
         expanded_events.sort(key=lambda x: (x["date"], x["time"] or "00:00"))
         return expanded_events
+
+    def update_event(self, event_id: str, title: str, date_str: str, time_str: str = None, event_type: str = "personal", source: str = "user", recurring: str = "none", description: str = "") -> dict:
+        event_id = event_id.strip()
+        title = title.strip()
+        date_str = date_str.strip()
+        desc = (description or "").strip()
+        
+        if not event_id:
+            return {"status": "error", "reason": "Event ID cannot be empty."}
+        if not title:
+            return {"status": "error", "reason": "Event title cannot be empty."}
+        if not date_str:
+            return {"status": "error", "reason": "Event date cannot be empty."}
+
+        # Check if time_str is empty string, convert to None
+        if time_str and not time_str.strip():
+            time_str = None
+            
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """
+                UPDATE calendar_events 
+                SET title = ?, date = ?, time = ?, type = ?, source = ?, recurring = ?, description = ?
+                WHERE id = ?
+                """,
+                (title, date_str, time_str, event_type, source, recurring, desc, event_id)
+            )
+            conn.commit()
+            
+        return {"status": "ok", "message": f"Event '{title}' updated successfully."}
