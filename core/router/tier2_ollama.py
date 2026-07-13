@@ -101,27 +101,38 @@ class Tier2Router:
         # 1. Assemble context (4b)
         context_str = assemble_context(text, vs=None, kg=None)
 
-        # 2. Gather available capability names, descriptions, and parameter schemas
+        # 2. Gather available capability names, permission levels, descriptions, and parameter schemas
         capabilities = []
         for tool in self.registry.list_tools():
             tool_name = tool["tool"]
             try:
                 manifest = self.registry.get_manifest(tool_name)
+                level = manifest.get("permission_level", 0)
                 param_desc = self._format_tool_parameters(manifest)
             except Exception:
+                level = 0
                 param_desc = "  Parameters: None"
-            capabilities.append(f"- {tool['tool']}: {tool['description']}\n{param_desc}")
+            capabilities.append(
+                f"- {tool['tool']} [permission_level={level}]: {tool['description']}\n{param_desc}"
+            )
         capabilities_str = "\n".join(capabilities)
 
         # 3. Format primary prompt
         prompt = (
+            f"You are a command router. Map the user's natural language command to exactly one tool.\n\n"
+            f"RULES:\n"
+            f"- You MUST set claimed_permission_level to exactly the permission_level shown in brackets for the chosen tool.\n"
+            f"- Do not invent tools not listed below.\n"
+            f"- Do not add quotes around parameter values unless they are part of the value itself.\n"
+            f"- If the user's request cannot be mapped to ANY listed tool (e.g. jokes, small talk, impossible requests), "
+            f"respond with exactly: {{\"tool\": \"no_match\", \"params\": {{}}, \"claimed_permission_level\": 0, \"provenance\": \"model_output\"}}\n"
+            f"- Respond ONLY with a single JSON object — no prose, no markdown, no explanation.\n\n"
             f"Available capabilities:\n{capabilities_str}\n\n"
-            f"Memory and structural facts context:\n{context_str}\n\n"
+            f"Memory context:\n{context_str}\n\n"
             f"User command: \"{text}\"\n\n"
-            f"Instruction: respond ONLY with a JSON object matching this exact schema, "
-            f"no prose, no markdown fences:\n"
-            f"{{\"tool\": \"<capability_name>\", \"params\": {{...}}, "
-            f"\"claimed_permission_level\": <int>, \"provenance\": \"model_output\"}}"
+            f"Required JSON schema (fill in the blanks, copy permission_level exactly from the tool listing):\n"
+            f"{{\"tool\": \"<tool_name>\", \"params\": {{...}}, "
+            f"\"claimed_permission_level\": <copy exact integer from tool listing>, \"provenance\": \"model_output\"}}"
         )
 
         try:
@@ -155,7 +166,14 @@ class Tier2Router:
         except Exception as e:
             return {"status": "error", "reason": "api_error", "failure_class": FailureClass.INFRASTRUCTURE, "message": str(e)}
 
-        # 6. Pass parsed action into the Extended AVL (4a)
+        # 6. Handle explicit no_match declaration from model
+        if proposed_action.get("tool") == "no_match":
+            return {
+                "status": "no_match",
+                "message": "I don't have a capability for that. Try asking me to open an app, manage tasks, set reminders, find files, or do math.",
+            }
+
+        # 7. Pass parsed action into the Extended AVL (4a)
         # We start with retries_so_far = 0 for the first submission
         is_valid, fc, reason = validate_model_action(proposed_action, self.registry, retries_so_far=0)
         

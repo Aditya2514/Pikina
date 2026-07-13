@@ -67,13 +67,21 @@ def _calendar_range_params(match) -> dict:
 ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
     # Open VS Code (explicit variants first)
     (re.compile(r"open\s+(?P<app>vs\s*code|vscode)", re.I),          "app.open",          _app_params),
+    # Open/start/launch Calculator (must be before generic open to avoid falling through to model)
+    (re.compile(r"(?:open|start|launch|run)\s+(?:the\s+)?(?P<app>calc(?:ulator)?)", re.I), "app.open", _app_params),
+    # Open/start/launch Paint
+    (re.compile(r"(?:open|start|launch|run)\s+(?:the\s+)?(?P<app>paint)", re.I),           "app.open", _app_params),
+    # Open/start/launch Notepad (so model never sees it)
+    (re.compile(r"(?:open|start|launch|run)\s+(?:the\s+)?(?P<app>notepad)", re.I),         "app.open", _app_params),
     # Open any named app
     (re.compile(r"open\s+(?P<app>[\w\s]+)",           re.I),          "app.open",          _app_params),
     # Lock screen
     (re.compile(r"lock\s+(my\s+)?(screen|workstation|pc|computer|laptop)", re.I),
                                                                        "system.lock_screen", lambda m: {}),
-    # Find file
-    (re.compile(r"find\s+(file\s+)?(?P<name>.+)", re.I),              "fs.find_file",      lambda m: {"name": m.group("name")}),
+    # Find file (several natural-language triggers, with or without file extension)
+    (re.compile(r"(?:find|look\s+up|search\s+for|where\s+is)\s+(?:files?\s+(?:with\s+)?|file\s+called\s+)?(?P<name>[\w\s.*-]+\.\w+)", re.I), "fs.find_file", lambda m: {"name": m.group("name").strip()}),
+    (re.compile(r"(?:look\s+up|search\s+for)\s+files?\s+(?:with\s+|named?\s+|called\s+)?(?P<name>[\w\s*.-]+?)(?:\s+in\s+(?:the\s+)?name)?$", re.I), "fs.find_file", lambda m: {"name": m.group("name").strip() + "*"}),
+    (re.compile(r"find\s+(?:file\s+)?(?P<name>.+)", re.I),             "fs.find_file",      lambda m: {"name": m.group("name")}),
     # Recall memory
     (re.compile(r"recall\s+(?P<query>.+)", re.I),                     "memory.recall",     lambda m: {"query": m.group("query")}),
     # --- Phase 3.5a: Alias management ---
@@ -82,7 +90,8 @@ ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
     # Remove alias  — capture everything after 'remove alias'
     (re.compile(r"remove\s+alias\s+(?P<trigger>.+)", re.I),           "alias.remove",      lambda m: {"trigger": m.group("trigger")}),
     # --- Phase 3.5b: To-Do management ---
-    # Add to-do
+    # Add to-do (handles 'add a task to X', 'add todo X', 'todo X')
+    (re.compile(r"add\s+a\s+task\s+(?:to\s+)?(?P<text>.+)", re.I),    "todo.add",          _todo_add_params),
     (re.compile(r"(?:add\s+)?(?:todo|task)\s+(?P<text>.+)", re.I),     "todo.add",          _todo_add_params),
     # Complete to-do
     (re.compile(r"(?:mark\s+)?(?:complete|done)\s+(?P<text>.+)", re.I), "todo.complete",     lambda m: {"text": m.group("text")}),

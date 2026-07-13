@@ -12,7 +12,7 @@
     "properties": {
       "name": {
         "type": "string",
-        "description": "File name or glob pattern (e.g. '*.pdf', 'resume*')"
+        "description": "File name or glob pattern (e.g. *.pdf or resume*). No quotes around the value."
       },
       "root": {
         "type": "string",
