@@ -32,9 +32,11 @@ def main():
     print(HELP)
     print("=" * 60)
 
+    from core.router.tier2_ollama import Tier2Router
     registry = CapabilityRegistry()
     router   = Tier1Router(registry=registry)
-    mcm      = Orchestrator(router=router)
+    tier2    = Tier2Router(registry=registry)
+    mcm      = Orchestrator(router=router, tier2_router=tier2)
 
     while True:
         try:

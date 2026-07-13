@@ -8,12 +8,16 @@ from core.eventbus.bus import EventBus
 
 
 class Orchestrator:
-    def __init__(self, router=None):
+    def __init__(self, router=None, tier2_router=None):
         self._router = router
+        self._tier2_router = tier2_router
         self._bus    = EventBus()
 
     def set_router(self, router) -> None:
         self._router = router
+
+    def set_tier2_router(self, tier2_router) -> None:
+        self._tier2_router = tier2_router
 
     def receive(self, text: str, source: str = "user_typed") -> dict:
         """
@@ -21,6 +25,7 @@ class Orchestrator:
         1. Tags provenance.
         2. Enforces the hard rule: untrusted input never executes.
         3. Routes trusted commands to the Tier 1 router.
+        4. If Tier 1 doesn't match, falls back to the Tier 2 local LLM router.
         Returns a result dict.
         """
         provenance = tag(source)
@@ -51,4 +56,9 @@ class Orchestrator:
         if self._router is None:
             return {"status": "error", "reason": "no_router_configured"}
 
-        return self._router.route(text)
+        result = self._router.route(text)
+        if result.get("status") == "no_match" and self._tier2_router is not None:
+            # Fall back to Tier 2 local LLM call
+            return self._tier2_router.route(text)
+
+        return result
