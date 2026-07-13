@@ -22,13 +22,29 @@ class Tier2Router:
         self.url = "http://localhost:11434/api/generate"
 
     def _clean_response(self, text: str) -> str:
-        """Strip markdown code fences and extraneous prose to extract JSON block."""
+        """Extract the JSON substring between the first '{' and the last '}'."""
         text = text.strip()
-        # Look for markdown code fence
-        match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
-        if match:
-            return match.group(1).strip()
+        start = text.find('{')
+        end = text.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            return text[start:end+1]
         return text
+
+    def _format_tool_parameters(self, manifest: dict) -> str:
+        """Helper to format tool parameter schemas into a compact string representation."""
+        schema = manifest.get("params_schema", {})
+        required = schema.get("required", [])
+        properties = schema.get("properties", {})
+        if not properties:
+            return "    Parameters: None"
+        
+        lines = ["  Parameters:"]
+        for name, prop in properties.items():
+            p_type = prop.get("type", "string")
+            req = "required" if name in required else "optional"
+            desc = prop.get("description", "")
+            lines.append(f"    - {name} ({p_type}, {req}): {desc}")
+        return "\n".join(lines)
 
     def _call_ollama(self, prompt: str) -> str:
         """Make HTTP POST call to local Ollama generate API with 15-second timeout."""
@@ -85,10 +101,16 @@ class Tier2Router:
         # 1. Assemble context (4b)
         context_str = assemble_context(text, vs=None, kg=None)
 
-        # 2. Gather available capability names + descriptions
+        # 2. Gather available capability names, descriptions, and parameter schemas
         capabilities = []
         for tool in self.registry.list_tools():
-            capabilities.append(f"- {tool['tool']}: {tool['description']}")
+            tool_name = tool["tool"]
+            try:
+                manifest = self.registry.get_manifest(tool_name)
+                param_desc = self._format_tool_parameters(manifest)
+            except Exception:
+                param_desc = "  Parameters: None"
+            capabilities.append(f"- {tool['tool']}: {tool['description']}\n{param_desc}")
         capabilities_str = "\n".join(capabilities)
 
         # 3. Format primary prompt
