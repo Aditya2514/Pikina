@@ -623,6 +623,35 @@ body::after {
   }
   .reactor-wrapper { width: 380px; height: 380px; }
   #reactor-canvas  { width: 380px; height: 380px; }
+
+/* Detailed view additional themes (Week, Day, List views) */
+.fc .fc-timegrid-slot-label-cushion,
+.fc .fc-timegrid-axis-cushion,
+.fc .fc-col-header-cell-cushion {
+  color: #c0e0f0 !important;
+  text-decoration: none !important;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+}
+
+.fc-list-event {
+  background: rgba(2, 8, 16, 0.4) !important;
+}
+
+.fc-list-event:hover {
+  background: rgba(0, 212, 255, 0.08) !important;
+}
+
+.fc-list-day-text,
+.fc-list-day-side {
+  color: #00d4ff !important;
+  font-family: 'Orbitron', sans-serif !important;
+  font-weight: bold;
+}
+
+.fc-list-table {
+  border-color: rgba(0, 212, 255, 0.15) !important;
+}
 }
 
 /* ---------------------------------------------------------------------------
@@ -764,7 +793,7 @@ body::after {
   text-shadow: 0 0 6px rgba(0, 255, 136, 0.5);
 }
 
-.fc-daygrid-event {
+.fc-event {
   background: rgba(0, 212, 255, 0.05) !important;
   border: 1px solid rgba(0, 212, 255, 0.2) !important;
   border-left: 3px solid #00d4ff !important;
@@ -782,19 +811,29 @@ body::after {
   white-space: nowrap;
 }
 
-.fc-daygrid-event.fc-event-holiday {
+.fc-event.fc-event-holiday {
   border-left-color: #ff8c00 !important;
   background: rgba(255, 140, 0, 0.05) !important;
 }
 
-.fc-daygrid-event.fc-event-college {
+.fc-event.fc-event-college {
   border-left-color: #a855f7 !important;
   background: rgba(168, 85, 247, 0.05) !important;
 }
 
-.fc-daygrid-event.fc-event-appointment {
+.fc-event.fc-event-appointment {
   border-left-color: #00ff88 !important;
   background: rgba(0, 255, 136, 0.05) !important;
+}
+
+.fc-event.fc-event-work {
+  border-left-color: #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.05) !important;
+}
+
+.fc-event.fc-event-personal {
+  border-left-color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.05) !important;
 }
 
 .fc-header-toolbar {
@@ -934,6 +973,35 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
+}
+
+/* Detailed view additional themes (Week, Day, List views) */
+.fc .fc-timegrid-slot-label-cushion,
+.fc .fc-timegrid-axis-cushion,
+.fc .fc-col-header-cell-cushion {
+  color: #c0e0f0 !important;
+  text-decoration: none !important;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+}
+
+.fc-list-event {
+  background: rgba(2, 8, 16, 0.4) !important;
+}
+
+.fc-list-event:hover {
+  background: rgba(0, 212, 255, 0.08) !important;
+}
+
+.fc-list-day-text,
+.fc-list-day-side {
+  color: #00d4ff !important;
+  font-family: 'Orbitron', sans-serif !important;
+  font-weight: bold;
+}
+
+.fc-list-table {
+  border-color: rgba(0, 212, 255, 0.15) !important;
 }
 
 

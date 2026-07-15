@@ -1086,16 +1086,87 @@ function initDetailedCalendar() {
   const el = document.getElementById('calendar-detailed');
   if (!el || typeof FullCalendar === 'undefined') return;
 
+  const updateEventDropOrResize = async (info) => {
+    const ev = info.event;
+    const yr = ev.start.getFullYear();
+    const mo = String(ev.start.getMonth() + 1).padStart(2, '0');
+    const dy = String(ev.start.getDate()).padStart(2, '0');
+    const dateStr = `${yr}-${mo}-${dy}`;
+    const timeStr = ev.allDay ? null : ev.start.toTimeString().split(' ')[0].substring(0, 5);
+
+    const type = (ev.extendedProps && ev.extendedProps.type) || 'personal';
+    const recurring = (ev.extendedProps && ev.extendedProps.recurring) || 'none';
+    const source = (ev.extendedProps && ev.extendedProps.source) || 'user';
+    const desc = (ev.extendedProps && ev.extendedProps.description) || '';
+
+    try {
+      const res = await fetch(`${BACKEND}/api/capability`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tool: 'calendar.update_event',
+          params: {
+            event_id: ev.id,
+            title: ev.title,
+            date: dateStr,
+            time: timeStr,
+            type: type,
+            recurring: recurring,
+            source: source,
+            description: desc
+          }
+        })
+      });
+      const data = await res.json();
+      if (data.status !== 'ok') {
+        alert(`Failed to save event changes: ${data.reason || 'Unknown error'}`);
+        info.revert();
+      } else {
+        if (calendarMiniObj) calendarMiniObj.refetchEvents();
+      }
+    } catch (err) {
+      alert(`Network error saving calendar changes: ${err.message}`);
+      info.revert();
+    }
+  };
+
   calendarDetailedObj = new FullCalendar.Calendar(el, {
     initialView: 'dayGridMonth',
     headerToolbar: {
-      left: 'prev',
+      left: 'prev,next today',
       center: 'title',
-      right: 'next'
+      right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
     },
-    editable: false,
-    selectable: false,
-    dayMaxEvents: 2,
+    editable: true,
+    selectable: true,
+    selectMirror: true,
+    dayMaxEvents: 3,
+    select: function(info) {
+      const startStr = info.startStr.split('T')[0];
+      let startStrTime = '';
+      if (info.startStr.includes('T')) {
+        startStrTime = info.startStr.split('T')[1].substring(0, 5);
+      }
+      
+      const createModal = document.getElementById('panel-create-event-modal');
+      if (!createModal) return;
+
+      document.getElementById('create-event-error').innerText = '';
+      document.getElementById('create-event-title').value = '';
+      document.getElementById('create-event-date').value = startStr;
+      document.getElementById('create-event-time').value = startStrTime;
+      document.getElementById('create-event-type').value = 'personal';
+      document.getElementById('create-event-recurring').value = 'none';
+      document.getElementById('create-event-desc').value = '';
+
+      createModal.classList.remove('hidden');
+      createModal.style.display = 'block';
+      
+      // Unselect grid
+      calendarDetailedObj.unselect();
+    },
+    eventDrop: updateEventDropOrResize,
+    eventResize: updateEventDropOrResize,
     events: async function(info, successCallback, failureCallback) {
       try {
         const start = info.startStr;
@@ -1392,7 +1463,79 @@ if (modalBackdrop) {
       modalEventDetail.classList.add('hidden');
       modalEventDetail.style.display = 'none';
     }
+    const createModal = document.getElementById('panel-create-event-modal');
+    if (createModal) {
+      createModal.classList.add('hidden');
+      createModal.style.display = 'none';
+    }
   });
+}
+
+// Bind Create Event controls
+const btnSaveNewEvent = document.getElementById('btn-save-new-event');
+if (btnSaveNewEvent) {
+  btnSaveNewEvent.onclick = async () => {
+    const title = document.getElementById('create-event-title').value.trim();
+    const date = document.getElementById('create-event-date').value;
+    const timeVal = document.getElementById('create-event-time').value || null;
+    const typeVal = document.getElementById('create-event-type').value;
+    const recurringVal = document.getElementById('create-event-recurring').value;
+    const descriptionVal = document.getElementById('create-event-desc').value.trim();
+
+    const errDiv = document.getElementById('create-event-error');
+    if (!title) {
+      errDiv.innerText = "Error: Event title is required.";
+      return;
+    }
+    if (!date) {
+      errDiv.innerText = "Error: Event date is required.";
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BACKEND}/api/capability`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tool: 'calendar.add_event',
+          params: {
+            title: title,
+            date: date,
+            time: timeVal,
+            type: typeVal,
+            recurring: recurringVal,
+            description: descriptionVal
+          }
+        })
+      });
+      const data = await res.json();
+      if (data.status === 'ok') {
+        const createModal = document.getElementById('panel-create-event-modal');
+        if (createModal) {
+          createModal.classList.add('hidden');
+          createModal.style.display = 'none';
+        }
+        
+        if (calendarMiniObj) calendarMiniObj.refetchEvents();
+        if (calendarDetailedObj) calendarDetailedObj.refetchEvents();
+      } else {
+        errDiv.innerText = `Error: ${data.reason || 'Unknown error'}`;
+      }
+    } catch (e) {
+      errDiv.innerText = `Network Error: ${e.message}`;
+    }
+  };
+}
+
+const btnCloseCreateEvent = document.getElementById('modal-close-create-event');
+if (btnCloseCreateEvent) {
+  btnCloseCreateEvent.onclick = () => {
+    const createModal = document.getElementById('panel-create-event-modal');
+    if (createModal) {
+      createModal.classList.add('hidden');
+      createModal.style.display = 'none';
+    }
+  };
 }
 
 // ============================================================

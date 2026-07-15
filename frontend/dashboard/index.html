@@ -294,8 +294,60 @@
     </div>
   </div>
 
+  <!-- Create Event Modal (Pops up on date selection) -->
+  <div class="modal-panel hidden panel" id="panel-create-event-modal" style="width: 400px; height: auto; z-index: 1100; display: none; padding: 16px;">
+    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <span>CREATE NEW EVENT</span>
+      <button class="modal-close" id="modal-close-create-event" title="Close" style="position: static; margin-left: 0;">✕</button>
+    </div>
+    <div style="padding: 12px 0 0 0; font-family: 'Share Tech Mono', monospace; font-size: 12px; display: flex; flex-direction: column; gap: 10px;">
+      <div>
+        <label style="color: #778f9f; font-weight: bold; display: block; margin-bottom: 4px;">EVENT TITLE:</label>
+        <input type="text" id="create-event-title" class="cmd-input" placeholder="e.g. Project Sync Meeting" style="width: 100%; box-sizing: border-box;" />
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <div style="flex: 1;">
+          <label style="color: #778f9f; font-weight: bold; display: block; margin-bottom: 4px;">DATE:</label>
+          <input type="date" id="create-event-date" class="cmd-input" style="width: 100%; box-sizing: border-box;" />
+        </div>
+        <div style="flex: 1;">
+          <label style="color: #778f9f; font-weight: bold; display: block; margin-bottom: 4px;">TIME (OPTIONAL):</label>
+          <input type="time" id="create-event-time" class="cmd-input" style="width: 100%; box-sizing: border-box;" />
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <div style="flex: 1;">
+          <label style="color: #778f9f; font-weight: bold; display: block; margin-bottom: 4px;">CATEGORY/TYPE:</label>
+          <select id="create-event-type" class="cmd-input" style="width: 100%; box-sizing: border-box; background: #0b151e; color: #fff; border: 1px solid rgba(0,212,255,0.3); padding: 4px;">
+            <option value="personal">Personal</option>
+            <option value="work">Work</option>
+            <option value="meeting">Meeting</option>
+            <option value="holiday">Holiday</option>
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label style="color: #778f9f; font-weight: bold; display: block; margin-bottom: 4px;">RECURRING:</label>
+          <select id="create-event-recurring" class="cmd-input" style="width: 100%; box-sizing: border-box; background: #0b151e; color: #fff; border: 1px solid rgba(0,212,255,0.3); padding: 4px;">
+            <option value="none">None</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="color: #778f9f; font-weight: bold; display: block; margin-bottom: 4px;">DESCRIPTION:</label>
+        <textarea id="create-event-desc" class="cmd-input" placeholder="Optional description..." style="width: 100%; box-sizing: border-box; height: 60px; font-family: inherit; resize: none;"></textarea>
+      </div>
+      <button class="cmd-send" id="btn-save-new-event" style="width: 100%; margin-top: 8px; font-family: 'Orbitron', sans-serif;">SAVE EVENT</button>
+      <div id="create-event-error" style="color: var(--c-error); font-size: 11px; min-height: 14px; text-align: center;"></div>
+    </div>
+  </div>
+
   <script src="../node_modules/@fullcalendar/core/index.global.min.js"></script>
   <script src="../node_modules/@fullcalendar/daygrid/index.global.min.js"></script>
+  <script src="../node_modules/@fullcalendar/timegrid/index.global.min.js"></script>
+  <script src="../node_modules/@fullcalendar/list/index.global.min.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>
