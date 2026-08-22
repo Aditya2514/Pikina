@@ -155,9 +155,9 @@
   <!-- Bottom Summary Badge -->
   <rect x="50" y="475" width="1000" height="40" rx="8" fill="#0f172a" stroke="#1e293b"/>
   <text x="550" y="500" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">
-    <tspan fill="#38ef7d">✓ Zero Model Lock-in</tspan> &nbsp;&bull;&nbsp; 
-    <tspan fill="#00f2fe">✓ Instant Deterministic Latency</tspan> &nbsp;&bull;&nbsp; 
-    <tspan fill="#f59e0b">✓ Win32 Native Consent Gate</tspan> &nbsp;&bull;&nbsp; 
+    <tspan fill="#38ef7d">✓ Zero Model Lock-in</tspan>  &#160;  •  &#160;  
+    <tspan fill="#00f2fe">✓ Instant Deterministic Latency</tspan>  &#160;  •  &#160;  
+    <tspan fill="#f59e0b">✓ Win32 Native Consent Gate</tspan>  &#160;  •  &#160;  
     <tspan fill="#c084fc">✓ Multi-Agent Transaction Rollbacks</tspan>
   </text>
 </svg>

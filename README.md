@@ -8,8 +8,8 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Electron](https://img.shields.io/badge/Electron-Desktop_HUD-4785D4?style=for-the-badge&logo=electron&logoColor=white)](https://electronjs.org)
 [![Win32 API](https://img.shields.io/badge/OS_Hooks-Win32_pywin32-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://microsoft.com/windows)
-[![Routing Tier](https://img.shields.io/badge/Routing-Deterministic_Regex_%2B_Ollama_LLM-00F2FE?style=for-the-badge)](file:///home/kskroyal/Projects/pik/Pikina/core/router)
-[![Security](https://img.shields.io/badge/Security-Action_Validation_Layer_(AVL)-FF0844?style=for-the-badge)](file:///home/kskroyal/Projects/pik/Pikina/security)
+[![Routing Tier](https://img.shields.io/badge/Routing-Deterministic_Regex_%2B_Ollama_LLM-00F2FE?style=for-the-badge)](core/router)
+[![Security](https://img.shields.io/badge/Security-Action_Validation_Layer_(AVL)-FF0844?style=for-the-badge)](security)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](#license)
 
 <br/>
@@ -18,7 +18,7 @@
 
 <br/>
 
-<img src="./docs/assets/pikina_dashboard_ui.svg" alt="Pikina OS JARVIS Dashboard HUD" width="100%" />
+<img src="docs/assets/pikina_dashboard_ui.png" alt="Pikina OS JARVIS Dashboard HUD" width="100%" />
 
 </div>
 
@@ -79,27 +79,27 @@ Unlike conventional AI desktop assistants that route every keystroke through clo
 ### 1. JARVIS HUD Dashboard (`frontend/dashboard`)
 A futuristic, dark-mode visual interface featuring diagnostic telemetry bars for CPU, RAM, Disk, and Battery, an active arc-reactor status core, real-time event replay stream, objective tracker, and mini calendar.
 
-<img src="./docs/assets/pikina_dashboard_ui.svg" alt="Pikina OS JARVIS Dashboard HUD" width="100%" />
+<img src="docs/assets/pikina_dashboard_ui.png" alt="Pikina OS JARVIS Dashboard HUD" width="100%" />
 
 ### 2. Hotkey Quick Panel Overlay (`frontend/quick_panel`)
 A lightweight, floating command launcher accessible anywhere on Windows via <kbd>Alt</kbd> + <kbd>Space</kbd>. Provides instant search suggestions, system status indicators, and sub-millisecond command execution.
 
-<img src="./docs/assets/pikina_quick_panel_ui.svg" alt="Pikina OS Quick Panel Interface" width="100%" />
+<img src="docs/assets/pikina_quick_panel_ui.png" alt="Pikina OS Quick Panel Interface" width="100%" />
 
 ### 3. Action Validation & Win32 Consent Gate (`security`)
 Intercepts elevated permission requests ($L4+$) and irreversible side effects before execution, triggering native Win32 `MessageBoxW` confirmation modals.
 
-<img src="./docs/assets/pikina_avl_consent_gate.svg" alt="Pikina OS Action Validation Layer" width="100%" />
+<img src="docs/assets/pikina_avl_consent_gate.png" alt="Pikina OS Action Validation Layer" width="100%" />
 
 ### 4. Dual-Tier Memory & Knowledge Graph (`memory`)
 Visualizes the automated vector flow: Ephemeral Store (short-term clipboard & file edits) $\rightarrow$ Promotion Sweep ($\ge 3$ corroborations) $\rightarrow$ Permanent Semantic Store & NetworkX Knowledge Graph.
 
-<img src="./docs/assets/pikina_memory_engine.svg" alt="Pikina OS Dual Memory Engine" width="100%" />
+<img src="docs/assets/pikina_memory_engine.png" alt="Pikina OS Dual Memory Engine" width="100%" />
 
 ### 5. System Diagnostics & Sensory Telemetry (`core/governor`)
 Real-time Win32 hardware sampling, active preference profiles (`Productivity`, `Casual`, `Quiet Hours`), and active sensory background daemons.
 
-<img src="./docs/assets/pikina_telemetry_hud.svg" alt="Pikina OS Telemetry HUD" width="100%" />
+<img src="docs/assets/pikina_telemetry_hud.png" alt="Pikina OS Telemetry HUD" width="100%" />
 
 ---
 
@@ -107,7 +107,7 @@ Real-time Win32 hardware sampling, active preference profiles (`Productivity`, `
 
 Pikina OS isolates reasoning from execution. Incoming inputs pass through a strict four-stage pipeline: **Sourcing** $\rightarrow$ **Two-Tier Routing** $\rightarrow$ **Action Validation** $\rightarrow$ **Execution & Audit**.
 
-<img src="./docs/assets/pikina_architecture_flow.svg" alt="Pikina OS Architecture Flow" width="100%" />
+<img src="docs/assets/pikina_architecture_flow.png" alt="Pikina OS Architecture Flow" width="100%" />
 
 ### Data Execution Flow (Mermaid Sequence)
 
@@ -201,7 +201,7 @@ Pikina OS provides **19 built-in capabilities** spanning system controls, task m
 
 ### 1. Two-Tier Command Router
 
-Pikina OS employs an automated multi-tier routing pipeline located in [`core/router`](file:///home/kskroyal/Projects/pik/Pikina/core/router):
+Pikina OS employs an automated multi-tier routing pipeline located in [`core/router`](core/router):
 
 1. **Tier 1 (Deterministic Router):**
    Evaluates commands against compiled regex patterns. If matched, execution completes in **$< 1\text{ ms}$** without invoking AI models or consuming GPU/CPU compute.
@@ -212,7 +212,7 @@ Pikina OS employs an automated multi-tier routing pipeline located in [`core/rou
 
 ### 2. Action Validation Layer (AVL) & Security
 
-Located in [`security`](file:///home/kskroyal/Projects/pik/Pikina/security) and [`core/validation`](file:///home/kskroyal/Projects/pik/Pikina/core/validation):
+Located in [`security`](security) and [`core/validation`](core/validation):
 
 - **Permission Level Enforcement:** Validates that the requested tool parameter level does not exceed the allowed threshold.
 - **Consent Gate (`MessageBoxW`):** Any Level 4+ or non-reversible action halts execution and raises a native Windows modal confirmation.
@@ -221,7 +221,7 @@ Located in [`security`](file:///home/kskroyal/Projects/pik/Pikina/security) and 
 
 ### 3. Dual-Tier Vector Memory & Knowledge Graph
 
-Located in [`memory`](file:///home/kskroyal/Projects/pik/Pikina/memory):
+Located in [`memory`](memory):
 
 - **Ephemeral Vector Store:** Captures short-term file modifications, clipboard contents, and system logs.
 - **Permanent Vector Store:** Holds explicit declarations, user preferences, and promoted memories.
@@ -233,7 +233,7 @@ Located in [`memory`](file:///home/kskroyal/Projects/pik/Pikina/memory):
 
 ### 4. Sensory Daemons & File Indexer
 
-Located in [`daemons`](file:///home/kskroyal/Projects/pik/Pikina/daemons):
+Located in [`daemons`](daemons):
 
 - **Clipboard Monitor (`ClipboardDaemon`):** Listens to Windows `WM_CLIPBOARDUPDATE` messages. Automatically ignores content marked sensitive by password managers (`ExcludeClipboardContentFromMonitor`) and enforces a 10,000-character cap.
 - **File Watcher (`FileWatcherDaemon`):** Tracks file creation, modifications, and deletions in real-time using `watchdog`.

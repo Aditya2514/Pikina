@@ -64,7 +64,7 @@
 
       <!-- Message Text -->
       <text x="65" y="18" fill="#f8fafc" font-size="13" font-weight="700">High-Risk Operation Intercepted</text>
-      <text x="65" y="38" fill="#cbd5e1" font-size="11" font-weight="400">Tool: <tspan fill="#00f2fe" font-weight="700">todo.remove</tspan> &nbsp;|&nbsp; Target ID: <tspan fill="#f59e0b">c693836e</tspan></text>
+      <text x="65" y="38" fill="#cbd5e1" font-size="11" font-weight="400">Tool: <tspan fill="#00f2fe" font-weight="700">todo.remove</tspan>  &#160; | &#160;  Target ID: <tspan fill="#f59e0b">c693836e</tspan></text>
       <text x="65" y="56" fill="#94a3b8" font-size="11" font-weight="400">Action: Deleting persistent objective 'critical_deployment_step'</text>
     </g>
 
@@ -88,5 +88,5 @@
   </g>
 
   <!-- Bottom Badge -->
-  <text x="475" y="460" fill="#64748b" font-size="10" font-weight="500" text-anchor="middle">Zero autonomous execution for unverified high-risk commands &bull; Human-in-the-loop safety</text>
+  <text x="475" y="460" fill="#64748b" font-size="10" font-weight="500" text-anchor="middle">Zero autonomous execution for unverified high-risk commands  •  Human-in-the-loop safety</text>
 </svg>

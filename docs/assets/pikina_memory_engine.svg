@@ -34,7 +34,7 @@
 
   <!-- Title Banner -->
   <text x="475" y="42" fill="#f8fafc" font-size="18" font-weight="800" text-anchor="middle" letter-spacing="1">DUAL-TIER MEMORY &amp; KNOWLEDGE GRAPH ENGINE</text>
-  <text x="475" y="63" fill="#94a3b8" font-size="11" font-weight="500" text-anchor="middle">Ephemeral Vectors &bull; Corroborated Permanent Promotion &bull; Semantic Context Assembly</text>
+  <text x="475" y="63" fill="#94a3b8" font-size="11" font-weight="500" text-anchor="middle">Ephemeral Vectors  •  Corroborated Permanent Promotion  •  Semantic Context Assembly</text>
 
   <!-- Box 1: Ephemeral Vector Memory -->
   <g transform="translate(45, 95)">
@@ -43,9 +43,9 @@
     <text x="130" y="33" fill="#07090e" font-size="11" font-weight="800" text-anchor="middle">1. EPHEMERAL VECTOR STORE</text>
 
     <text x="20" y="68" fill="#cbd5e1" font-size="11" font-weight="700">Short-Term Event Log</text>
-    <text x="20" y="85" fill="#94a3b8" font-size="9">&bull; Clipboard copies (cap: 10k chars)</text>
-    <text x="20" y="100" fill="#94a3b8" font-size="9">&bull; Workspace file modifications</text>
-    <text x="20" y="115" fill="#94a3b8" font-size="9">&bull; Recent user queries &amp; command outputs</text>
+    <text x="20" y="85" fill="#94a3b8" font-size="9"> •  Clipboard copies (cap: 10k chars)</text>
+    <text x="20" y="100" fill="#94a3b8" font-size="9"> •  Workspace file modifications</text>
+    <text x="20" y="115" fill="#94a3b8" font-size="9"> •  Recent user queries &amp; command outputs</text>
 
     <!-- Embedding Model Info -->
     <rect x="15" y="135" width="230" height="45" rx="6" fill="#07090e" stroke="#1e293b"/>
@@ -75,9 +75,9 @@
     <text x="130" y="33" fill="#07090e" font-size="11" font-weight="800" text-anchor="middle">2. PERMANENT VECTOR STORE</text>
 
     <text x="20" y="68" fill="#cbd5e1" font-size="11" font-weight="700">Long-Term Semantic Core</text>
-    <text x="20" y="85" fill="#94a3b8" font-size="9">&bull; Explicit user declarations ("call me...")</text>
-    <text x="20" y="100" fill="#94a3b8" font-size="9">&bull; Promoted high-frequency file paths</text>
-    <text x="20" y="115" fill="#94a3b8" font-size="9">&bull; User preference profiles &amp; habits</text>
+    <text x="20" y="85" fill="#94a3b8" font-size="9"> •  Explicit user declarations ("call me...")</text>
+    <text x="20" y="100" fill="#94a3b8" font-size="9"> •  Promoted high-frequency file paths</text>
+    <text x="20" y="115" fill="#94a3b8" font-size="9"> •  User preference profiles &amp; habits</text>
 
     <rect x="15" y="135" width="230" height="175" rx="6" fill="#07090e" stroke="#1e293b"/>
     <text x="25" y="155" fill="#38ef7d" font-size="10" font-weight="700">Semantic Recall Query</text>
@@ -134,5 +134,5 @@
     <text x="25" y="285" fill="#94a3b8" font-size="8">Packs grounded prompt to Ollama</text>
   </g>
 
-  <text x="475" y="455" fill="#64748b" font-size="10" font-weight="500" text-anchor="middle">Autonomous semantic decay &bull; Strict token budgeting &bull; Zero hallucinated action execution</text>
+  <text x="475" y="455" fill="#64748b" font-size="10" font-weight="500" text-anchor="middle">Autonomous semantic decay  •  Strict token budgeting  •  Zero hallucinated action execution</text>
 </svg>
