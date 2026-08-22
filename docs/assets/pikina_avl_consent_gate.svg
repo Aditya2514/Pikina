@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 950 480" width="100%" height="100%" style="background-color: #07090e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <defs>
+    <linearGradient id="bgGradAvl" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d1322"/>
+      <stop offset="100%" stop-color="#07090e"/>
+    </linearGradient>
+
+    <linearGradient id="warnHeader" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff0844"/>
+      <stop offset="100%" stop-color="#ffb199"/>
+    </linearGradient>
+
+    <filter id="dlgShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="20" flood-color="#000000" flood-opacity="0.8"/>
+    </filter>
+
+    <filter id="warnGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <rect width="950" height="480" fill="url(#bgGradAvl)"/>
+
+  <!-- Background Grid -->
+  <g stroke="#ffffff" stroke-opacity="0.03" stroke-width="1">
+    <line x1="0" y1="120" x2="950" y2="120"/>
+    <line x1="0" y1="240" x2="950" y2="240"/>
+    <line x1="0" y1="360" x2="950" y2="360"/>
+    <line x1="237" y1="0" x2="237" y2="480"/>
+    <line x1="475" y1="0" x2="475" y2="480"/>
+    <line x1="712" y1="0" x2="712" y2="480"/>
+  </g>
+
+  <!-- Title Banner -->
+  <text x="475" y="42" fill="#f8fafc" font-size="18" font-weight="800" text-anchor="middle" letter-spacing="1">ACTION VALIDATION LAYER (AVL) — CONSENT GATE</text>
+  <text x="475" y="63" fill="#94a3b8" font-size="11" font-weight="500" text-anchor="middle">Level 4+ High-Risk Command Interception &amp; Win32 Native Confirmation Dialog</text>
+
+  <!-- Background Desktop Dimmed Layer -->
+  <rect x="50" y="85" width="850" height="350" rx="10" fill="#0b101d" stroke="#1e293b" stroke-width="1.5"/>
+
+  <!-- Dimmed UI Background Code Content -->
+  <g opacity="0.25">
+    <text x="80" y="120" fill="#00f2fe" font-size="12" font-family="monospace">pikina&gt; remove todo critical_deployment_step</text>
+    <text x="80" y="145" fill="#cbd5e1" font-size="11" font-family="monospace">[MCM] Intent Router resolved tool: todo.remove (Permission Level: 1 / Elevated: L4 Gated)</text>
+    <text x="80" y="170" fill="#f59e0b" font-size="11" font-family="monospace">[AVL] Action Validation Layer triggered: Consent Gate requirement met.</text>
+    <text x="80" y="195" fill="#ef4444" font-size="11" font-family="monospace">[AVL] Pausing execution thread... Spawning Win32 MessageBoxW consent dialog.</text>
+  </g>
+
+  <!-- Centered Win32 Consent Dialog Box -->
+  <g transform="translate(210, 125)">
+    <rect x="0" y="0" width="530" height="270" rx="10" fill="#0f172a" stroke="#ef4444" stroke-width="2" filter="url(#dlgShadow)"/>
+
+    <!-- Dialog Header -->
+    <path d="M 0 10 Q 0 0 10 0 L 520 0 Q 530 0 530 10 L 530 45 L 0 45 Z" fill="url(#warnHeader)"/>
+    <text x="20" y="28" fill="#ffffff" font-size="13" font-weight="800" letter-spacing="1">⚠️ PIKINA OS — HUMAN CONSENT REQUIRED</text>
+    <text x="505" y="28" fill="#ffffff" font-size="14" font-weight="700" text-anchor="end">L4+ RISK</text>
+
+    <!-- Warning Icon & Message -->
+    <g transform="translate(30, 70)">
+      <!-- Shield / Caution Icon -->
+      <circle cx="24" cy="24" r="22" fill="#ef4444" fill-opacity="0.15" stroke="#ef4444" stroke-width="2" filter="url(#warnGlow)"/>
+      <text x="24" y="32" fill="#ef4444" font-size="20" font-weight="900" text-anchor="middle">!</text>
+
+      <!-- Message Text -->
+      <text x="65" y="18" fill="#f8fafc" font-size="13" font-weight="700">High-Risk Operation Intercepted</text>
+      <text x="65" y="38" fill="#cbd5e1" font-size="11" font-weight="400">Tool: <tspan fill="#00f2fe" font-weight="700">todo.remove</tspan> &nbsp;|&nbsp; Target ID: <tspan fill="#f59e0b">c693836e</tspan></text>
+      <text x="65" y="56" fill="#94a3b8" font-size="11" font-weight="400">Action: Deleting persistent objective 'critical_deployment_step'</text>
+    </g>
+
+    <!-- Details Box -->
+    <rect x="30" y="145" width="470" height="52" rx="6" fill="#07090e" stroke="#1e293b"/>
+    <text x="45" y="166" fill="#64748b" font-size="10" font-weight="600">PROVENANCE: <tspan fill="#e2e8f0">user_typed (Quick Panel)</tspan></text>
+    <text x="280" y="166" fill="#64748b" font-size="10" font-weight="600">REVERSIBLE: <tspan fill="#ef4444">No (Permanent Removal)</tspan></text>
+    <text x="45" y="186" fill="#64748b" font-size="10" font-weight="600">AUDIT TOPIC: <tspan fill="#38ef7d">validation.gated_consent</tspan></text>
+    <text x="280" y="186" fill="#64748b" font-size="10" font-weight="600">REPLAY LOG: <tspan fill="#38bdf8">replay_store.sqlite</tspan></text>
+
+    <!-- Dialog Action Buttons -->
+    <g transform="translate(30, 212)">
+      <!-- DENY / CANCEL Button -->
+      <rect x="230" y="0" width="110" height="36" rx="6" fill="#1e293b" stroke="#334155"/>
+      <text x="285" y="22" fill="#cbd5e1" font-size="11" font-weight="700" text-anchor="middle">DENY (Esc)</text>
+
+      <!-- APPROVE / EXECUTE Button -->
+      <rect x="350" y="0" width="120" height="36" rx="6" fill="#ef4444" filter="url(#warnGlow)"/>
+      <text x="410" y="22" fill="#ffffff" font-size="11" font-weight="800" text-anchor="middle">APPROVE (Enter)</text>
+    </g>
+  </g>
+
+  <!-- Bottom Badge -->
+  <text x="475" y="460" fill="#64748b" font-size="10" font-weight="500" text-anchor="middle">Zero autonomous execution for unverified high-risk commands &bull; Human-in-the-loop safety</text>
+</svg>

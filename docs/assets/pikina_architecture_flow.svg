@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 550" width="100%" height="100%" style="background-color: #07090e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <defs>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <linearGradient id="tier1Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00f2fe"/>
+      <stop offset="100%" stop-color="#4facfe"/>
+    </linearGradient>
+
+    <linearGradient id="tier2Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+
+    <linearGradient id="avlGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+
+    <linearGradient id="execGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+    
+    <filter id="glowG" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Title Banner -->
+  <text x="550" y="45" fill="#f8fafc" font-size="20" font-weight="800" text-anchor="middle" letter-spacing="1">PIKINA OS — MULTI-TIER SYSTEM ARCHITECTURE</text>
+  <text x="550" y="68" fill="#64748b" font-size="12" font-weight="500" text-anchor="middle">Offline-First Personal Operating Layer with Action Validation &amp; Dual-Tier Memory</text>
+
+  <!-- Flow Boxes -->
+
+  <!-- STEP 1: USER INPUT SOURCING -->
+  <g transform="translate(50, 110)">
+    <rect x="0" y="0" width="180" height="340" rx="10" fill="url(#blueGrad)" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
+    <text x="90" y="32" fill="#38bdf8" font-size="12" font-weight="800" text-anchor="middle" letter-spacing="1">1. INPUT SOURCES</text>
+    <line x1="16" y1="42" x2="164" y2="42" stroke="#334155"/>
+
+    <!-- Input Node A -->
+    <rect x="15" y="60" width="150" height="50" rx="6" fill="#07090e" stroke="#1e293b"/>
+    <text x="90" y="82" fill="#f1f5f9" font-size="11" font-weight="700" text-anchor="middle">HUD Dashboard</text>
+    <text x="90" y="97" fill="#64748b" font-size="9" text-anchor="middle">Electron Front-end</text>
+
+    <!-- Input Node B -->
+    <rect x="15" y="125" width="150" height="50" rx="6" fill="#07090e" stroke="#1e293b"/>
+    <text x="90" y="147" fill="#f1f5f9" font-size="11" font-weight="700" text-anchor="middle">Hotkey Quick Panel</text>
+    <text x="90" y="162" fill="#64748b" font-size="9" text-anchor="middle">Alt + Space Overlay</text>
+
+    <!-- Input Node C -->
+    <rect x="15" y="190" width="150" height="50" rx="6" fill="#07090e" stroke="#1e293b"/>
+    <text x="90" y="212" fill="#f1f5f9" font-size="11" font-weight="700" text-anchor="middle">Sensory Daemons</text>
+    <text x="90" y="227" fill="#64748b" font-size="9" text-anchor="middle">Clipboard / Watcher</text>
+
+    <!-- Input Node D -->
+    <rect x="15" y="255" width="150" height="50" rx="6" fill="#07090e" stroke="#1e293b"/>
+    <text x="90" y="277" fill="#f1f5f9" font-size="11" font-weight="700" text-anchor="middle">CLI Interface</text>
+    <text x="90" y="292" fill="#64748b" font-size="9" text-anchor="middle">pikina.py Direct</text>
+  </g>
+
+  <!-- Connection Arrow 1 -> 2 -->
+  <path d="M 230 280 L 270 280" stroke="#00f2fe" stroke-width="2" marker-end="url(#arrow)" filter="url(#glowG)"/>
+
+  <!-- STEP 2: TWO-TIER INTENT ROUTER -->
+  <g transform="translate(275, 110)">
+    <rect x="0" y="0" width="230" height="340" rx="10" fill="url(#blueGrad)" stroke="#00f2fe" stroke-width="1.5" filter="url(#shadow)"/>
+    <text x="115" y="32" fill="#00f2fe" font-size="12" font-weight="800" text-anchor="middle" letter-spacing="1">2. INTENT ROUTER</text>
+    <line x1="16" y1="42" x2="214" y2="42" stroke="#334155"/>
+
+    <!-- Tier 1 Box -->
+    <rect x="15" y="60" width="200" height="110" rx="8" fill="#07090e" stroke="#00f2fe" stroke-width="1.5"/>
+    <rect x="25" y="70" width="70" height="18" rx="3" fill="url(#tier1Grad)"/>
+    <text x="60" y="83" fill="#07090e" font-size="9" font-weight="800" text-anchor="middle">TIER 1 (90%)</text>
+    <text x="25" y="106" fill="#f1f5f9" font-size="11" font-weight="700">Deterministic Regex</text>
+    <text x="25" y="122" fill="#38ef7d" font-size="10" font-weight="600">• Sub-millisecond latency</text>
+    <text x="25" y="137" fill="#94a3b8" font-size="9">• Zero LLM dependency</text>
+    <text x="25" y="152" fill="#94a3b8" font-size="9">• 19 Built-in Commands</text>
+
+    <!-- Tier 2 Box -->
+    <rect x="15" y="195" width="200" height="115" rx="8" fill="#07090e" stroke="#a855f7" stroke-width="1.5"/>
+    <rect x="25" y="205" width="75" height="18" rx="3" fill="url(#tier2Grad)"/>
+    <text x="62.5" y="218" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">TIER 2 (10%)</text>
+    <text x="25" y="241" fill="#f1f5f9" font-size="11" font-weight="700">Local Ollama LLM</text>
+    <text x="25" y="257" fill="#c084fc" font-size="10" font-weight="600">• Natural language fallback</text>
+    <text x="25" y="272" fill="#94a3b8" font-size="9">• Llama-3 / Phi-4 JSON output</text>
+    <text x="25" y="287" fill="#94a3b8" font-size="9">• Structured tool parameter extraction</text>
+  </g>
+
+  <!-- Connection Arrow 2 -> 3 -->
+  <path d="M 505 280 L 545 280" stroke="#f59e0b" stroke-width="2" filter="url(#glowG)"/>
+
+  <!-- STEP 3: ACTION VALIDATION LAYER (AVL) -->
+  <g transform="translate(550, 110)">
+    <rect x="0" y="0" width="220" height="340" rx="10" fill="url(#blueGrad)" stroke="#f59e0b" stroke-width="1.5" filter="url(#shadow)"/>
+    <text x="110" y="32" fill="#f59e0b" font-size="12" font-weight="800" text-anchor="middle" letter-spacing="1">3. ACTION VALIDATION</text>
+    <line x1="16" y1="42" x2="204" y2="42" stroke="#334155"/>
+
+    <!-- Level Gating -->
+    <rect x="15" y="60" width="190" height="70" rx="6" fill="#07090e" stroke="#1e293b"/>
+    <text x="25" y="80" fill="#f8fafc" font-size="11" font-weight="700">Permission Level Check</text>
+    <text x="25" y="98" fill="#38ef7d" font-size="9" font-weight="600">Level 0: Immediate execution</text>
+    <text x="25" y="114" fill="#38bdf8" font-size="9" font-weight="600">Level 1: System / Local app open</text>
+
+    <!-- Consent Gate -->
+    <rect x="15" y="145" width="190" height="90" rx="6" fill="#07090e" stroke="#ef4444"/>
+    <text x="25" y="165" fill="#ef4444" font-size="11" font-weight="700">Consent Gate (Level 4+)</text>
+    <text x="25" y="183" fill="#cbd5e1" font-size="9">Win32 MessageBoxW popup</text>
+    <text x="25" y="198" fill="#cbd5e1" font-size="9">Requires explicit human approval</text>
+    <text x="25" y="215" fill="#f59e0b" font-size="9" font-weight="600">Irreversible actions blocked</text>
+
+    <!-- Audit Log -->
+    <rect x="15" y="250" width="190" height="60" rx="6" fill="#07090e" stroke="#1e293b"/>
+    <text x="25" y="270" fill="#f8fafc" font-size="10" font-weight="700">Replay Log Audit</text>
+    <text x="25" y="287" fill="#64748b" font-size="9">Logs to replay_store.sqlite</text>
+  </g>
+
+  <!-- Connection Arrow 3 -> 4 -->
+  <path d="M 770 280 L 810 280" stroke="#10b981" stroke-width="2" filter="url(#glowG)"/>
+
+  <!-- STEP 4: CAPABILITY EXECUTION & MEMORY -->
+  <g transform="translate(815, 110)">
+    <rect x="0" y="0" width="235" height="340" rx="10" fill="url(#blueGrad)" stroke="#10b981" stroke-width="1.5" filter="url(#shadow)"/>
+    <text x="117.5" y="32" fill="#10b981" font-size="12" font-weight="800" text-anchor="middle" letter-spacing="1">4. EXECUTION &amp; MEMORY</text>
+    <line x1="16" y1="42" x2="219" y2="42" stroke="#334155"/>
+
+    <!-- Capability Execution -->
+    <rect x="15" y="60" width="205" height="75" rx="6" fill="#07090e" stroke="#10b981"/>
+    <text x="25" y="80" fill="#38ef7d" font-size="11" font-weight="700">Capability Registry</text>
+    <text x="25" y="98" fill="#cbd5e1" font-size="9">Win32 API • Watchdog • SQLite</text>
+    <text x="25" y="113" fill="#cbd5e1" font-size="9">OpenWeather • ToDo / Calendar</text>
+
+    <!-- Vector Store -->
+    <rect x="15" y="150" width="205" height="75" rx="6" fill="#07090e" stroke="#38bdf8"/>
+    <text x="25" y="170" fill="#38bdf8" font-size="11" font-weight="700">Dual Vector Store</text>
+    <text x="25" y="188" fill="#cbd5e1" font-size="9">Ephemeral vs Permanent Tiers</text>
+    <text x="25" y="203" fill="#cbd5e1" font-size="9">Forgetting &amp; Promotion Engine</text>
+
+    <!-- Knowledge Graph -->
+    <rect x="15" y="240" width="205" height="75" rx="6" fill="#07090e" stroke="#a855f7"/>
+    <text x="25" y="260" fill="#c084fc" font-size="11" font-weight="700">Knowledge Graph</text>
+    <text x="25" y="278" fill="#cbd5e1" font-size="9">NetworkX entity graph</text>
+    <text x="25" y="293" fill="#cbd5e1" font-size="9">Context Assembly (~2k tokens)</text>
+  </g>
+
+  <!-- Bottom Summary Badge -->
+  <rect x="50" y="475" width="1000" height="40" rx="8" fill="#0f172a" stroke="#1e293b"/>
+  <text x="550" y="500" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">
+    <tspan fill="#38ef7d">✓ Zero Model Lock-in</tspan> &nbsp;&bull;&nbsp; 
+    <tspan fill="#00f2fe">✓ Instant Deterministic Latency</tspan> &nbsp;&bull;&nbsp; 
+    <tspan fill="#f59e0b">✓ Win32 Native Consent Gate</tspan> &nbsp;&bull;&nbsp; 
+    <tspan fill="#c084fc">✓ Multi-Agent Transaction Rollbacks</tspan>
+  </text>
+</svg>

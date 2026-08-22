@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 950 480" width="100%" height="100%" style="background-color: #07090e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <defs>
+    <linearGradient id="bgGradTel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#080c14"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <linearGradient id="cyanG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00f2fe"/>
+      <stop offset="100%" stop-color="#4facfe"/>
+    </linearGradient>
+
+    <linearGradient id="greenG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#11998e"/>
+      <stop offset="100%" stop-color="#38ef7d"/>
+    </linearGradient>
+
+    <linearGradient id="purpleG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8e2de2"/>
+      <stop offset="100%" stop-color="#4a00e0"/>
+    </linearGradient>
+
+    <filter id="shadowTel" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <rect width="950" height="480" fill="url(#bgGradTel)"/>
+
+  <!-- Title Banner -->
+  <text x="475" y="42" fill="#f8fafc" font-size="18" font-weight="800" text-anchor="middle" letter-spacing="1">REAL-TIME SYSTEM DIAGNOSTICS &amp; GOVERNOR TELEMETRY</text>
+  <text x="475" y="63" fill="#94a3b8" font-size="11" font-weight="500" text-anchor="middle">Low-Overhead Win32 Telemetry Monitor &bull; Dynamic Resource Profiles &bull; Active Sensory Daemons</text>
+
+  <!-- Main Card 1: Telemetry Meters -->
+  <g transform="translate(45, 95)">
+    <rect x="0" y="0" width="410" height="330" rx="10" fill="#0f172a" stroke="#1e293b" stroke-width="1.5" filter="url(#shadowTel)"/>
+    <text x="20" y="32" fill="#38bdf8" font-size="13" font-weight="800" letter-spacing="1">HARDWARE TELEMETRY METERS</text>
+    <line x1="20" y1="42" x2="390" y2="42" stroke="#1e293b"/>
+
+    <!-- CPU Metric -->
+    <text x="20" y="75" fill="#cbd5e1" font-size="11" font-weight="700">CPU Usage</text>
+    <rect x="110" y="62" width="220" height="16" rx="4" fill="#07090e" stroke="#1e293b"/>
+    <rect x="110" y="62" width="55" height="16" rx="4" fill="url(#cyanG)"/>
+    <text x="345" y="75" fill="#00f2fe" font-size="12" font-weight="800">25%</text>
+
+    <!-- RAM Metric -->
+    <text x="20" y="120" fill="#cbd5e1" font-size="11" font-weight="700">RAM Memory</text>
+    <rect x="110" y="107" width="220" height="16" rx="4" fill="#07090e" stroke="#1e293b"/>
+    <rect x="110" y="107" width="105" height="16" rx="4" fill="url(#purpleG)"/>
+    <text x="345" y="120" fill="#a855f7" font-size="12" font-weight="800">48%</text>
+
+    <!-- DISK Metric -->
+    <text x="20" y="165" fill="#cbd5e1" font-size="11" font-weight="700">Disk Storage</text>
+    <rect x="110" y="152" width="220" height="16" rx="4" fill="#07090e" stroke="#1e293b"/>
+    <rect x="110" y="152" width="136" height="16" rx="4" fill="url(#greenG)"/>
+    <text x="345" y="165" fill="#38ef7d" font-size="12" font-weight="800">62%</text>
+
+    <!-- Battery Metric -->
+    <text x="20" y="210" fill="#cbd5e1" font-size="11" font-weight="700">Battery Power</text>
+    <rect x="110" y="197" width="220" height="16" rx="4" fill="#07090e" stroke="#1e293b"/>
+    <rect x="110" y="197" width="209" height="16" rx="4" fill="url(#greenG)"/>
+    <text x="345" y="210" fill="#38ef7d" font-size="12" font-weight="800">95% 🔌</text>
+
+    <!-- Hardware Summary Box -->
+    <rect x="20" y="240" width="370" height="70" rx="6" fill="#07090e" stroke="#1e293b"/>
+    <text x="35" y="263" fill="#64748b" font-size="10" font-weight="600">RAM ALLOCATION: <tspan fill="#e2e8f0">7.7 GB / 16.0 GB</tspan></text>
+    <text x="220" y="263" fill="#64748b" font-size="10" font-weight="600">CORES: <tspan fill="#e2e8f0">8 Cores (Win32)</tspan></text>
+    <text x="35" y="288" fill="#64748b" font-size="10" font-weight="600">STORAGE USED: <tspan fill="#e2e8f0">280 GB / 450 GB</tspan></text>
+    <text x="220" y="288" fill="#64748b" font-size="10" font-weight="600">SAMPLING: <tspan fill="#38ef7d">Every 2.5 sec</tspan></text>
+  </g>
+
+  <!-- Main Card 2: Profile Governor & Sensory Daemons -->
+  <g transform="translate(495, 95)">
+    <rect x="0" y="0" width="410" height="330" rx="10" fill="#0f172a" stroke="#1e293b" stroke-width="1.5" filter="url(#shadowTel)"/>
+    <text x="20" y="32" fill="#38ef7d" font-size="13" font-weight="800" letter-spacing="1">PROFILE GOVERNOR &amp; SENSORY DAEMONS</text>
+    <line x1="20" y1="42" x2="390" y2="42" stroke="#1e293b"/>
+
+    <!-- Active Profile Section -->
+    <text x="20" y="68" fill="#cbd5e1" font-size="11" font-weight="700">Active Preference Profile</text>
+
+    <!-- Profile Badges -->
+    <g transform="translate(20, 80)">
+      <rect x="0" y="0" width="115" height="32" rx="6" fill="#00f2fe" fill-opacity="0.15" stroke="#00f2fe"/>
+      <text x="57.5" y="20" fill="#00f2fe" font-size="10" font-weight="800" text-anchor="middle">PRODUCTIVITY</text>
+
+      <rect x="125" y="0" width="105" height="32" rx="6" fill="#07090e" stroke="#1e293b"/>
+      <text x="177.5" y="20" fill="#64748b" font-size="10" font-weight="600" text-anchor="middle">CASUAL</text>
+
+      <rect x="240" y="0" width="130" height="32" rx="6" fill="#07090e" stroke="#1e293b"/>
+      <text x="305" y="20" fill="#64748b" font-size="10" font-weight="600" text-anchor="middle">QUIET HOURS</text>
+    </g>
+
+    <!-- Daemons Status Grid -->
+    <text x="20" y="142" fill="#cbd5e1" font-size="11" font-weight="700">Active Background Daemons</text>
+
+    <!-- Daemon Item 1 -->
+    <rect x="20" y="155" width="370" height="42" rx="6" fill="#07090e" stroke="#1e293b"/>
+    <circle cx="38" cy="176" r="5" fill="#38ef7d"/>
+    <text x="55" y="172" fill="#f1f5f9" font-size="11" font-weight="700">Clipboard Monitoring Daemon</text>
+    <text x="55" y="187" fill="#64748b" font-size="9">Win32 WM_CLIPBOARDUPDATE • Password exclusion filter ON</text>
+    <text x="375" y="180" fill="#38ef7d" font-size="10" font-weight="700" text-anchor="end">RUNNING</text>
+
+    <!-- Daemon Item 2 -->
+    <rect x="20" y="207" width="370" height="42" rx="6" fill="#07090e" stroke="#1e293b"/>
+    <circle cx="38" cy="228" r="5" fill="#38ef7d"/>
+    <text x="55" y="224" fill="#f1f5f9" font-size="11" font-weight="700">Real-Time Workspace File Watcher</text>
+    <text x="55" y="239" fill="#64748b" font-size="9">Watchdog observer • Logs file create/edit events to Ephemeral Store</text>
+    <text x="375" y="232" fill="#38ef7d" font-size="10" font-weight="700" text-anchor="end">RUNNING</text>
+
+    <!-- Daemon Item 3 -->
+    <rect x="20" y="259" width="370" height="42" rx="6" fill="#07090e" stroke="#1e293b"/>
+    <circle cx="38" cy="280" r="5" fill="#38ef7d"/>
+    <text x="55" y="276" fill="#f1f5f9" font-size="11" font-weight="700">Graph Cache File Indexer</text>
+    <text x="55" y="291" fill="#64748b" font-size="9">Powers sub-millisecond quick panel file path auto-completion</text>
+    <text x="375" y="284" fill="#38ef7d" font-size="10" font-weight="700" text-anchor="end">RUNNING</text>
+  </g>
+
+  <text x="475" y="455" fill="#64748b" font-size="10" font-weight="500" text-anchor="middle">Non-blocking background initialization &bull; Zero memory leak daemon supervision</text>
+</svg>
