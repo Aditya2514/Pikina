@@ -18,7 +18,7 @@
 
 <br/>
 
-![Pikina OS JARVIS Dashboard HUD](docs/assets/pikina_dashboard_ui.svg)
+<img src="./docs/assets/pikina_dashboard_ui.svg" alt="Pikina OS JARVIS Dashboard HUD" width="100%" />
 
 </div>
 
@@ -79,27 +79,27 @@ Unlike conventional AI desktop assistants that route every keystroke through clo
 ### 1. JARVIS HUD Dashboard (`frontend/dashboard`)
 A futuristic, dark-mode visual interface featuring diagnostic telemetry bars for CPU, RAM, Disk, and Battery, an active arc-reactor status core, real-time event replay stream, objective tracker, and mini calendar.
 
-![Pikina OS JARVIS Dashboard HUD](docs/assets/pikina_dashboard_ui.svg)
+<img src="./docs/assets/pikina_dashboard_ui.svg" alt="Pikina OS JARVIS Dashboard HUD" width="100%" />
 
 ### 2. Hotkey Quick Panel Overlay (`frontend/quick_panel`)
 A lightweight, floating command launcher accessible anywhere on Windows via <kbd>Alt</kbd> + <kbd>Space</kbd>. Provides instant search suggestions, system status indicators, and sub-millisecond command execution.
 
-![Pikina OS Quick Panel Interface](docs/assets/pikina_quick_panel_ui.svg)
+<img src="./docs/assets/pikina_quick_panel_ui.svg" alt="Pikina OS Quick Panel Interface" width="100%" />
 
 ### 3. Action Validation & Win32 Consent Gate (`security`)
 Intercepts elevated permission requests ($L4+$) and irreversible side effects before execution, triggering native Win32 `MessageBoxW` confirmation modals.
 
-![Pikina OS Action Validation Layer](docs/assets/pikina_avl_consent_gate.svg)
+<img src="./docs/assets/pikina_avl_consent_gate.svg" alt="Pikina OS Action Validation Layer" width="100%" />
 
 ### 4. Dual-Tier Memory & Knowledge Graph (`memory`)
 Visualizes the automated vector flow: Ephemeral Store (short-term clipboard & file edits) $\rightarrow$ Promotion Sweep ($\ge 3$ corroborations) $\rightarrow$ Permanent Semantic Store & NetworkX Knowledge Graph.
 
-![Pikina OS Dual Memory Engine](docs/assets/pikina_memory_engine.svg)
+<img src="./docs/assets/pikina_memory_engine.svg" alt="Pikina OS Dual Memory Engine" width="100%" />
 
 ### 5. System Diagnostics & Sensory Telemetry (`core/governor`)
 Real-time Win32 hardware sampling, active preference profiles (`Productivity`, `Casual`, `Quiet Hours`), and active sensory background daemons.
 
-![Pikina OS Telemetry HUD](docs/assets/pikina_telemetry_hud.svg)
+<img src="./docs/assets/pikina_telemetry_hud.svg" alt="Pikina OS Telemetry HUD" width="100%" />
 
 ---
 
@@ -107,7 +107,7 @@ Real-time Win32 hardware sampling, active preference profiles (`Productivity`, `
 
 Pikina OS isolates reasoning from execution. Incoming inputs pass through a strict four-stage pipeline: **Sourcing** $\rightarrow$ **Two-Tier Routing** $\rightarrow$ **Action Validation** $\rightarrow$ **Execution & Audit**.
 
-![Pikina OS Architecture Flow](docs/assets/pikina_architecture_flow.svg)
+<img src="./docs/assets/pikina_architecture_flow.svg" alt="Pikina OS Architecture Flow" width="100%" />
 
 ### Data Execution Flow (Mermaid Sequence)
 
