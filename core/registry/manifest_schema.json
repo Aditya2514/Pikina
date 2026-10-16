@@ -3,7 +3,14 @@
   "title": "Capability Manifest",
   "description": "Every capability in the registry must conform to this schema.",
   "type": "object",
-  "required": ["tool", "description", "permission_level", "estimated_cost", "requires_network", "supports_rollback"],
+  "required": [
+    "tool",
+    "description",
+    "permission_level",
+    "estimated_cost",
+    "requires_network",
+    "supports_rollback"
+  ],
   "properties": {
     "tool": {
       "type": "string",
@@ -30,7 +37,7 @@
     },
     "supports_rollback": {
       "type": "boolean",
-      "description": "If false, this action gets Level-4-style explicit confirmation regardless of declared level."
+      "description": "If false and permission_level >= 3, the action needs explicit human confirmation (see gatekeeper.needs_consent)."
     },
     "rollback_action": {
       "type": "string",
@@ -39,6 +46,14 @@
     "params_schema": {
       "type": "object",
       "description": "JSON Schema fragment for accepted params. Used by the Action Validation Layer."
+    },
+    "rollback_params": {
+      "type": "object",
+      "description": "Params for rollback_action. String values '$params.<path>' / '$result.<path>' are filled from the original call's params or result."
+    },
+    "read_only": {
+      "type": "boolean",
+      "description": "True if the action changes nothing, so a transaction can skip it during rollback."
     }
   }
 }

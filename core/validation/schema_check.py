@@ -4,7 +4,7 @@ Nothing a model proposes reaches a tool without passing through here first.
 """
 from .failure_classes import FailureClass
 from core.eventbus.bus import EventBus
-from core.registry.gatekeeper import request_consent
+from core.registry.gatekeeper import request_consent, needs_consent
 
 
 def validate_action(proposed: dict, registry) -> tuple:
@@ -171,8 +171,8 @@ def validate_model_action(proposed_action: dict, registry, retries_so_far: int =
     if claimed != actual:
         return reject_model_action(proposed_action, FailureClass.VALIDATION, f"model_claimed_level_{claimed}_actual_{actual}", actual)
 
-    # 6. Level 4+ actions always hold for confirmation
-    if actual >= 4:
+    # 6. High-risk actions (Level 4+, or Level 3 without rollback) hold for confirmation
+    if needs_consent(manifest):
         return hold_for_confirmation(proposed_action, manifest)
 
     return True, None, None

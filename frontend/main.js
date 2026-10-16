@@ -3,10 +3,19 @@
  * Manages windows, global hotkeys, and tray icon.
  */
 
-const { app, BrowserWindow, globalShortcut, Tray, Menu, ipcMain, nativeImage } = require('electron');
+const { app, BrowserWindow, globalShortcut, Tray, Menu, ipcMain, nativeImage, session } = require('electron');
 const path = require('path');
+const fs   = require('fs');
 
 const BACKEND_URL = 'http://localhost:5001';
+
+// The backend writes a random API token to data/.api_token on first start and
+// rejects requests without it. Read it fresh each time so a backend that starts
+// after the HUD still works.
+const TOKEN_FILE = path.join(__dirname, '..', 'data', '.api_token');
+function apiToken() {
+  try { return fs.readFileSync(TOKEN_FILE, 'utf8').trim(); } catch (_) { return ''; }
+}
 const IS_DEV      = process.argv.includes('--dev');
 
 let dashboardWindow = null;
@@ -182,7 +191,7 @@ ipcMain.handle('send-command', async (_, text) => {
   try {
     const res = await fetch(`${BACKEND_URL}/api/command`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Pikina-Token': apiToken() },
       body:    JSON.stringify({ text, source: 'user_typed' }),
     });
     return await res.json();
@@ -196,9 +205,17 @@ ipcMain.on('hide-panel',   () => { if (panelWindow) panelWindow.hide(); });
 ipcMain.on('toggle-panel', () => togglePanel());
 
 // Pass kill-switch signal
-ipcMain.on('kill-switch', () => {
-  console.log('[Main] Kill-switch triggered — halting all daemons.');
-  // Phase 2+ will halt daemon processes here
+ipcMain.on('kill-switch', async () => {
+  console.log('[Main] Kill-switch triggered — halting all actions and daemons.');
+  try {
+    await fetch(`${BACKEND_URL}/api/killswitch`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pikina-Token': apiToken() },
+      body:    '{}',
+    });
+  } catch (err) {
+    console.error('[Main] Kill-switch could not reach backend:', err.message);
+  }
 });
 
 // Window controls from frameless dashboard
@@ -220,6 +237,15 @@ ipcMain.on('open-url',    (_, url)      => shell.openExternal(url).catch(err => 
 // ---------------------------------------------------------------------------
 
 app.whenReady().then(() => {
+  // Attach the API token to every renderer request to the backend.
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ['http://localhost:5001/*', 'http://127.0.0.1:5001/*'] },
+    (details, callback) => {
+      details.requestHeaders['X-Pikina-Token'] = apiToken();
+      callback({ requestHeaders: details.requestHeaders });
+    },
+  );
+
   createDashboard();
   createPanel();
   createTray();

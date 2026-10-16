@@ -13,7 +13,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 # Ensure project root is importable
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 RESULTS = []
 
@@ -34,6 +34,9 @@ def section(title):
 def test_backend_api():
     section("1. Backend API Health")
     import urllib.request
+    token_file = Path(__file__).resolve().parents[2] / "data" / ".api_token"
+    token = token_file.read_text().strip() if token_file.exists() else ""
+    auth = {"X-Pikina-Token": token}
     
     endpoints = {
         "/api/status":    "GET",
@@ -46,7 +49,7 @@ def test_backend_api():
     
     for path, method in endpoints.items():
         try:
-            r = urllib.request.urlopen(f"http://127.0.0.1:5001{path}", timeout=5)
+            r = urllib.request.urlopen(urllib.request.Request(f"http://127.0.0.1:5001{path}", headers=auth), timeout=5)
             data = json.loads(r.read().decode())
             record("Backend API", f"{method} {path}", True, f"HTTP {r.status}")
         except Exception as e:
@@ -56,7 +59,7 @@ def test_backend_api():
     try:
         body = json.dumps({"text": "open notepad"}).encode()
         req = urllib.request.Request("http://127.0.0.1:5001/api/command", data=body, 
-                                     headers={"Content-Type": "application/json"})
+                                     headers={"Content-Type": "application/json", **auth})
         r = urllib.request.urlopen(req, timeout=10)
         data = json.loads(r.read().decode())
         record("Backend API", "POST /api/command", True, f"Response: {data.get('status', 'ok')}")

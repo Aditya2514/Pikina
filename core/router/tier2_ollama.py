@@ -2,24 +2,97 @@
 Pikina OS — Tier 2 Ollama Intent Router
 Routes unmatched commands to local Ollama LLM, retrieves context, and validates model proposed actions.
 """
+import os
+import re
 import time
 import json
-import re
+import threading
 import requests
 from core.eventbus.bus import EventBus
 from core.validation.failure_classes import FailureClass
 from core.validation.schema_check import validate_model_action
-from core.context.retrieval import assemble_context
 from core.registry.loader import CapabilityRegistry
+from core.registry.executor import execute_action
+
+# All tunables can be overridden from .env
+OLLAMA_URL      = os.getenv("PIKINA_OLLAMA_URL", "http://localhost:11434").rstrip("/")
+OLLAMA_MODEL    = os.getenv("PIKINA_OLLAMA_MODEL", "llama3")
+OLLAMA_TIMEOUT  = float(os.getenv("PIKINA_OLLAMA_TIMEOUT", "30"))
+OLLAMA_KEEPALIVE = os.getenv("PIKINA_OLLAMA_KEEP_ALIVE", "30m")  # keep weights in RAM between commands
+# Above this many tools, only the most relevant ones are sent to the model (prompt budget).
+MAX_PROMPT_TOOLS = int(os.getenv("PIKINA_TIER2_MAX_TOOLS", "25"))
+
+_WORD = re.compile(r"[a-z0-9]+")
+_STOPWORDS = {"a", "an", "the", "to", "of", "and", "or", "for", "in", "on", "at", "my", "me", "i",
+              "is", "it", "be", "by", "with", "can", "you", "please", "some", "something", "do", "that", "this"}
+
+
+class Tier2Unavailable(RuntimeError):
+    """Ollama is not running / not reachable."""
+
+
+def _stems(text: str) -> set:
+    """Crude stemming: lowercase word prefixes, so 'launch'/'launches', 'task'/'tasks' match."""
+    return {w[:5] for w in _WORD.findall(text.lower()) if w not in _STOPWORDS and len(w) > 1}
+
+
+def select_relevant_tools(command: str, tools: list, limit: int) -> list:
+    """
+    Keep the `limit` tools whose name/description share the most word stems with
+    the command. Ties keep registry order. Only used when the registry is large,
+    because a changing tool list defeats Ollama's prompt-prefix cache.
+    """
+    if len(tools) <= limit:
+        return tools
+    wanted = _stems(command)
+    scored = []
+    for idx, t in enumerate(tools):
+        haystack = _stems(t["tool"].replace(".", " ").replace("_", " ") + " " + t.get("description", ""))
+        scored.append((-len(wanted & haystack), idx, t))
+    scored.sort(key=lambda x: (x[0], x[1]))
+    return [t for _, _, t in scored[:limit]]
 
 
 class Tier2Router:
     """Invokes local Ollama model to translate natural language command to structured tool action."""
-    def __init__(self, registry=None, model_name="llama3"):
+    def __init__(self, registry=None, model_name=None, base_url=None, timeout=None):
         self.registry = registry or CapabilityRegistry()
-        self.model_name = model_name
+        self.model_name = model_name or OLLAMA_MODEL
+        self.base_url = (base_url or OLLAMA_URL).rstrip("/")
+        self.url = f"{self.base_url}/api/generate"
+        self.timeout = timeout if timeout is not None else OLLAMA_TIMEOUT
         self.bus = EventBus()
-        self.url = "http://localhost:11434/api/generate"
+
+    # ------------------------------------------------------------------
+    # Model lifecycle
+    # ------------------------------------------------------------------
+
+    def is_available(self) -> bool:
+        try:
+            return requests.get(f"{self.base_url}/api/tags", timeout=2).status_code == 200
+        except Exception:
+            return False
+
+    def warm_up(self) -> bool:
+        """
+        Load the model into memory ahead of the first command. A cold load of an
+        8B model takes 10–30 s, which is what caused the Phase 4e timeouts.
+        """
+        try:
+            r = requests.post(self.url, json={"model": self.model_name, "prompt": "",
+                                              "keep_alive": OLLAMA_KEEPALIVE}, timeout=120)
+            return r.status_code == 200
+        except Exception:
+            return False
+
+    def warm_up_async(self) -> None:
+        def _go():
+            if self.is_available():
+                ok = self.warm_up()
+                print(f"[Tier2] Ollama model '{self.model_name}' {'loaded' if ok else 'failed to load'}.")
+            else:
+                print(f"[Tier2] Ollama not reachable at {self.base_url} — Tier 2 disabled until it is.")
+        threading.Thread(target=_go, name="Tier2Warmup", daemon=True).start()
 
     def _clean_response(self, text: str) -> str:
         """Extract the JSON substring between the first '{' and the last '}'."""
@@ -47,19 +120,22 @@ class Tier2Router:
         return "\n".join(lines)
 
     def _call_ollama(self, prompt: str) -> str:
-        """Make HTTP POST call to local Ollama generate API with 15-second timeout."""
+        """POST to Ollama's generate API (JSON mode, bounded output, model kept warm)."""
         payload = {
             "model": self.model_name,
             "prompt": prompt,
             "stream": False,
+            "format": "json",            # constrain decoding to valid JSON
+            "keep_alive": OLLAMA_KEEPALIVE,
             "options": {
-                "temperature": 0.0
-            }
+                "temperature": 0.0,
+                "num_predict": 200,      # a tool call is ~60 tokens; stop runaway prose
+            },
         }
-        
+
         start_time = time.time()
         try:
-            r = requests.post(self.url, json=payload, timeout=15.0)
+            r = requests.post(self.url, json=payload, timeout=self.timeout)
             latency_ms = int((time.time() - start_time) * 1000)
             
             # Log latency to the EventBus
@@ -83,7 +159,9 @@ class Tier2Router:
                 provenance="system",
                 failure_class=FailureClass.INFRASTRUCTURE
             )
-            raise TimeoutError("Ollama connection timed out (15s)") from e
+            raise TimeoutError(f"Ollama did not answer within {self.timeout:.0f}s") from e
+        except requests.ConnectionError as e:
+            raise Tier2Unavailable(f"Ollama is not reachable at {self.base_url}") from e
         except Exception as e:
             self.bus.publish(
                 topic="router.tier2_error",
@@ -98,12 +176,20 @@ class Tier2Router:
         Retrieves context, formats prompt, calls Ollama, and validates/executes the response.
         Returns a result dict.
         """
-        # 1. Assemble context (4b)
-        context_str = assemble_context(text, vs=None, kg=None)
+        # 1. Assemble context (4b). Memory is optional: if the embedding model or
+        #    stores are unavailable, route without it instead of crashing.
+        try:
+            from core.context.retrieval import assemble_context
+            context_str = assemble_context(text, vs=None, kg=None) or "(none)"
+        except Exception as exc:
+            self.bus.publish(topic="router.tier2_context_error", payload={"error": str(exc)},
+                             provenance="system", failure_class=FailureClass.INFRASTRUCTURE)
+            context_str = "(memory unavailable)"
 
-        # 2. Gather available capability names, permission levels, descriptions, and parameter schemas
+        # 2. Gather capability names, permission levels, descriptions and parameter schemas
+        tools = select_relevant_tools(text, self.registry.list_tools(), MAX_PROMPT_TOOLS)
         capabilities = []
-        for tool in self.registry.list_tools():
+        for tool in tools:
             tool_name = tool["tool"]
             try:
                 manifest = self.registry.get_manifest(tool_name)
@@ -159,12 +245,20 @@ class Tier2Router:
                 clean_text = self._clean_response(response_text)
                 proposed_action = json.loads(clean_text)
 
+        except Tier2Unavailable as ue:
+            return {"status": "no_match", "reason": "tier2_unavailable", "message":
+                    f"No Tier 1 command matched and the local model is offline ({ue}). "
+                    "Start Ollama or rephrase, e.g. 'open notepad', 'add todo ...', 'find file ...'."}
         except TimeoutError as te:
             return {"status": "error", "reason": "timeout", "failure_class": FailureClass.INFRASTRUCTURE, "message": str(te)}
         except json.JSONDecodeError as jde:
             return {"status": "error", "reason": "json_parse_failed", "failure_class": FailureClass.VALIDATION, "message": str(jde)}
         except Exception as e:
             return {"status": "error", "reason": "api_error", "failure_class": FailureClass.INFRASTRUCTURE, "message": str(e)}
+
+        if not isinstance(proposed_action, dict):
+            return {"status": "error", "reason": "json_parse_failed", "failure_class": FailureClass.VALIDATION,
+                    "message": "Model returned JSON that is not an object."}
 
         # 6. Handle explicit no_match declaration from model
         if proposed_action.get("tool") == "no_match":
@@ -187,25 +281,9 @@ class Tier2Router:
                 "proposed_action": proposed_action
             }
 
-        # 7. Execute capability
-        tool = proposed_action["tool"]
-        params = proposed_action.get("params", {})
-        
-        # Log execution
-        self.bus.publish(
-            topic="router.executing",
-            payload={"tool": tool, "params": params, "raw": text, "tier": 2},
-            provenance="model_output",
-            permission_level=proposed_action.get("claimed_permission_level", 0),
+        # 8. Execute through the shared executor. Consent was already obtained by the
+        #    AVL above for anything that needs it, so the gate is not repeated here.
+        return execute_action(
+            self.registry, proposed_action["tool"], proposed_action.get("params", {}),
+            raw=text, tier=2, provenance="model_output", gate=False,
         )
-
-        result = self.registry.execute(tool, params)
-
-        self.bus.publish(
-            topic="router.result",
-            payload={"tool": tool, "result": result, "tier": 2},
-            provenance="model_output",
-            permission_level=proposed_action.get("claimed_permission_level", 0),
-        )
-
-        return result

@@ -1,7 +1,7 @@
 """
-Pikina OS — CLI Entry Point (Phase 1)
+Pikina OS — CLI Entry Point
 Run: python pikina.py
-Interact with Phase 1 directly from a terminal before the frontend exists.
+Talk to the router directly from a terminal (no backend or HUD needed).
 """
 import sys
 from pathlib import Path
@@ -17,7 +17,7 @@ from core.governor.telemetry import get_telemetry
 
 HELP = """
 Commands:
-  <anything>        Route through MCM -> Tier 1 router (e.g. "open vs code")
+  <anything>        Route through MCM -> Tier 1 regex, then Tier 2 Ollama (e.g. "open vs code")
   replay [N]        Show events from last N minutes (default 60)
   tools             List all registered capabilities
   telemetry         Show current CPU / RAM / battery
@@ -27,8 +27,8 @@ Commands:
 
 def main():
     print("=" * 60)
-    print("  Pikina OS  v0.1-phase1  —  CLI")
-    print("  Zero models loaded. Tier 1 only.")
+    print("  Pikina OS  v0.4  —  CLI")
+    print("  Tier 1 runs with zero models; Tier 2 uses Ollama if it is running.")
     print(HELP)
     print("=" * 60)
 

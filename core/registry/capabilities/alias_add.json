@@ -4,11 +4,14 @@
   "permission_level": 0,
   "estimated_cost": 0.0,
   "requires_network": false,
-  "supports_rollback": false,
-  "rollback_action": null,
+  "supports_rollback": true,
+  "rollback_action": "alias.remove",
   "params_schema": {
     "type": "object",
-    "required": ["trigger", "steps"],
+    "required": [
+      "trigger",
+      "steps"
+    ],
     "properties": {
       "trigger": {
         "type": "string",
@@ -19,13 +22,23 @@
         "description": "Ordered list of capability steps to execute.",
         "items": {
           "type": "object",
-          "required": ["tool", "params"],
+          "required": [
+            "tool",
+            "params"
+          ],
           "properties": {
-            "tool": {"type": "string"},
-            "params": {"type": "object"}
+            "tool": {
+              "type": "string"
+            },
+            "params": {
+              "type": "object"
+            }
           }
         }
       }
     }
+  },
+  "rollback_params": {
+    "trigger": "$params.trigger"
   }
 }

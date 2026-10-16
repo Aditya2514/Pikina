@@ -22,6 +22,10 @@ class RollbackEngine:
         all_ok = True
 
         for step in reversed(completed_steps):
+            if getattr(step, "read_only", False):
+                # Nothing to undo (queries, calculations) — keep walking.
+                step.status = "no_rollback_needed"
+                continue
             if step.rollback_action:
                 # 1. Log rollback start
                 self.bus.publish(

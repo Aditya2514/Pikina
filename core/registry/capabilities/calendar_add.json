@@ -4,11 +4,14 @@
   "permission_level": 0,
   "estimated_cost": 0.0,
   "requires_network": false,
-  "supports_rollback": false,
-  "rollback_action": null,
+  "supports_rollback": true,
+  "rollback_action": "calendar.remove_event",
   "params_schema": {
     "type": "object",
-    "required": ["title", "date"],
+    "required": [
+      "title",
+      "date"
+    ],
     "properties": {
       "title": {
         "type": "string",
@@ -24,12 +27,20 @@
       },
       "type": {
         "type": "string",
-        "enum": ["personal", "college", "appointment", "holiday"],
+        "enum": [
+          "personal",
+          "college",
+          "appointment",
+          "holiday"
+        ],
         "description": "Category of the event. Defaults to personal."
       },
       "recurring": {
         "type": "string",
-        "enum": ["none", "yearly"],
+        "enum": [
+          "none",
+          "yearly"
+        ],
         "description": "Recurrence pattern. Defaults to none."
       },
       "description": {
@@ -37,5 +48,8 @@
         "description": "Optional detailed description of the event."
       }
     }
+  },
+  "rollback_params": {
+    "text": "$result.event.id"
   }
 }

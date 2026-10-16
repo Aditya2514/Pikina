@@ -1,6 +1,6 @@
 # Pikina OS — User Manual & Technical Capabilities Guide (Phase 4e)
 
-Welcome to the comprehensive user manual for **Pikina OS**, a personal operating system layer on Windows. This manual documents every feature, command phrasing, backend daemon, and safety mechanism built into the system as of Phase 4e.
+Welcome to the comprehensive user manual for **Pikina OS**, a personal operating system layer for Windows and Linux. This manual documents every feature, command phrasing, backend daemon, and safety mechanism built into the system as of Phase 4e.
 
 ---
 
@@ -11,13 +11,13 @@ Pikina OS offers 19 distinct commands spanning file management, to-do lists, cal
 Commands are categorized by **Permission Levels**:
 * **Level 0 (Low Risk):** Runs immediately.
 * **Level 1 (Medium Risk):** Modifies settings or runs local executables.
-* **Level 4+ (High Risk):** Triggers a native Windows confirmation popup before running.
+* **Level 4+ (High Risk):** Triggers a native confirmation popup before running (`MessageBoxW` on Windows, `zenity`/`kdialog` on Linux). Level 3 actions without rollback ask too. If no dialog can be shown, the action is denied.
 
 ---
 
 ### 1. Application Controls (`app.open`)
 
-Launches Windows applications by executable name or path.
+Launches applications by friendly name, executable name or path. On Linux, `notepad`, `calculator`, `paint`, `explorer` and `terminal` map to whichever matching app is installed (gedit/Kate/…, GNOME Calculator/KCalc/…), and other names are looked up on `PATH` and in installed `.desktop` entries.
 
 * **Permission Level:** 1
 * **Command Syntax:**
@@ -61,7 +61,7 @@ An integrated, persistent to-do list categorizable by urgency buckets (`today`, 
 
 #### Complete Task (`todo.complete`)
 * **Permission Level:** 0
-* **Syntax:** `mark task <text_or_id> as done`, `complete <text_or_id>`
+* **Syntax:** `mark task <text_or_id> as done`, `mark <text> as complete`, `complete <text_or_id>`
 * **Examples:**
   * `mark task buy groceries as done`
   * `complete c693836e`
@@ -127,7 +127,7 @@ Define a sequence of steps under a single keyword trigger.
 
 #### Add Alias (`alias.add`)
 * **Permission Level:** 0
-* **Syntax:** `add alias <trigger> -> <step_1> ; <step_2>`
+* **Syntax:** `add alias <trigger> -> <step_1> ; <step_2>` — every step must be a Tier 1 command (no Ollama phrasing).
 * **Example:**
   * `add alias morning -> start the stopwatch ; open notepad`
 
@@ -183,6 +183,7 @@ Recall stored facts and events from semantic vector memory.
 #### Lock Screen (`system.lock_screen`)
 * **Permission Level:** 1
 * **Syntax:** `lock screen`, `lock workstation`, `lock pc`
+* **Linux:** tries `loginctl lock-session`, `xdg-screensaver lock`, the desktop's ScreenSaver D-Bus API, `xflock4` and `dm-tool lock` in turn.
 
 ---
 
@@ -192,7 +193,7 @@ Recall stored facts and events from semantic vector memory.
 
 Pikina OS runs an automated fallback pipeline to ensure speed and local privacy:
 * **Tier 1 (Deterministic Router):** Command strings are first checked against regex patterns. If matched, they run instantly (sub-millisecond latency) without invoking AI.
-* **Tier 2 (Local LLM Fallback):** If no regex matches, the command falls back to local **Ollama (`llama3`)**. It translates the user phrasing into a structured tool call.
+* **Tier 2 (Local LLM Fallback):** If no regex matches, the command falls back to local **Ollama** (model from `PIKINA_OLLAMA_MODEL`, default `llama3`). It translates the user phrasing into a structured tool call. The model is loaded when the backend starts and kept in memory, so the first command doesn't pay the 10–30 s load time. If Ollama isn't running, you get a "model offline" reply.
 * **`no_match` Fallback:** If you ask something out-of-scope (e.g., "tell me a joke"), the model yields `no_match` and the router gracefully declines rather than crashing or hallucinating a wrong command.
 
 ### 2. Dual-Tier Memory System
@@ -207,19 +208,21 @@ Pikina OS runs an automated fallback pipeline to ensure speed and local privacy:
 ### 3. Safety & AVL (Action Validation Layer)
 No model output can run directly. Every LLM recommendation passes through the AVL:
 * **Level Gating:** If the model claims a lower permission level than registered to execute a command, it is blocked.
-* **Consent Gate:** If a command is Level 4+ (high risk) or Level 3+ non-reversible, execution is paused and routes through a native Win32 `MessageBoxW` dialog asking for human confirmation.
+* **Consent Gate:** If a command is Level 4+ (high risk) or Level 3+ non-reversible, execution is paused for a native confirmation dialog (`MessageBoxW` on Windows; `zenity`, `kdialog` or `yad` on Linux; a terminal prompt in the CLI). The same rule applies to typed commands, Ollama-proposed actions, alias steps and dashboard buttons.
+* **Kill Switch:** The ⏻ button halts every action and stops the background daemons until Pikina is restarted.
 * **Replay Store Audit:** All executions, holds, approvals, and denials are logged to `replay_store.sqlite` under the `validation.rejected` topic.
 
 ### 4. Transactions and Rollbacks
-When executing multi-step plans (e.g. alias chains):
-* If any step fails, execution halts immediately.
-* A transactional rollback manager triggers `rollback_action` callbacks in reverse order (LIFO), returning the system safely to its original state.
-* Rollback metrics and statuses are fully audited in the event bus.
+Alias chains run as transactions:
+* If any step fails (or you decline its confirmation dialog), execution halts immediately.
+* Completed steps are undone in reverse order: an added task is removed, an added event is deleted, a new alias is removed, a changed preference is restored. Read-only steps (lists, queries, calculations) are skipped.
+* Some actions can't be undone (launching an app, locking the screen). Rollback stops there and the reply says it was only partial.
+* Every step and rollback is audited in the event bus (`transaction.*` topics).
 
 ---
 
 ## 🕵️ Background Daemons
 
-Pikina OS runs two silent Windows daemons:
-1. **Clipboard Monitor:** Listens via Windows event messages (`WM_CLIPBOARDUPDATE`) for copies. Automatically ignores content marked by password managers (`ExcludeClipboardContentFromMonitor`) and enforces a 10,000-character cap.
+Pikina OS runs two silent background daemons:
+1. **Clipboard Monitor:** On Windows it listens for `WM_CLIPBOARDUPDATE`; on Linux it checks `wl-paste` (Wayland) or `xclip`/`xsel` (X11) once a second. Content marked by password managers (`ExcludeClipboardContentFromMonitor` / `x-kde-passwordManagerHint`) is ignored, and a 10,000-character cap applies.
 2. **File Watcher:** Monitors file creation, modification, and deletions across the workspace in real-time, logging activity directly to the Ephemeral Vector Store.

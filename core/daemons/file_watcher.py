@@ -1,6 +1,8 @@
 import os
 import threading
 from pathlib import Path
+
+from core.osbridge import user_dirs
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from core.mcm.provenance import UNTRUSTED
@@ -42,13 +44,7 @@ class FileWatcherDaemon:
         self.observer = Observer()
         self.handler = _FileEventHandler(self.bus)
         
-        home = Path.home()
-        self.paths_to_watch = [
-            home / "Desktop",
-            home / "Downloads",
-            home / "OneDrive" / "Desktop",
-            home / "OneDrive" / "Downloads",
-        ]
+        self.paths_to_watch = user_dirs(include_documents=False)
 
     def start(self):
         for p in self.paths_to_watch:

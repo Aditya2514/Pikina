@@ -10,5 +10,6 @@
     "type": "object",
     "required": [],
     "properties": {}
-  }
+  },
+  "read_only": true
 }

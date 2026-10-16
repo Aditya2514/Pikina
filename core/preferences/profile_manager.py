@@ -38,6 +38,7 @@ class PreferencesProfileManager:
             return {"status": "error", "reason": f"Unknown profile preference key: '{key}'"}
 
         data = cls.load()
+        previous_value = data.get(key)
 
         if key == "formality":
             val = str(value).lower().strip()
@@ -67,4 +68,9 @@ class PreferencesProfileManager:
             data[key] = str(value).strip()
 
         cls.save(data)
-        return {"status": "ok", "message": f"Updated profile key '{key}' to: {data[key]}", "profile": data}
+        return {
+            "status": "ok",
+            "message": f"Updated profile key '{key}' to: {data[key]}",
+            "profile": data,
+            "previous_value": previous_value,  # lets a transaction roll this change back
+        }

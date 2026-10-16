@@ -41,3 +41,14 @@ Tier 1 handles deterministic matches. Tier 2 (Ollama/llama3) handles fallbacks.
 
 1. **Miscategorization Risk in Tier 2:** While Tier 1 regex matches successfully intercept specific phrasings (like `"quiet hours from 22:00 to 08:00"`), slightly modified phrasing (e.g. `"set my quiet hours"`) will fall through to Tier 2. The parameter schema prompt inclusion reduces wrong-tool selections by clarifying param expectations, but generative miscategorization remains a minor risk to monitor.
 2. **Registry Scaling & Relevance Filtering:** At ~48 tokens per capability schema, growing the registry past 40 tools will blow the prompt budget. We will implement a relevance filter (keyword-matching / vector similarity) in Part F to dynamically select the top 10 most candidate capabilities, keeping the list block under 500 tokens.
+
+## Follow-up fixes (October 2026)
+
+The run above predates these changes; it has not been re-measured against a real model yet.
+
+- `mark task call mom as done` and `list all pending tasks` now match **Tier 1** patterns, so they never reach Ollama.
+- The model is loaded at backend startup and kept warm (`keep_alive=30m`). Cold loads were the main source of the 17–27 s timeouts.
+- Ollama runs in JSON mode (`format: "json"`) with `num_predict: 200`, and the timeout is configurable (`PIKINA_OLLAMA_TIMEOUT`, default 30 s).
+- `tell me a joke` → `no_match` is the intended answer, not a failure.
+- Tier 2 is now wired into the backend the HUD uses (it previously ran only in the CLI).
+- The relevance filter from item 2 above is implemented (`PIKINA_TIER2_MAX_TOOLS`, default 25). It stays off below that size so Ollama can reuse its cached prompt prefix.
