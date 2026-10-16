@@ -4,10 +4,13 @@ No models. No network. No AI. Pure regex matching.
 A Tier 1 command executes with the model layer completely unloaded.
 """
 import re
+import uuid
 from typing import Optional, Callable, Tuple
 
 from core.registry.loader import CapabilityRegistry
-from core.registry.gatekeeper import request_consent
+from core.registry.executor import execute_action
+from core.transactions.plan_executor import Plan, PlanStep, PlanExecutor
+from core.transactions.rollback_spec import resolve_rollback_params, RollbackSpecError
 from core.eventbus.bus import EventBus
 from core.mcm.provenance import TRUSTED
 from core.router.alias_resolver import AliasResolver
@@ -93,8 +96,13 @@ ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
     # Add to-do (handles 'add a task to X', 'add todo X', 'todo X')
     (re.compile(r"add\s+a\s+task\s+(?:to\s+)?(?P<text>.+)", re.I),    "todo.add",          _todo_add_params),
     (re.compile(r"(?:add\s+)?(?:todo|task)\s+(?P<text>.+)", re.I),     "todo.add",          _todo_add_params),
-    # Complete to-do
+    # Complete to-do: "mark task call mom as done", "mark buy milk as complete"
+    (re.compile(r"mark\s+(?:the\s+)?(?:(?:task|todo)\s+)?(?P<text>.+?)\s+as\s+(?:done|complete[d]?|finished)$", re.I), "todo.complete", lambda m: {"text": m.group("text")}),
+    # Complete to-do: "complete buy milk", "mark done buy milk"
     (re.compile(r"(?:mark\s+)?(?:complete|done)\s+(?P<text>.+)", re.I), "todo.complete",     lambda m: {"text": m.group("text")}),
+    # Pending to-dos in natural phrasing: "list all pending tasks", "show my open todos", "what are my tasks"
+    (re.compile(r"(?:list|show)\s+(?:all\s+)?(?:my\s+)?(?:pending|open|remaining|unfinished)\s+(?:todos|tasks|to-dos)", re.I), "todo.list", lambda m: {"status": "pending"}),
+    (re.compile(r"what\s+(?:are|is)\s+(?:my|on\s+my)\s+(?:tasks|todos|to-dos|to-do\s+list|todo\s+list)\??$", re.I), "todo.list", lambda m: {"status": "pending"}),
     # List done to-dos
     (re.compile(r"(?:list|show)\s+done\s+(?:todos|tasks|list)", re.I), "todo.list",         lambda m: {"status": "done"}),
     # List all to-dos (done + pending)
@@ -135,6 +143,20 @@ ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
 ]
 
 
+# "add alias morning -> start the stopwatch ; open notepad"
+_ADD_ALIAS = re.compile(r"add\s+alias\s+(?P<trigger>.+?)\s*->\s*(?P<steps>.+)", re.I)
+
+
+def match_route(text: str):
+    """Return (tool, params) for the first Tier 1 route matching text, or None. Does not execute."""
+    text = text.strip()
+    for pattern, tool, params_fn in ROUTES:
+        match = pattern.fullmatch(text) or pattern.match(text)
+        if match:
+            return tool, params_fn(match)
+    return None
+
+
 class Tier1Router:
     def __init__(self, registry: Optional[CapabilityRegistry] = None):
         self._registry       = registry or CapabilityRegistry()
@@ -154,10 +176,14 @@ class Tier1Router:
         if alias:
             return self._execute_alias(alias, raw=text)
 
-        for pattern, tool, params_fn in ROUTES:
-            match = pattern.fullmatch(text) or pattern.match(text)
-            if match:
-                return self._execute(tool, params_fn(match), raw=text)
+        define = _ADD_ALIAS.fullmatch(text)
+        if define:
+            return self._define_alias(define.group("trigger"), define.group("steps"), raw=text)
+
+        routed = match_route(text)
+        if routed:
+            tool, params = routed
+            return self._execute(tool, params, raw=text)
 
         return {
             "status":  "no_match",
@@ -165,52 +191,36 @@ class Tier1Router:
             "hint":    "Try: 'open vs code', 'lock screen', 'find file resume.pdf', 'list aliases'",
         }
 
-    def _execute(self, tool: str, params: dict, raw: str) -> dict:
-        try:
-            manifest = self._registry.get_manifest(tool)
-        except KeyError:
-            return {"status": "error", "reason": f"Unknown tool in route table: '{tool}'"}
-
-        level = manifest["permission_level"]
-
-        # Gate Level 4+ and Level 3+ non-reversible actions with native Windows consent dialog
-        if level >= 4 or (level >= 3 and not manifest.get("supports_rollback", True)):
-            if not request_consent(tool, manifest["description"], params):
-                self._bus.publish(
-                    topic="router.denied",
-                    payload={"tool": tool, "params": params, "raw": raw},
-                    provenance=TRUSTED,
-                    permission_level=level,
-                )
-                return {"status": "denied", "reason": "User declined consent dialog."}
-
-        self._bus.publish(
-            topic="router.executing",
-            payload={"tool": tool, "params": params, "raw": raw, "tier": 1},
-            provenance=TRUSTED,
-            permission_level=level,
-        )
-
-        result = self._registry.execute(tool, params)
-
-        self._bus.publish(
-            topic="router.result",
-            payload={"tool": tool, "result": result, "tier": 1},
-            provenance=TRUSTED,
-            permission_level=level,
-        )
-
+    def _define_alias(self, trigger: str, steps_text: str, raw: str) -> dict:
+        """Turn 'step one ; step two' into tool calls using the Tier 1 route table."""
+        steps = []
+        for part in (p.strip() for p in steps_text.split(";")):
+            if not part:
+                continue
+            routed = match_route(part)
+            if routed is None or routed[0].startswith("alias."):
+                return {"status": "error",
+                        "reason": f"Alias step '{part}' is not a Tier 1 command, so it can't be saved."}
+            steps.append({"tool": routed[0], "params": routed[1]})
+        if not steps:
+            return {"status": "error", "reason": "An alias needs at least one step after '->'."}
+        result = self._execute("alias.add", {"trigger": trigger.strip(), "steps": steps}, raw=raw)
+        if result.get("status") == "ok":
+            result["steps"] = steps
         return result
+
+    def _execute(self, tool: str, params: dict, raw: str) -> dict:
+        return execute_action(self._registry, tool, params, raw=raw, tier=1, provenance=TRUSTED)
 
     def _execute_alias(self, alias: dict, raw: str) -> dict:
         """
-        Execute a multi-step alias sequence.
+        Execute a multi-step alias as a transaction.
         Every step runs through the full permission/consent gate.
-        Stops on first failure and reports which step failed.
+        If a step fails or is denied, the completed steps are rolled back
+        in reverse order using each capability's manifest rollback recipe.
         """
         steps   = alias.get("steps", [])
         trigger = alias.get("trigger", raw)
-        results = []
 
         self._bus.publish(
             topic="alias.started",
@@ -219,26 +229,72 @@ class Tier1Router:
             permission_level=0,
         )
 
+        plan_steps = []
         for i, step in enumerate(steps):
-            tool   = step.get("tool", "")
-            params = step.get("params", {})
-            result = self._execute(tool, params, raw=f"{raw} [alias step {i+1}/{len(steps)}]")
-            results.append({"step": i + 1, "tool": tool, "result": result})
+            tool = step.get("tool", "")
+            try:
+                manifest = self._registry.get_manifest(tool)
+            except KeyError:
+                manifest = {}
+            plan_steps.append(PlanStep(
+                step_id=f"{i + 1}",
+                tool=tool,
+                params=step.get("params", {}),
+                rollback_action=manifest.get("rollback_action") if manifest.get("supports_rollback") else None,
+                read_only=bool(manifest.get("read_only", False)),
+            ))
 
-            # Stop the sequence on any failure or denial
-            if result.get("status") in ("error", "denied"):
-                return {
-                    "status":  result["status"],
-                    "reason":  f"Alias '{trigger}' stopped at step {i+1} ({tool}): {result.get('reason', result.get('message', 'unknown error'))}",
-                    "steps_completed": i,
-                    "steps_total":     len(steps),
-                    "results":         results,
-                }
+        def run_step(plan_step: PlanStep) -> bool:
+            plan_step.result = self._execute(
+                plan_step.tool, plan_step.params,
+                raw=f"{raw} [alias step {plan_step.step_id}/{len(steps)}]",
+            )
+            return plan_step.result.get("status") not in ("error", "denied")
 
+        def undo_step(plan_step: PlanStep) -> bool:
+            manifest = self._registry.get_manifest(plan_step.tool)
+            try:
+                undo_params = resolve_rollback_params(
+                    manifest.get("rollback_params", {}), plan_step.params, plan_step.result)
+            except RollbackSpecError:
+                return False
+            undo = execute_action(
+                self._registry, plan_step.rollback_action, undo_params,
+                raw=f"rollback of {plan_step.tool} (alias '{trigger}')", tier=1,
+                provenance=TRUSTED, gate=False,  # undoing the user's own change
+            )
+            return undo.get("status") == "ok"
+
+        plan = Plan(id=f"alias:{trigger}:{uuid.uuid4().hex[:8]}", steps=plan_steps)
+        PlanExecutor(registry=self._registry, execution_callback=run_step,
+                     rollback_callback=undo_step).execute(plan)
+
+        results = [{"step": int(s.step_id), "tool": s.tool, "result": s.result, "status": s.status}
+                   for s in plan_steps if s.result is not None]
+        completed = sum(1 for s in plan_steps if s.status in ("done", "rolled_back", "no_rollback_needed",
+                                                             "rollback_failed", "no_rollback_available"))
+
+        if plan.status == "completed":
+            return {
+                "status":          "ok",
+                "message":         f"Alias '{trigger}' completed all {len(steps)} step(s).",
+                "steps_completed": len(steps),
+                "steps_total":     len(steps),
+                "results":         results,
+            }
+
+        failed = next(s for s in plan_steps if s.status == "failed")
+        reason = failed.result.get("reason", failed.result.get("message", "unknown error"))
+        rollback_note = {
+            "rolled_back":           "Earlier steps were rolled back.",
+            "partially_rolled_back": "Some earlier steps could NOT be rolled back — check the results.",
+            "failed":                "",
+        }.get(plan.status, "")
         return {
-            "status":          "ok",
-            "message":         f"Alias '{trigger}' completed all {len(steps)} step(s).",
-            "steps_completed": len(steps),
+            "status":          failed.result.get("status", "error"),
+            "reason":          f"Alias '{trigger}' stopped at step {failed.step_id} ({failed.tool}): {reason}. {rollback_note}".strip(),
+            "steps_completed": completed,
             "steps_total":     len(steps),
+            "rollback":        plan.status,
             "results":         results,
         }

@@ -17,6 +17,7 @@ except OSError:
 import os
 import sys
 import json
+import secrets
 import requests
 from pathlib import Path
 from datetime import datetime, timezone
@@ -40,7 +41,11 @@ from core.governor.telemetry import get_telemetry
 from core.governor.profiles import get_profile, set_profile, PROFILE_WEIGHTS
 from core.registry.loader import CapabilityRegistry
 from core.router.tier1_win32 import Tier1Router
+from core.router.tier2_ollama import Tier2Router
 from core.mcm.orchestrator import Orchestrator
+from core.mcm import killswitch
+from core.mcm.provenance import TRUSTED
+from core.registry.executor import execute_action
 from core.daemons.file_indexer import FileIndexerDaemon
 from core.daemons.clipboard import ClipboardDaemon
 from core.daemons.file_watcher import FileWatcherDaemon
@@ -54,29 +59,74 @@ import atexit
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:*", "null", "file://*"])
 
+PROJECT_ROOT = Path(__file__).parent
+
+
+def _load_api_token() -> str:
+    """
+    Shared secret between this server and the Electron app (which reads the same
+    file and attaches it to every request). Without it, any web page open in a
+    browser could POST to localhost:5001 and run capabilities.
+    """
+    token_file = Path(os.getenv("PIKINA_API_TOKEN_FILE") or PROJECT_ROOT / "data" / ".api_token")
+    token_file.parent.mkdir(parents=True, exist_ok=True)
+    if token_file.exists():
+        token = token_file.read_text(encoding="utf-8").strip()
+        if token:
+            return token
+    token = secrets.token_urlsafe(32)
+    token_file.write_text(token, encoding="utf-8")
+    try:
+        os.chmod(token_file, 0o600)
+    except OSError:
+        pass
+    return token
+
+
+API_TOKEN = _load_api_token()
+
+
+@app.before_request
+def _require_token():
+    if request.method == "OPTIONS" or not request.path.startswith("/api/"):
+        return None
+    supplied = request.headers.get("X-Pikina-Token", "")
+    if not secrets.compare_digest(supplied, API_TOKEN):
+        return jsonify({"status": "error", "reason": "Missing or invalid X-Pikina-Token."}), 401
+    return None
+
+
 bus      = EventBus()
 registry = CapabilityRegistry()
 router   = Tier1Router(registry=registry)
-mcm      = Orchestrator(router=router)
+
+# Tier 2 (local Ollama) handles anything Tier 1 regexes don't match.
+# Set PIKINA_TIER2=0 in .env to run fully deterministic.
+TIER2_ENABLED = os.getenv("PIKINA_TIER2", "1") != "0"
+tier2 = Tier2Router(registry=registry) if TIER2_ENABLED else None
+mcm   = Orchestrator(router=router, tier2_router=tier2)
+if tier2:
+    tier2.warm_up_async()
 
 OPENWEATHER_KEY  = os.getenv("OPENWEATHER_API_KEY", "")
 OPENWEATHER_CITY = os.getenv("OPENWEATHER_CITY", "Mumbai")
 PORT             = int(os.getenv("BACKEND_PORT", 5001))
 
-# Start Background Daemons
-# Start Background Daemons
+# Start Background Daemons (set PIKINA_NO_DAEMONS=1 to skip, e.g. for tests or headless use)
+DAEMONS_ENABLED = os.getenv("PIKINA_NO_DAEMONS", "0") != "1"
+
 forgetting_engine = ForgettingEngine(sweep_interval_sec=3600, max_age_hours=24, promotion_threshold=3)
-forgetting_engine.start()
+if DAEMONS_ENABLED:
+    forgetting_engine.start()
 
-print("[Backend] Initializing Sensory Daemons...")
-indexer_daemon = FileIndexerDaemon()
-indexer_daemon.start()
-
+indexer_daemon   = FileIndexerDaemon()
 clipboard_daemon = ClipboardDaemon(bus=bus)
-clipboard_daemon.start()
-
-watcher_daemon = FileWatcherDaemon(bus=bus)
-watcher_daemon.start()
+watcher_daemon   = FileWatcherDaemon(bus=bus)
+if DAEMONS_ENABLED:
+    print("[Backend] Initializing Sensory Daemons...")
+    indexer_daemon.start()
+    clipboard_daemon.start()
+    watcher_daemon.start()
 
 trust_engine = None
 
@@ -100,14 +150,23 @@ def _bg_init():
         print(f"[Backend] Failed to sync public holidays: {e}")
 
 import threading
-threading.Thread(target=_bg_init, daemon=False).start()
+if DAEMONS_ENABLED:
+    threading.Thread(target=_bg_init, daemon=False).start()
+
+_daemons_stopped = False
+
 
 def cleanup_daemons():
+    global _daemons_stopped
+    if _daemons_stopped:
+        return
+    _daemons_stopped = True
     print("\n[Backend] Shutting down daemons...")
-    indexer_daemon.stop()
-    clipboard_daemon.stop()
-    watcher_daemon.stop()
-    forgetting_engine.stop()
+    for daemon in (indexer_daemon, clipboard_daemon, watcher_daemon, forgetting_engine):
+        try:
+            daemon.stop()
+        except Exception as exc:
+            print(f"[Backend] Failed to stop {type(daemon).__name__}: {exc}")
 
 atexit.register(cleanup_daemons)
 
@@ -119,8 +178,10 @@ atexit.register(cleanup_daemons)
 def status():
     return jsonify({
         "status":    "online",
-        "version":   "0.1.0-phase1",
+        "version":   "0.4.0",
         "profile":   get_profile(),
+        "tier2":     {"enabled": TIER2_ENABLED, "model": tier2.model_name if tier2 else None},
+        "kill_switch": killswitch.is_engaged(),
         "timestamp": datetime.now(timezone.utc).isoformat(),
     })
 
@@ -161,11 +222,20 @@ def execute_capability():
     if not tool:
         return jsonify({"status": "error", "reason": "Missing tool parameter."}), 400
 
-    try:
-        result = registry.execute(tool, params)
-        return jsonify(result)
-    except Exception as exc:
-        return jsonify({"status": "error", "reason": str(exc)}), 500
+    # Same kill switch, consent gate and audit trail as typed commands.
+    result = execute_action(registry, tool, params, raw=f"[api] {tool}", tier="api", provenance=TRUSTED)
+    return jsonify(result)
+
+
+@app.route("/api/killswitch", methods=["POST"])
+def kill_switch():
+    """Halt every capability and stop the sensory daemons. Restart the backend to resume."""
+    killswitch.engage()
+    cleanup_daemons()
+    bus.publish(topic="system.kill_switch", payload={"engaged": True},
+                provenance=TRUSTED, permission_level=4)
+    return jsonify({"status": "ok", "kill_switch": True,
+                    "message": "All actions halted and daemons stopped. Restart Pikina to resume."})
 
 
 @app.route("/api/tools")

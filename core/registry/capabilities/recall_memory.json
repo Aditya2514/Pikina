@@ -8,12 +8,15 @@
   "rollback_action": null,
   "params_schema": {
     "type": "object",
-    "required": ["query"],
+    "required": [
+      "query"
+    ],
     "properties": {
       "query": {
         "type": "string",
         "description": "The concept, keyword, or semantic query to search for in memory."
       }
     }
-  }
+  },
+  "read_only": true
 }

@@ -8,12 +8,15 @@ from core.transactions.rollback_engine import RollbackEngine
 
 class PlanStep:
     """Represents a single executable step in a Plan."""
-    def __init__(self, step_id: str, tool: str, params: dict = None, rollback_action: str = None, status: str = "pending"):
+    def __init__(self, step_id: str, tool: str, params: dict = None, rollback_action: str = None,
+                 status: str = "pending", read_only: bool = False):
         self.step_id = step_id
         self.tool = tool
         self.params = params or {}
         self.rollback_action = rollback_action  # Resolved at construction
-        self.status = status  # pending, done, failed, rolled_back, rollback_failed, no_rollback_available
+        self.read_only = read_only  # read-only steps need no rollback and never block one
+        self.result = None  # filled in by the execution callback
+        self.status = status  # pending, done, failed, rolled_back, rollback_failed, no_rollback_available, no_rollback_needed
 
     def to_dict(self) -> dict:
         return {
@@ -22,6 +25,8 @@ class PlanStep:
             "params": self.params,
             "rollback_action": self.rollback_action,
             "status": self.status,
+            "read_only": self.read_only,
+            "result": self.result,
         }
 
 

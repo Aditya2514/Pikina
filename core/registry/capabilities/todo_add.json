@@ -4,11 +4,13 @@
   "permission_level": 0,
   "estimated_cost": 0.0,
   "requires_network": false,
-  "supports_rollback": false,
-  "rollback_action": null,
+  "supports_rollback": true,
+  "rollback_action": "todo.remove",
   "params_schema": {
     "type": "object",
-    "required": ["text"],
+    "required": [
+      "text"
+    ],
     "properties": {
       "text": {
         "type": "string",
@@ -16,7 +18,12 @@
       },
       "bucket": {
         "type": "string",
-        "enum": ["today", "tomorrow", "this_week", "backlog"],
+        "enum": [
+          "today",
+          "tomorrow",
+          "this_week",
+          "backlog"
+        ],
         "description": "The time bucket for the task. Defaults to backlog."
       },
       "due_date": {
@@ -24,5 +31,8 @@
         "description": "Optional due date or natural language date (e.g. 'Friday', 'tomorrow', '2026-07-15')."
       }
     }
+  },
+  "rollback_params": {
+    "text": "$result.todo.id"
   }
 }

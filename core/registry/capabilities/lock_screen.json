@@ -1,6 +1,6 @@
 {
   "tool": "system.lock_screen",
-  "description": "Locks the Windows workstation immediately via LockWorkStation().",
+  "description": "Locks the screen immediately (LockWorkStation on Windows, loginctl/screensaver on Linux).",
   "permission_level": 1,
   "estimated_cost": 0.01,
   "requires_network": false,

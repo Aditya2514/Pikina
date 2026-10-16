@@ -4,20 +4,33 @@
   "permission_level": 0,
   "estimated_cost": 0.0,
   "requires_network": false,
-  "supports_rollback": false,
-  "rollback_action": null,
+  "supports_rollback": true,
+  "rollback_action": "prefs.update",
   "params_schema": {
     "type": "object",
-    "required": ["field", "value"],
+    "required": [
+      "field",
+      "value"
+    ],
     "properties": {
       "field": {
         "type": "string",
-        "enum": ["preferred_name", "formality", "verbosity", "humor", "quiet_hours"],
+        "enum": [
+          "preferred_name",
+          "formality",
+          "verbosity",
+          "humor",
+          "quiet_hours"
+        ],
         "description": "The profile field to update."
       },
       "value": {
         "description": "The new value to assign. Can be string or array for quiet_hours."
       }
     }
+  },
+  "rollback_params": {
+    "field": "$params.field",
+    "value": "$result.previous_value"
   }
 }

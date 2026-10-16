@@ -12,14 +12,24 @@
     "properties": {
       "status": {
         "type": "string",
-        "enum": ["pending", "done", "all"],
+        "enum": [
+          "pending",
+          "done",
+          "all"
+        ],
         "description": "Filter by status. Defaults to pending."
       },
       "bucket": {
         "type": "string",
-        "enum": ["today", "tomorrow", "this_week", "backlog"],
+        "enum": [
+          "today",
+          "tomorrow",
+          "this_week",
+          "backlog"
+        ],
         "description": "Filter by a specific time bucket."
       }
     }
-  }
+  },
+  "read_only": true
 }

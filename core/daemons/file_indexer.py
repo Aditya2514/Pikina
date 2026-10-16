@@ -4,6 +4,8 @@ import sqlite3
 import threading
 from pathlib import Path
 
+from core.osbridge import user_dirs
+
 class FileIndexerDaemon:
     def __init__(self, db_path="data/index.db", scan_interval=3600):
         self.db_path = Path(db_path)
@@ -42,16 +44,7 @@ class FileIndexerDaemon:
             self._thread.join(timeout=2.0)
 
     def _get_search_roots(self):
-        home = Path.home()
-        roots = [
-            home / "Desktop",
-            home / "Documents",
-            home / "Downloads",
-            home / "OneDrive" / "Desktop",
-            home / "OneDrive" / "Documents",
-            home / "OneDrive" / "Downloads",
-        ]
-        return [r for r in roots if r.exists()]
+        return user_dirs()
 
     def _crawl_loop(self):
         while self.running:

@@ -45,3 +45,12 @@ desktop.ini
 # Compiled / packaged
 out/
 dist/
+
+# Local runtime state (databases, API token, caches)
+data/.api_token
+data/*.db
+data/*.sqlite
+data/settings.json
+data/knowledge_graph.json
+data/file_graph.json
+.pytest_cache/

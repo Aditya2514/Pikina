@@ -796,7 +796,7 @@ document.getElementById('act-kill').addEventListener('click', () => {
     window.pikina.killSwitch();
   }
   setReactorState('idle');
-  cmdResult.textContent = '⏻ Kill-switch triggered — all daemons halted.';
+  cmdResult.textContent = '⏻ Kill-switch engaged — all actions and daemons halted. Restart Pikina to resume.';
   cmdResult.className   = 'cmd-result error';
 });
 

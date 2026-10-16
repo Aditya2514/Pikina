@@ -8,12 +8,15 @@
   "rollback_action": null,
   "params_schema": {
     "type": "object",
-    "required": ["expr"],
+    "required": [
+      "expr"
+    ],
     "properties": {
       "expr": {
         "type": "string",
         "description": "The math expression to evaluate (e.g. '25 * 40')."
       }
     }
-  }
+  },
+  "read_only": true
 }

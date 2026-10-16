@@ -23,5 +23,6 @@
         "description": "End date for a range query."
       }
     }
-  }
+  },
+  "read_only": true
 }

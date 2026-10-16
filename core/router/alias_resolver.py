@@ -13,10 +13,24 @@ class AliasResolver:
     def __init__(self):
         self._lock = threading.Lock()
         self._aliases: list[dict] = []
+        self._mtime = None
         self._load()
+
+    @staticmethod
+    def _file_mtime():
+        try:
+            return ALIASES_FILE.stat().st_mtime_ns
+        except OSError:
+            return None
+
+    def _reload_if_changed(self):
+        """Pick up aliases saved by another resolver instance (e.g. the alias.add capability)."""
+        if self._file_mtime() != self._mtime:
+            self._load()
 
     def _load(self):
         """Load aliases from disk. Safe to call at any time."""
+        self._mtime = self._file_mtime()
         try:
             data = json.loads(ALIASES_FILE.read_text(encoding="utf-8"))
             with self._lock:
@@ -30,12 +44,14 @@ class AliasResolver:
         with self._lock:
             data = {"aliases": self._aliases}
         ALIASES_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        self._mtime = self._file_mtime()
 
     def resolve(self, text: str) -> dict | None:
         """
         Check if text exactly matches a defined alias trigger (case-insensitive).
         Returns the alias dict if matched, None otherwise.
         """
+        self._reload_if_changed()
         normalized = text.strip().lower()
         with self._lock:
             for alias in self._aliases:
@@ -44,6 +60,7 @@ class AliasResolver:
         return None
 
     def list_aliases(self) -> list[dict]:
+        self._reload_if_changed()
         with self._lock:
             return list(self._aliases)
 

@@ -4,6 +4,7 @@ and routes trusted commands to the Intent Router.
 This is the only component allowed to ask a clarifying question before acting.
 """
 from core.mcm.provenance import tag, TRUSTED
+from core.mcm import killswitch
 from core.eventbus.bus import EventBus
 
 
@@ -52,6 +53,9 @@ class Orchestrator:
                     "Only content you type or speak directly can trigger actions."
                 ),
             }
+
+        if killswitch.is_engaged():
+            return {"status": "denied", "reason": "Kill switch is engaged — all actions are halted."}
 
         if self._router is None:
             return {"status": "error", "reason": "no_router_configured"}

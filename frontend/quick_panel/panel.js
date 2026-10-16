@@ -231,7 +231,7 @@ document.getElementById('qb-snip').addEventListener('click', () => {
 
 document.getElementById('qb-kill').addEventListener('click', () => {
   if (window.pikina) window.pikina.killSwitch();
-  result.textContent = '⏻ Kill-switch triggered — router & daemons halted.';
+  result.textContent = '⏻ Kill-switch engaged — actions & daemons halted. Restart to resume.';
   result.className   = 'panel-result error';
   setState('idle');
 });
