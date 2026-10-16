@@ -37,7 +37,7 @@
 - [x] Hotkey (`Ctrl+Shift+Space`) summons/dismisses panel.
 - [x] Typed command matches CLI path and logs identical event envelope.
 - [x] Quick grid icon buttons (mic, clip, tasks, snip, log) wired to active feedback/capabilities.
-- [x] Kill-switch button visually distinct and halts router/daemons.
+- [x] Kill-switch button visually distinct and halts router/daemons. *(Re-checked Oct 2026: the button only logged a message until `/api/killswitch` was added — now it halts all actions and stops the daemons.)*
 
 ## 9. Frontend — Dashboard Restraint Check
 - [x] Metric cards & deadline list high-contrast and legible; glow reserved for Arc Reactor.
