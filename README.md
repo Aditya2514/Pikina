@@ -10,7 +10,7 @@
 [![Win32 API](https://img.shields.io/badge/OS_Hooks-Win32_pywin32-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://microsoft.com/windows)
 [![Routing Tier](https://img.shields.io/badge/Routing-Deterministic_Regex_%2B_Ollama_LLM-00F2FE?style=for-the-badge)](core/router)
 [![Security](https://img.shields.io/badge/Security-Action_Validation_Layer_(AVL)-FF0844?style=for-the-badge)](security)
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](#license)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 <br/>
 
@@ -379,7 +379,7 @@ pytest tests/
 
 ## 📜 License
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
 
 <div align="center">
 
