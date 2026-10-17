@@ -1,0 +1,24 @@
+name: Feature request
+description: Suggest a new command, capability or improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What do you want to do?
+      description: Describe the task, not the solution.
+      placeholder: I want to snooze a task to tomorrow without retyping it.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How would you phrase it?
+      description: Example commands you'd type, if it's a new capability.
+      placeholder: '"snooze buy milk until tomorrow"'
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Does it change or delete anything?
+      description: Helps decide its permission level and whether it needs a confirmation dialog.
+      options: ["No — read-only", "Yes, but it can be undone", "Yes, and it can't be undone"]

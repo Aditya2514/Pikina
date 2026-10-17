@@ -5,8 +5,8 @@ retry limits and replay-log auditing.
 """
 import pytest
 
-from core.validation.failure_classes import FailureClass
-from core.validation.schema_check import validate_model_action
+from pikina.validation.failure_classes import FailureClass
+from pikina.validation.schema_check import validate_model_action
 
 DESTRUCTIVE = {
     "tool": "system.destructive_test_action",

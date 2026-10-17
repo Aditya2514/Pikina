@@ -3,7 +3,9 @@ import sqlite3
 import json
 from collections import Counter
 
-conn = sqlite3.connect('core/eventbus/replay_store.sqlite')
+from pikina import paths
+
+conn = sqlite3.connect(paths.data_file(paths.REPLAY_DB))
 
 # 1. What paths are being modified most?
 print("=" * 60)

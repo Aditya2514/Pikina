@@ -1,56 +1,35 @@
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
 *.egg-info/
-dist/
+.venv/
+venv/
 build/
-.eggs/
+dist/
+.pytest_cache/
 
 # Node / Electron
 node_modules/
-.npm
-*.log
+out/
 npm-debug.log*
+*.log
 
-# Secrets & Vault
-security/vault/vault.bin
+# Local configuration and secrets
 .env
 *.key
 *.pem
-
-# SQLite replay store
-core/eventbus/replay_store.sqlite
-
-# OS
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# IDEs
-.vscode/
-.idea/
-*.suo
-*.user
 
 # Ollama model blobs (never commit weights)
 *.gguf
 *.ggml
 
-# Compiled / packaged
-out/
-dist/
+# OS / editors
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
 
-# Local runtime state (databases, API token, caches)
-data/.api_token
-data/*.db
-data/*.sqlite
-data/settings.json
-data/knowledge_graph.json
-data/file_graph.json
-.pytest_cache/
+# Data written by versions before 0.4 (now kept in the per-user data folder)
+data/
+core/

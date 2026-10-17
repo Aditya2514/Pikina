@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pikina"
+dynamic = ["version"]
+description = "Offline-first, event-driven personal operating layer for Windows and Linux"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Aditya" }]
+keywords = ["assistant", "desktop", "automation", "ollama", "offline"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Desktop Environment",
+]
+dependencies = [
+    "flask>=3.0",
+    "flask-cors>=4.0",
+    "psutil>=5.9",
+    "requests>=2.31",
+    "python-dotenv>=1.0",
+    "watchdog>=3.0",
+    "networkx>=3.0",
+    "numpy>=1.24",
+    "dateparser>=1.2",
+    "icalendar>=5.0",
+    "holidays>=0.40",
+    "pywin32>=306; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+# Semantic memory (recall, Tier 2 context). Pulls in PyTorch, several GB.
+memory = ["sentence-transformers>=3.0", "torch>=2.3"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+pikina = "pikina.cli:main"
+pikina-server = "pikina.server:main"
+
+[project.urls]
+Homepage = "https://github.com/Aditya2514/Pikina"
+Issues = "https://github.com/Aditya2514/Pikina/issues"
+
+[tool.setuptools.dynamic]
+version = { attr = "pikina.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"pikina.registry" = ["manifest_schema.json"]
+"pikina.registry.capabilities" = ["*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
+filterwarnings = ["ignore::DeprecationWarning"]

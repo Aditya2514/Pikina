@@ -4,8 +4,8 @@ earliest-deadline-first ordering, cost limits and starvation protection.
 """
 import pytest
 
-from core.scheduler.task_graph import Task
-from core.scheduler.dispatcher import TaskDispatcher
+from pikina.scheduler.task_graph import Task
+from pikina.scheduler.dispatcher import TaskDispatcher
 
 
 def test_dependency_keeps_task_blocked():

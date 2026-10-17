@@ -8,14 +8,14 @@ from datetime import datetime, timezone, timedelta
 
 import pytest
 
-from core.eventbus.bus import EventBus
-from core.mcm.provenance import tag, TRUSTED, UNTRUSTED
-from core.mcm.orchestrator import Orchestrator
-from core.router.tier1_win32 import Tier1Router
-from core.governor.telemetry import get_telemetry
-from core.governor.cost_function import calculate_capability_cost
-from core.validation.schema_check import validate_action
-from core.validation.failure_classes import FailureClass
+from pikina.eventbus.bus import EventBus
+from pikina.mcm.provenance import tag, TRUSTED, UNTRUSTED
+from pikina.mcm.orchestrator import Orchestrator
+from pikina.router.tier1 import Tier1Router
+from pikina.governor.telemetry import get_telemetry
+from pikina.governor.cost_function import calculate_capability_cost
+from pikina.validation.schema_check import validate_action
+from pikina.validation.failure_classes import FailureClass
 
 
 @pytest.fixture
@@ -108,3 +108,40 @@ def test_tier1_runs_with_zero_models(registry, monkeypatch):
     import requests
     monkeypatch.setattr(requests, "post", lambda *a, **k: pytest.fail("Tier 1 must not call a model"))
     assert Tier1Router(registry=registry).route("calculate 12 * 8")["result"] == 96
+
+
+def test_all_user_data_goes_to_the_data_folder(registry, isolated_env, monkeypatch):
+    """Nothing may be written inside the package or the working directory."""
+    import os
+    from pikina import paths
+    elsewhere = isolated_env / "cwd"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    router = Tier1Router(registry=registry)
+    for cmd in ["add todo x", "add event y on 2026-12-01", "call me Tester", "calculate 1+1",
+                "add alias a1 -> calculate 2+2"]:
+        router.route(cmd)
+    written = {p.name for p in isolated_env.iterdir() if p.is_file()}
+    assert {paths.MAIN_DB, paths.REPLAY_DB, paths.PROFILE, paths.ALIASES} <= written
+    assert os.listdir(elsewhere) == []
+    package_files = {str(p) for p in paths.PACKAGE_DIR.rglob("*") if p.suffix in (".db", ".sqlite")
+                     or p.name in (paths.PROFILE, paths.ALIASES)}
+    assert package_files == set()
+
+
+def test_legacy_data_is_migrated_once(isolated_env, monkeypatch, tmp_path_factory):
+    from pikina import paths
+    old_repo = tmp_path_factory.mktemp("old_checkout")
+    (old_repo / "data").mkdir()
+    (old_repo / "data" / "pikina.db").write_bytes(b"old-db")
+    (old_repo / "core" / "preferences").mkdir(parents=True)
+    (old_repo / "core" / "preferences" / "profile.json").write_text('{"preferred_name": "Old"}')
+    monkeypatch.setattr(paths, "source_checkout_root", lambda: None)
+
+    copied = paths.migrate_legacy_data(extra_roots=[old_repo])
+    assert set(copied) == {paths.MAIN_DB, paths.PROFILE}
+    assert (isolated_env / "pikina.db").read_bytes() == b"old-db"
+    # Running again never overwrites newer data
+    (isolated_env / "pikina.db").write_bytes(b"new-db")
+    assert paths.migrate_legacy_data(extra_roots=[old_repo]) == []
+    assert (isolated_env / "pikina.db").read_bytes() == b"new-db"

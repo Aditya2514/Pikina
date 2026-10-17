@@ -2,8 +2,8 @@
 import sqlite3
 from datetime import datetime, timezone, timedelta
 
-from core.memory.vector_store import VectorStore
-from core.memory.forgetting_engine import ForgettingEngine
+from pikina.memory.vector_store import VectorStore
+from pikina.memory.forgetting_engine import ForgettingEngine
 
 
 def test_corroborated_old_memory_is_promoted():

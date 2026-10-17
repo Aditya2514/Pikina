@@ -7,9 +7,9 @@
 [![Development Status](https://img.shields.io/badge/Status-Active_Development_%2B_Trial_Phase-FF9900?style=for-the-badge&logo=git&logoColor=white)](#-active-development--trial-phase-notice)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Electron](https://img.shields.io/badge/Electron-Desktop_HUD-4785D4?style=for-the-badge&logo=electron&logoColor=white)](https://electronjs.org)
-[![Platforms](https://img.shields.io/badge/Platforms-Windows_%7C_Linux-0078D4?style=for-the-badge)](core/osbridge)
-[![Routing Tier](https://img.shields.io/badge/Routing-Deterministic_Regex_%2B_Ollama_LLM-00F2FE?style=for-the-badge)](core/router)
-[![Security](https://img.shields.io/badge/Security-Action_Validation_Layer_(AVL)-FF0844?style=for-the-badge)](core/validation)
+[![Platforms](https://img.shields.io/badge/Platforms-Windows_%7C_Linux-0078D4?style=for-the-badge)](src/pikina/osbridge)
+[![Routing Tier](https://img.shields.io/badge/Routing-Deterministic_Regex_%2B_Ollama_LLM-00F2FE?style=for-the-badge)](src/pikina/router)
+[![Security](https://img.shields.io/badge/Security-Action_Validation_Layer_(AVL)-FF0844?style=for-the-badge)](src/pikina/validation)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 <br/>
@@ -39,11 +39,11 @@
 - [Active Development & Trial Notice](#-active-development--experimental-trial-phase-notice)
 - [Overview & Core Philosophy](#-overview--core-philosophy)
 - [Visual Interface & Subsystem Showcase](#-visual-interface--subsystem-showcase)
-  - [1. JARVIS HUD Dashboard](#1-jarvis-hud-dashboard-frontenddashboard)
-  - [2. Hotkey Quick Panel Overlay](#2-hotkey-quick-panel-overlay-frontendquick_panel)
-  - [3. Action Validation & Consent Gate](#3-action-validation--consent-gate-corevalidation)
-  - [4. Dual-Tier Memory & Knowledge Graph](#4-dual-tier-memory--knowledge-graph-corememory)
-  - [5. System Diagnostics & Sensory Telemetry](#5-system-diagnostics--sensory-telemetry-coregovernor)
+  - [1. JARVIS HUD Dashboard](#1-jarvis-hud-dashboard-desktopsrcrendererdashboard)
+  - [2. Hotkey Quick Panel Overlay](#2-hotkey-quick-panel-overlay-desktopsrcrendererquick_panel)
+  - [3. Action Validation & Consent Gate](#3-action-validation--consent-gate-srcpikinavalidation)
+  - [4. Dual-Tier Memory & Knowledge Graph](#4-dual-tier-memory--knowledge-graph-srcpikinamemory)
+  - [5. System Diagnostics & Sensory Telemetry](#5-system-diagnostics--sensory-telemetry-srcpikinagovernor)
 - [System Architecture & Routing Pipeline](#-system-architecture--routing-pipeline)
 - [Build Roadmap & Phase Status](#-build-roadmap--phase-status)
 - [Capability Registry & Command Specs](#-capability-registry--command-specs)
@@ -80,28 +80,28 @@ Unlike conventional AI desktop assistants that route every keystroke through clo
 > [!NOTE]
 > The images below are concept renders (SVG mockups) of each subsystem, not screenshots of the running app.
 
-### 1. JARVIS HUD Dashboard (`frontend/dashboard`)
+### 1. JARVIS HUD Dashboard (`desktop/src/renderer/dashboard`)
 A futuristic, dark-mode visual interface featuring diagnostic telemetry bars for CPU, RAM, Disk, and Battery, an active arc-reactor status core, real-time event replay stream, objective tracker, and mini calendar.
 
 <img src="docs/assets/pikina_dashboard_ui.png" alt="Pikina OS JARVIS Dashboard HUD" width="100%" />
 
-### 2. Hotkey Quick Panel Overlay (`frontend/quick_panel`)
+### 2. Hotkey Quick Panel Overlay (`desktop/src/renderer/quick_panel`)
 A lightweight, floating command launcher accessible anywhere via <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Space</kbd>. Provides instant search suggestions, system status indicators, and sub-millisecond command execution.
 
 <img src="docs/assets/pikina_quick_panel_ui.png" alt="Pikina OS Quick Panel Interface" width="100%" />
 
-### 3. Action Validation & Consent Gate (`core/validation`)
+### 3. Action Validation & Consent Gate (`src/pikina/validation`)
 Intercepts elevated permission requests ($L4+$) and irreversible side effects before execution, triggering a native confirmation dialog (`MessageBoxW` on Windows, `zenity`/`kdialog` on Linux).
 
 <img src="docs/assets/pikina_avl_consent_gate.png" alt="Pikina OS Action Validation Layer" width="100%" />
 
-### 4. Dual-Tier Memory & Knowledge Graph (`core/memory`)
+### 4. Dual-Tier Memory & Knowledge Graph (`src/pikina/memory`)
 Visualizes the automated vector flow: Ephemeral Store (short-term clipboard & file edits) $\rightarrow$ Promotion Sweep ($\ge 3$ corroborations) $\rightarrow$ Permanent Semantic Store & NetworkX Knowledge Graph.
 
 <img src="docs/assets/pikina_memory_engine.png" alt="Pikina OS Dual Memory Engine" width="100%" />
 
-### 5. System Diagnostics & Sensory Telemetry (`core/governor`)
-Real-time hardware sampling (`psutil`), active preference profiles (`Productivity`, `Casual`, `Quiet Hours`), and active sensory background daemons.
+### 5. System Diagnostics & Sensory Telemetry (`src/pikina/governor`)
+Real-time hardware sampling (`psutil`), resource-governor profiles (`productivity`, `gaming`, `battery_saver`), and active sensory background daemons.
 
 <img src="docs/assets/pikina_telemetry_hud.png" alt="Pikina OS Telemetry HUD" width="100%" />
 
@@ -211,7 +211,7 @@ On Linux, friendly app names map to whatever is installed: `notepad` → GNOME T
 
 ### 1. Two-Tier Command Router
 
-Pikina OS employs an automated multi-tier routing pipeline located in [`core/router`](core/router):
+Pikina OS employs an automated multi-tier routing pipeline located in [`src/pikina/router`](src/pikina/router):
 
 1. **Tier 1 (Deterministic Router):**
    Evaluates commands against compiled regex patterns. If matched, execution completes in **$< 1\text{ ms}$** without invoking AI models or consuming GPU/CPU compute.
@@ -222,19 +222,19 @@ Pikina OS employs an automated multi-tier routing pipeline located in [`core/rou
 
 ### 2. Action Validation Layer (AVL) & Security
 
-Located in [`core/validation`](core/validation), [`core/registry/gatekeeper.py`](core/registry/gatekeeper.py) and [`core/registry/executor.py`](core/registry/executor.py):
+Located in [`src/pikina/validation`](src/pikina/validation), [`registry/gatekeeper.py`](src/pikina/registry/gatekeeper.py) and [`registry/executor.py`](src/pikina/registry/executor.py):
 
 - **Permission Level Enforcement:** Validates that the requested tool parameter level does not exceed the allowed threshold.
 - **One execution path:** Tier 1, Tier 2, alias chains and the HTTP API all run capabilities through `execute_action()`, so the same consent rule, kill switch and audit events apply everywhere.
 - **Consent Gate:** Any Level 4+ action, or Level 3 action without rollback, pauses for a native confirmation dialog (`MessageBoxW` on Windows; `zenity`, `kdialog` or `yad` on Linux, falling back to a terminal prompt for the CLI). No way to ask means **denied**.
 - **Kill Switch:** The ⏻ button halts every capability and stops the daemons until Pikina is restarted.
-- **Local API token:** The backend only accepts requests carrying the secret in `data/.api_token`, which the Electron app attaches automatically — so a web page open in your browser cannot drive `localhost:5001`.
+- **Local API token:** The backend only accepts requests carrying the secret in `.api_token` in your data folder, which the Electron app attaches automatically — so a web page open in your browser cannot drive `localhost:5001`.
 - **Replay Store Audit:** Every execution, approval, rejection, and error is appended to `replay_store.sqlite` for complete operational auditability.
 - **Transactional Alias Chains:** Alias steps run through the 4d transaction executor. If a step fails or is denied, completed steps are undone in reverse order using each manifest's `rollback_action` + `rollback_params` (e.g. `todo.add` → `todo.remove` with the new task id; `prefs.update` restores the previous value). Read-only steps are skipped. The walk stops at a step that can't be undone (e.g. a launched app) and the result says the rollback was partial.
 
 ### 3. Dual-Tier Vector Memory & Knowledge Graph
 
-Located in [`core/memory`](core/memory) and [`core/context`](core/context):
+Located in [`src/pikina/memory`](src/pikina/memory) and [`src/pikina/context`](src/pikina/context):
 
 - **Ephemeral Vector Store:** Captures short-term file modifications, clipboard contents, and system logs.
 - **Permanent Vector Store:** Holds explicit declarations, user preferences, and promoted memories.
@@ -246,7 +246,7 @@ Located in [`core/memory`](core/memory) and [`core/context`](core/context):
 
 ### 4. Sensory Daemons & File Indexer
 
-Located in [`core/daemons`](core/daemons):
+Located in [`src/pikina/daemons`](src/pikina/daemons):
 
 - **Clipboard Monitor (`ClipboardDaemon`):** Windows listens to `WM_CLIPBOARDUPDATE`; Linux polls `wl-paste` (Wayland) or `xclip`/`xsel` (X11) once a second and only reports changes. Content marked sensitive by password managers (`ExcludeClipboardContentFromMonitor` on Windows, `x-kde-passwordManagerHint` on Linux) is never read, and a 10,000-character cap applies. Clipboard content is always `UNTRUSTED_DATA`.
 - **File Watcher (`FileWatcherDaemon`):** Tracks file creation, modifications, and deletions in real-time using `watchdog`.
@@ -258,37 +258,44 @@ Located in [`core/daemons`](core/daemons):
 
 ```
 Pikina/
-├── backend_server.py           # Flask REST API server (localhost:5001, token-protected)
-├── pikina.py                   # Terminal CLI entry point (Tier 1 + Tier 2)
-├── start_pikina.sh             # Linux launcher (backend + HUD)
-├── start_pikina.bat            # Windows launcher
-├── core/
+├── pyproject.toml              # Package metadata, dependencies, `pikina` / `pikina-server` commands
+├── src/pikina/                 # The Python package
+│   ├── server.py               # Local HTTP API for the desktop app (127.0.0.1:5001, token-protected)
+│   ├── cli.py                  # Terminal interface (`pikina`)
+│   ├── paths.py                # Per-user data folder + migration from older versions
 │   ├── osbridge/               # The only OS-specific code: apps, screen lock, consent dialogs, user folders
-│   ├── eventbus/               # Local Event Bus & Replay Log Store
-│   ├── governor/               # System Telemetry & Profile Governor
-│   ├── mcm/                    # Orchestrator, provenance rules, kill switch
-│   ├── memory/                 # Vector Memory & Knowledge Graph
-│   ├── context/                # Context assembly for Tier 2 (token budget)
-│   ├── registry/               # Capability Registry, shared executor, consent gatekeeper
-│   ├── router/                 # Tier 1 Regex & Tier 2 Ollama Routers
+│   ├── router/                 # Tier 1 regex router, Tier 2 Ollama router, aliases
+│   ├── registry/               # Capability registry, shared executor, consent gatekeeper
+│   │   └── capabilities/       # One .json manifest + one .py handler per capability
 │   ├── validation/             # Action Validation Layer (AVL)
 │   ├── transactions/           # Plan executor & rollback engine (alias chains)
-│   ├── scheduler/              # Task scheduler (awaiting Phase 4f planner)
-│   ├── daemons/                # Clipboard (Windows/Linux), File Watcher, Indexer
-│   ├── calendar/               # Calendar store & ICS importer
-│   └── todo/                   # SQLite ToDo Store
-├── frontend/
-│   ├── dashboard/              # JARVIS HUD Dashboard (HTML/CSS/JS)
-│   ├── quick_panel/            # Alt+Space Hotkey Overlay Window
-│   └── shared/                 # Common themes, styles & assets
-├── docs/
-│   ├── assets/                 # High-resolution vector diagrams & UI mockups
-│   └── pikina_user_manual.md   # Comprehensive User Manual (Phase 4e)
-├── scripts/diagnostics/        # Manual live-system checks (not part of pytest)
-├── tests/                      # pytest suite (runs on Linux and Windows)
-├── interface/, planner/, security/   # Empty placeholders for Phases 4f, 5, 6
-└── requirements.txt            # Python dependencies
+│   ├── mcm/                    # Orchestrator, provenance rules, kill switch
+│   ├── eventbus/               # Event bus & replay (audit) log
+│   ├── memory/  context/       # Vector memory, knowledge graph, context assembly for Tier 2
+│   ├── daemons/                # Clipboard (Windows/Linux), file watcher, file indexer
+│   ├── calendar/  todo/  preferences/
+│   ├── governor/               # Telemetry & resource profiles
+│   └── scheduler/              # Task scheduler (awaiting the Phase 4f planner)
+├── desktop/                    # Electron desktop app
+│   └── src/
+│       ├── main.js             # Windows, tray, hotkeys; starts the backend if it isn't running
+│       ├── backend.js  paths.js  preload.js
+│       └── renderer/           # dashboard/, quick_panel/, shared/ (HTML, CSS, JS)
+├── tests/                      # pytest suite (Linux + Windows in CI)
+├── scripts/                    # Dev launchers; diagnostics/ for manual live-system checks
+├── docs/                       # User manual, design notes, dev log — start at docs/README.md
+└── .github/workflows/ci.yml    # Tests on every push
 ```
+
+**Where your data lives:** everything Pikina saves (tasks, calendar, memory, settings, aliases, the API token, the audit log) is kept in one per-user folder, never inside the code:
+
+| OS | Folder |
+|:---|:---|
+| Windows | `%LOCALAPPDATA%\Pikina` |
+| Linux | `~/.local/share/pikina` (or `$XDG_DATA_HOME/pikina`) |
+| macOS | `~/Library/Application Support/Pikina` |
+
+Set `PIKINA_DATA_DIR` to use another folder. Data from versions before 0.4 (the old `data/` and `core/` files) is copied there automatically on first start.
 
 ---
 
@@ -320,19 +327,19 @@ Pikina/
 - **Node.js:** Version 18.0 or higher
 - **Ollama (Optional for Tier 2 reasoning):** [Ollama for Windows](https://ollama.com)
 
-### 1. Clone & Environment Setup
+### 1. Install
 
 ```bash
 git clone https://github.com/Aditya2514/Pikina.git
 cd Pikina
 
-# Create and activate Python virtual environment
-python -m venv venv
-venv\Scripts\activate          # Windows
-source venv/bin/activate       # Linux
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+source .venv/bin/activate       # Linux
 
-# Install dependencies
-pip install -r requirements.txt
+pip install -e .                   # core
+pip install -e ".[memory]"         # optional: semantic memory (PyTorch, several GB)
+python -m pikina.memory.download   # optional: one-time model download for memory
 ```
 
 **Linux desktop helpers** (optional, each one enables a feature):
@@ -345,66 +352,38 @@ sudo apt install zenity wl-clipboard xclip xdg-utils
 
 Without a dialog tool, high-risk actions are denied rather than run unconfirmed. The global hotkey may not work under some Wayland compositors.
 
-### 2. Configure Environment Variables
+### 2. Configure (optional)
 
-Create a `.env` file in the root directory (or copy from `.env.example`):
+Copy [`.env.example`](.env.example) to `.env` — in the folder you launch from, or in your data folder — and set what you need:
 
 ```ini
-BACKEND_PORT=5001
 OPENWEATHER_API_KEY=your_openweather_key_here
 OPENWEATHER_CITY=Mumbai
-
-# Tier 2 (optional): any model you've pulled with `ollama pull`
-PIKINA_OLLAMA_MODEL=llama3
-PIKINA_OLLAMA_TIMEOUT=30
+PIKINA_OLLAMA_MODEL=llama3      # any model you've pulled with `ollama pull`
 ```
 
-See [`.env.example`](.env.example) for every setting.
-
-### 3. Launch Backend API Server
+### 3. Run the desktop app
 
 ```bash
-python backend_server.py
-```
-*Output:*
-```text
-================================================───
-  Pikina OS Backend  —  http://localhost:5001
-  Profile : productivity
-  Weather : Mumbai
-================================================───
-```
-
-### 4. Launch Desktop Frontend (Electron)
-
-In a separate terminal window:
-
-```bash
-cd frontend
+cd desktop
 npm install
 npm start
 ```
 
-### One-command launch
+The app starts the Python backend (`pikina-server`) by itself and stops it when you quit. `scripts/start-pikina.sh` / `scripts\start-pikina.bat` do the same in one step.
+
+### Other ways to run
 
 ```bash
-./start_pikina.sh        # Linux
-start_pikina.bat         # Windows
-```
-
-### 5. Alternative: Interactive Terminal CLI Mode
-
-Run Pikina directly in terminal mode without launching the GUI:
-
-```bash
-python pikina.py
+pikina-server      # backend only (e.g. while developing the UI)
+pikina             # terminal interface, no GUI
 ```
 
 ---
 
 ## 🤝 Commit & Contribution Conventions
 
-When committing changes, adhere to the project phase convention:
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup and how to add a capability. Commit messages follow the phase convention:
 
 ```text
 phase1.1: implement capability registry and event bus
@@ -415,7 +394,7 @@ phase2.1: integrate win32 clipboard daemon with vector store
 ### Running Tests
 
 ```bash
-pip install -r requirements-dev.txt
+pip install -e ".[dev]"
 pytest
 ```
 

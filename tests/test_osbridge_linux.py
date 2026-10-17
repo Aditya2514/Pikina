@@ -9,8 +9,8 @@ import pytest
 
 pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="Linux-specific behaviour")
 
-from core.osbridge import apps, consent as consent_mod, user_dirs  # noqa: E402
-from core.daemons import clipboard_linux  # noqa: E402
+from pikina.osbridge import apps, consent as consent_mod, user_dirs  # noqa: E402
+from pikina.daemons import clipboard_linux  # noqa: E402
 
 
 @pytest.fixture
@@ -92,7 +92,7 @@ def test_consent_uses_zenity_exit_code(fake_bin, monkeypatch):
 def test_user_dirs_only_returns_existing(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     (tmp_path / "Downloads").mkdir()
-    monkeypatch.setattr("core.osbridge._xdg_user_dir", lambda key: None)
+    monkeypatch.setattr("pikina.osbridge._xdg_user_dir", lambda key: None)
     assert user_dirs() == [tmp_path / "Downloads"]
 
 
