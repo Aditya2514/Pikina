@@ -6,15 +6,15 @@ import sqlite3
 
 import pytest
 
-from core.memory.vector_store import VectorStore
-from core.memory.knowledge_graph import KnowledgeGraph
-from core.context.retrieval import assemble_context
+from pikina.memory.vector_store import VectorStore
+from pikina.memory.knowledge_graph import KnowledgeGraph
+from pikina.context.retrieval import assemble_context
 
 
 @pytest.fixture
 def stores():
-    vs = VectorStore("data/test_vector_memory.db")
-    kg = KnowledgeGraph("data/test_knowledge_graph.json")
+    vs = VectorStore()
+    kg = KnowledgeGraph()
     kg.add_relationship("ProjectX", "USES", "PostgreSQL")
     kg.add_relationship("ProjectX", "BUILT_WITH", "Python")
     kg.add_relationship("ProjectY", "USES", "SQLite")

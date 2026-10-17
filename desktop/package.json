@@ -1,0 +1,23 @@
+{
+  "name": "pikina-desktop",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Pikina OS — desktop HUD (Electron)",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "dependencies": {
+    "@fullcalendar/core": "^6.1.21",
+    "@fullcalendar/daygrid": "^6.1.21",
+    "@fullcalendar/list": "^6.1.21",
+    "@fullcalendar/timegrid": "^6.1.21",
+    "electron-store": "^8.2.0"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  },
+  "author": "Aditya",
+  "license": "MIT"
+}

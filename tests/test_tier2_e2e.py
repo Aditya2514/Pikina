@@ -14,11 +14,11 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from core.eventbus.bus import EventBus
-from core.eventbus.replay import ReplayStore
-from core.validation.failure_classes import FailureClass
-from core.router.tier2_ollama import Tier2Router
-from core.registry.loader import CapabilityRegistry
+from pikina.eventbus.bus import EventBus
+from pikina.eventbus.replay import ReplayStore
+from pikina.validation.failure_classes import FailureClass
+from pikina.router.tier2_ollama import Tier2Router
+from pikina.registry.loader import CapabilityRegistry
 
 
 def run_tests():

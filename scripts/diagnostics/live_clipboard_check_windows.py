@@ -1,7 +1,7 @@
 import win32clipboard, win32con, time
-from core.eventbus.bus import EventBus
-from core.memory.trust_engine import TrustEngine
-from core.daemons.clipboard import ClipboardDaemon
+from pikina.eventbus.bus import EventBus
+from pikina.memory.trust_engine import TrustEngine
+from pikina.daemons.clipboard import ClipboardDaemon
 import sqlite3
 
 bus = EventBus()
@@ -20,7 +20,8 @@ win32clipboard.CloseClipboard()
 # Wait for daemon -> EventBus -> TrustEngine -> VectorStore
 time.sleep(3)
 
-c = sqlite3.connect('data/vector_memory.db')
+from pikina import paths
+c = sqlite3.connect(paths.data_file(paths.VECTOR_DB))
 rows = c.execute("SELECT content FROM ephemeral_vectors WHERE content LIKE '%FixVerified999%'").fetchall()
 
 print(f"Verified rows found in vector_memory.db: {len(rows)}")

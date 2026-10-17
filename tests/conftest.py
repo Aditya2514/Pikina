@@ -14,26 +14,20 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-
-# Modules that create stores at import time (backend_server) must not touch real
-# data either, so the whole session starts inside a scratch directory.
+# The whole session (including anything created at import time) writes into a
+# scratch data folder, never into your real Pikina data.
 _SESSION_DIR = Path(tempfile.mkdtemp(prefix="pikina-tests-"))
-(_SESSION_DIR / "data").mkdir()
-os.environ["PIKINA_API_TOKEN_FILE"] = str(_SESSION_DIR / "data" / ".api_token")
+os.environ["PIKINA_DATA_DIR"] = str(_SESSION_DIR)
+os.environ.pop("PIKINA_API_TOKEN_FILE", None)
+
+from pikina.eventbus.bus import EventBus  # noqa: E402
+from pikina.mcm import killswitch  # noqa: E402
+from pikina.memory.vector_store import VectorStore  # noqa: E402
 
 
 def pytest_sessionstart(session):
-    # After pytest has resolved its paths, before any test module is imported.
+    # Some code still resolves relative paths against the working directory
     os.chdir(_SESSION_DIR)
-
-from core.eventbus.bus import EventBus  # noqa: E402
-from core.eventbus.replay import ReplayStore  # noqa: E402
-from core.mcm import killswitch  # noqa: E402
-from core.memory.vector_store import VectorStore  # noqa: E402
-
-ReplayStore.__init__.__defaults__ = (_SESSION_DIR / "replay_store.sqlite",)
 
 
 class FakeEmbedder:
@@ -52,21 +46,12 @@ class FakeEmbedder:
 
 @pytest.fixture(autouse=True)
 def isolated_env(tmp_path, monkeypatch):
-    (tmp_path / "data").mkdir()
+    """Each test gets an empty data folder, fresh singletons and the fake embedder."""
+    monkeypatch.setenv("PIKINA_DATA_DIR", str(tmp_path))
     monkeypatch.chdir(tmp_path)
-
-    # Fresh replay log + event bus per test
-    monkeypatch.setattr(ReplayStore.__init__, "__defaults__", (tmp_path / "replay_store.sqlite",))
     monkeypatch.setattr(EventBus, "_instance", None)
-
-    # Fresh vector store with the fake embedder
     monkeypatch.setattr(VectorStore, "_instance", None)
     monkeypatch.setattr(VectorStore, "model", property(lambda self: FakeEmbedder()))
-
-    # User-editable config files live inside the repo — redirect them too
-    monkeypatch.setattr("core.router.alias_resolver.ALIASES_FILE", tmp_path / "aliases.json")
-    monkeypatch.setattr("core.preferences.profile_manager.PROFILE_FILE", tmp_path / "profile.json")
-
     killswitch.release()
     yield tmp_path
     killswitch.release()
@@ -87,16 +72,17 @@ class ConsentRecorder:
 @pytest.fixture(autouse=True)
 def consent(monkeypatch):
     recorder = ConsentRecorder()
-    monkeypatch.setattr("core.osbridge.consent.ask", recorder)
+    monkeypatch.setattr("pikina.osbridge.consent.ask", recorder)
     return recorder
 
 
 @pytest.fixture
 def registry():
-    from core.registry.loader import CapabilityRegistry
+    from pikina.registry.loader import CapabilityRegistry
     return CapabilityRegistry()
 
 
 @pytest.fixture
 def replay():
+    from pikina.eventbus.replay import ReplayStore
     return ReplayStore()

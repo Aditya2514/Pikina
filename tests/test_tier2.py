@@ -6,9 +6,9 @@ No real Ollama is needed: requests.post is replaced per test.
 import pytest
 import requests
 
-from core.validation.failure_classes import FailureClass
-from core.router import tier2_ollama
-from core.router.tier2_ollama import Tier2Router, select_relevant_tools
+from pikina.validation.failure_classes import FailureClass
+from pikina.router import tier2_ollama
+from pikina.router.tier2_ollama import Tier2Router, select_relevant_tools
 
 
 class _Resp:
@@ -111,7 +111,7 @@ def test_timeout_and_model_are_configurable(registry):
 
 
 def test_kill_switch_blocks_model_actions(router, executed, monkeypatch):
-    from core.mcm import killswitch
+    from pikina.mcm import killswitch
     _reply(monkeypatch, APP_OPEN)
     killswitch.engage()
     assert router.route("open notepad")["status"] == "denied"

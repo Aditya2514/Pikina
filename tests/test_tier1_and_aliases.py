@@ -4,12 +4,12 @@ executed as transactions with real rollback.
 """
 import pytest
 
-from core.mcm import killswitch
-from core.mcm.orchestrator import Orchestrator
-from core.router.tier1_win32 import Tier1Router
-from core.todo.todo_store import ToDoStore
-from core.calendar.calendar_store import CalendarStore
-from core.preferences.profile_manager import PreferencesProfileManager
+from pikina.mcm import killswitch
+from pikina.mcm.orchestrator import Orchestrator
+from pikina.router.tier1 import Tier1Router
+from pikina.todo.todo_store import ToDoStore
+from pikina.calendar.calendar_store import CalendarStore
+from pikina.preferences.profile_manager import PreferencesProfileManager
 
 
 @pytest.fixture

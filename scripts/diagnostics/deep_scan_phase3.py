@@ -3,6 +3,7 @@ Pikina OS — Deep System Scan (Phase 1-3)
 Tests every subsystem end-to-end with detailed diagnostics.
 """
 import sys
+from pikina import paths
 import os
 import json
 import time
@@ -13,7 +14,6 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 # Ensure project root is importable
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 RESULTS = []
 
@@ -34,7 +34,8 @@ def section(title):
 def test_backend_api():
     section("1. Backend API Health")
     import urllib.request
-    token_file = Path(__file__).resolve().parents[2] / "data" / ".api_token"
+    from pikina import paths
+    token_file = paths.data_file(paths.API_TOKEN)
     token = token_file.read_text().strip() if token_file.exists() else ""
     auth = {"X-Pikina-Token": token}
     
@@ -72,7 +73,7 @@ def test_backend_api():
 # ═══════════════════════════════════════════════════════════════
 def test_event_bus():
     section("2. EventBus (Singleton + Pub/Sub + ReplayStore)")
-    from core.eventbus.bus import EventBus
+    from pikina.eventbus.bus import EventBus
     
     # Singleton test
     bus1 = EventBus()
@@ -98,7 +99,7 @@ def test_event_bus():
                f"Keys: {list(evt.keys())}")
     
     # Replay persistence
-    from core.eventbus.replay import ReplayStore
+    from pikina.eventbus.replay import ReplayStore
     store = ReplayStore()
     recent = store.query(since_minutes=5, topic="test.deepscan")
     record("EventBus", "ReplayStore persistence", len(recent) >= 1,
@@ -112,7 +113,7 @@ def test_event_bus():
 # ═══════════════════════════════════════════════════════════════
 def test_provenance():
     section("3. Provenance Tagging")
-    from core.mcm.provenance import tag, assert_trusted, TRUSTED, UNTRUSTED
+    from pikina.mcm.provenance import tag, assert_trusted, TRUSTED, UNTRUSTED
     
     record("Provenance", "user_typed → TRUSTED", tag("user_typed") == TRUSTED, tag("user_typed"))
     record("Provenance", "clipboard_text → UNTRUSTED", tag("clipboard_text") == UNTRUSTED, tag("clipboard_text"))
@@ -130,7 +131,7 @@ def test_provenance():
 # ═══════════════════════════════════════════════════════════════
 def test_vector_store():
     section("4. Vector Store (Embeddings + Two-Tier + Corroboration)")
-    from core.memory.vector_store import VectorStore
+    from pikina.memory.vector_store import VectorStore
     
     vs = VectorStore()
     
@@ -221,9 +222,9 @@ def test_vector_store():
 # ═══════════════════════════════════════════════════════════════
 def test_trust_engine():
     section("5. Trust Engine (EventBus → VectorStore Pipeline)")
-    from core.eventbus.bus import EventBus
-    from core.memory.trust_engine import TrustEngine
-    from core.memory.vector_store import VectorStore
+    from pikina.eventbus.bus import EventBus
+    from pikina.memory.trust_engine import TrustEngine
+    from pikina.memory.vector_store import VectorStore
     
     bus = EventBus()
     te = TrustEngine(bus=bus)
@@ -257,7 +258,7 @@ def test_trust_engine():
 # ═══════════════════════════════════════════════════════════════
 def test_forgetting_engine():
     section("6. Forgetting Engine")
-    from core.memory.forgetting_engine import ForgettingEngine
+    from pikina.memory.forgetting_engine import ForgettingEngine
     
     try:
         fe = ForgettingEngine(sweep_interval_sec=3600, max_age_hours=24, promotion_threshold=3)
@@ -283,9 +284,9 @@ def test_forgetting_engine():
 # ═══════════════════════════════════════════════════════════════
 def test_knowledge_graph():
     section("7. Knowledge Graph (NetworkX + JSON Persistence)")
-    from core.memory.knowledge_graph import KnowledgeGraph
+    from pikina.memory.knowledge_graph import KnowledgeGraph
     
-    test_file = "data/test_deepscan_kg.json"
+    test_file = str(paths.data_file("test_deepscan_kg.json"))
     try:
         kg = KnowledgeGraph(test_file)
         kg.add_relationship("PikinaOS", "BUILT_WITH", "Python")
@@ -317,7 +318,7 @@ def test_knowledge_graph():
 # ═══════════════════════════════════════════════════════════════
 def test_clipboard_daemon():
     section("8. Clipboard Daemon (Zero-Idle Architecture)")
-    from core.daemons.clipboard import ClipboardDaemon
+    from pikina.daemons.clipboard import ClipboardDaemon
     
     record("ClipboardDaemon", "Uses AddClipboardFormatListener", True,
            "Event-driven via WM_CLIPBOARDUPDATE — 0% CPU at idle")
@@ -332,12 +333,12 @@ def test_clipboard_daemon():
 # ═══════════════════════════════════════════════════════════════
 def test_file_watcher():
     section("9. File Watcher Daemon")
-    from core.daemons.file_watcher import FileWatcherDaemon
+    from pikina.daemons.file_watcher import FileWatcherDaemon
     
     record("FileWatcherDaemon", "Module imports cleanly", True, "Using watchdog")
     
     # Check EventBus for recent file events
-    from core.eventbus.replay import ReplayStore
+    from pikina.eventbus.replay import ReplayStore
     store = ReplayStore()
     fs_events = store.query(since_minutes=15, topic=None)
     fs_events = [e for e in fs_events if e.get("topic", "").startswith("fs.")]
@@ -352,7 +353,8 @@ def test_databases():
     section("10. Database Integrity")
     
     # EventBus replay store
-    db1 = "core/eventbus/replay_store.sqlite"
+    from pikina import paths
+    db1 = str(paths.data_file(paths.REPLAY_DB))
     try:
         with sqlite3.connect(db1) as conn:
             count = conn.execute("SELECT COUNT(*) FROM events").fetchone()[0]
@@ -361,7 +363,7 @@ def test_databases():
         record("Databases", "EventBus replay_store.sqlite", False, str(e))
     
     # Vector memory store
-    db2 = "data/vector_memory.db"
+    db2 = str(paths.data_file(paths.VECTOR_DB))
     try:
         with sqlite3.connect(db2) as conn:
             eph = conn.execute("SELECT COUNT(*) FROM ephemeral_vectors").fetchone()[0]
@@ -400,7 +402,7 @@ def print_report():
     print(f"\n{'═'*60}")
     
     # Write JSON report
-    report_path = Path("data/deep_scan_report.json")
+    report_path = paths.data_file("deep_scan_report.json")
     report_path.parent.mkdir(exist_ok=True)
     report = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -419,7 +421,7 @@ if __name__ == "__main__":
     
     # Clean old test data to ensure corroboration/dedup checks don't bypass test insertions
     try:
-        from core.memory.vector_store import VectorStore
+        from pikina.memory.vector_store import VectorStore
         vs = VectorStore()
         with sqlite3.connect(vs.db_path) as conn:
             conn.execute("DELETE FROM ephemeral_vectors WHERE id LIKE 'deepscan%' OR content LIKE '%TrustEngineTest%'")

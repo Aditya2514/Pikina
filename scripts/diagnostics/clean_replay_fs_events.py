@@ -1,6 +1,8 @@
 import sqlite3
 
-conn = sqlite3.connect('core/eventbus/replay_store.sqlite')
+from pikina import paths
+
+conn = sqlite3.connect(paths.data_file(paths.REPLAY_DB))
 conn.execute("DELETE FROM events WHERE topic LIKE 'fs.%'")
 conn.commit()
 conn.execute("VACUUM")

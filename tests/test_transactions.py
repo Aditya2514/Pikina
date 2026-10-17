@@ -2,8 +2,8 @@
 Phase 4d — Transactions: sequential plan execution, reverse-order rollback,
 stop-on-rollback-failure, and replay-log auditing.
 """
-from core.validation.failure_classes import FailureClass
-from core.transactions.plan_executor import Plan, PlanStep, PlanExecutor
+from pikina.validation.failure_classes import FailureClass
+from pikina.transactions.plan_executor import Plan, PlanStep, PlanExecutor
 
 
 def _steps(rb1="calendar.remove_event", rb2="todo.remove", rb3=None):
