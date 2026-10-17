@@ -266,6 +266,10 @@
       </div>
       <label style="font-family: 'Share Tech Mono', monospace; font-size: 11px; color: #888;">Change Manually (URL):</label>
       <input type="text" id="settings-wallpaper-url" class="cmd-input" placeholder="https://... or C:\path\to\image.png" style="width: 100%;" />
+      <label style="display: flex; align-items: center; gap: 8px; font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--c-cyan); cursor: pointer; margin-top: 4px;">
+        <input type="checkbox" id="settings-bg3d" checked style="accent-color: var(--c-cyan);" />
+        3D interactive background (follows your cursor)
+      </label>
       <button class="cmd-send" id="settings-save-btn" style="width: 100%; margin-top: 8px;">SAVE SETTINGS</button>
       <div id="settings-status" style="font-family: 'Consolas', monospace; font-size: 11px; color: var(--c-ok); min-height: 14px;"></div>
     </div>
@@ -348,6 +352,7 @@
   <script src="../node_modules/@fullcalendar/daygrid/index.global.min.js"></script>
   <script src="../node_modules/@fullcalendar/timegrid/index.global.min.js"></script>
   <script src="../node_modules/@fullcalendar/list/index.global.min.js"></script>
+  <script src="background3d.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>

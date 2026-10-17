@@ -962,6 +962,17 @@ const btnCloseSettings = document.getElementById("modal-close-settings");
 const inputWallpaperUrl = document.getElementById("settings-wallpaper-url");
 const btnSaveSettings = document.getElementById("settings-save-btn");
 const statusSettings = document.getElementById("settings-status");
+const inputBg3d = document.getElementById("settings-bg3d");
+
+function applyBackground3d(on) {
+  if (window.PikinaBackground3D) window.PikinaBackground3D.setEnabled(on);
+  if (inputBg3d) inputBg3d.checked = !!on;
+}
+
+if (inputBg3d) {
+  // Preview immediately; SAVE SETTINGS makes it stick
+  inputBg3d.addEventListener("change", () => applyBackground3d(inputBg3d.checked));
+}
 
 function applyWallpaper(url) {
   if (url) {
@@ -979,7 +990,10 @@ async function loadSettings() {
       applyWallpaper(data.wallpaperUrl);
       inputWallpaperUrl.value = data.wallpaperUrl;
     }
-  } catch(e) {}
+    applyBackground3d(data.background3d !== false);  // on unless turned off
+  } catch(e) {
+    applyBackground3d(true);
+  }
 }
 
 if (btnSettings) {
@@ -1011,7 +1025,7 @@ if (btnSaveSettings) {
       const res = await fetch(`${BACKEND}/api/settings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallpaperUrl: url })
+        body: JSON.stringify({ wallpaperUrl: url, background3d: inputBg3d ? inputBg3d.checked : true })
       });
       if (res.ok) {
         statusSettings.textContent = "Saved!";
