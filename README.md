@@ -101,7 +101,7 @@ Visualizes the automated vector flow: Ephemeral Store (short-term clipboard & fi
 <img src="docs/assets/pikina_memory_engine.png" alt="Pikina OS Dual Memory Engine" width="100%" />
 
 ### 5. System Diagnostics & Sensory Telemetry (`core/governor`)
-Real-time hardware sampling (`psutil`), active preference profiles (`Productivity`, `Casual`, `Quiet Hours`), and active sensory background daemons.
+Real-time hardware sampling (`psutil`), resource-governor profiles (`productivity`, `gaming`, `battery_saver`), and active sensory background daemons.
 
 <img src="docs/assets/pikina_telemetry_hud.png" alt="Pikina OS Telemetry HUD" width="100%" />
 
@@ -344,6 +344,12 @@ sudo apt install zenity wl-clipboard xclip xdg-utils
 ```
 
 Without a dialog tool, high-risk actions are denied rather than run unconfirmed. The global hotkey may not work under some Wayland compositors.
+
+**Memory model (one-time download):** Pikina loads the embedding model in offline mode, so fetch it once while online — otherwise `recall …` and Tier 2 memory context stay disabled:
+
+```bash
+python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+```
 
 ### 2. Configure Environment Variables
 

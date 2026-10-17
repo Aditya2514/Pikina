@@ -76,15 +76,19 @@ ROUTES: list[Tuple[re.Pattern, str, Callable]] = [
     (re.compile(r"(?:open|start|launch|run)\s+(?:the\s+)?(?P<app>paint)", re.I),           "app.open", _app_params),
     # Open/start/launch Notepad (so model never sees it)
     (re.compile(r"(?:open|start|launch|run)\s+(?:the\s+)?(?P<app>notepad)", re.I),         "app.open", _app_params),
-    # Open any named app
-    (re.compile(r"open\s+(?P<app>[\w\s]+)",           re.I),          "app.open",          _app_params),
+    # Open / launch any named app ("start"/"run" are left out: "start stopwatch" must not launch an app)
+    # Capped at 3 words so longer requests ("launch something to write text") go to Tier 2.
+    (re.compile(r"(?:open|launch)\s+(?:the\s+)?(?P<app>[\w.+-]+(?:\s+[\w.+-]+){0,2})\s*$", re.I), "app.open", _app_params),
     # Lock screen
     (re.compile(r"lock\s+(my\s+)?(screen|workstation|pc|computer|laptop)", re.I),
                                                                        "system.lock_screen", lambda m: {}),
     # Find file (several natural-language triggers, with or without file extension)
     (re.compile(r"(?:find|look\s+up|search\s+for|where\s+is)\s+(?:files?\s+(?:with\s+)?|file\s+called\s+)?(?P<name>[\w\s.*-]+\.\w+)", re.I), "fs.find_file", lambda m: {"name": m.group("name").strip()}),
-    (re.compile(r"(?:look\s+up|search\s+for)\s+files?\s+(?:with\s+|named?\s+|called\s+)?(?P<name>[\w\s*.-]+?)(?:\s+in\s+(?:the\s+)?name)?$", re.I), "fs.find_file", lambda m: {"name": m.group("name").strip() + "*"}),
+    (re.compile(r"(?:look\s+up|search\s+for)\s+files?\s+(?:with\s+|named?\s+|called\s+)?(?P<name>[\w\s*.-]+?)(?:\s+in\s+(?:the\s+)?name)?$", re.I), "fs.find_file", lambda m: {"name": m.group("name").strip()}),
     (re.compile(r"find\s+(?:file\s+)?(?P<name>.+)", re.I),             "fs.find_file",      lambda m: {"name": m.group("name")}),
+    # Import an .ics calendar file: "import ics ~/Downloads/invite.ics"
+    (re.compile(r"import\s+(?:an?\s+)?(?:ics|calendar|invite)(?:\s+file)?\s+(?:from\s+)?(?P<path>.+)", re.I),
+                                                                       "calendar.import_ics", lambda m: {"filepath": m.group("path").strip().strip("\"'")}),
     # Recall memory
     (re.compile(r"recall\s+(?P<query>.+)", re.I),                     "memory.recall",     lambda m: {"query": m.group("query")}),
     # --- Phase 3.5a: Alias management ---

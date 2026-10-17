@@ -7,4 +7,5 @@ def run(params: dict) -> dict:
         return {"status": "error", "reason": "Missing required param: 'filepath'"}
 
     # Run the import
-    return import_ics(filepath)
+    import os
+    return import_ics(os.path.expanduser(filepath))

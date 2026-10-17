@@ -18,7 +18,7 @@ def run(params: dict) -> dict:
 
     try:
         import dateparser
-        dt = dateparser.parse(date_input)
+        dt = dateparser.parse(date_input, settings={"PREFER_DATES_FROM": "future"})
         if dt:
             parsed_date = dt.date().isoformat()
             if not parsed_time:

@@ -132,3 +132,47 @@ def test_typed_alias_definition_and_use(registry):
 def test_typed_alias_rejects_non_command_steps(registry):
     res = Tier1Router(registry=registry).route("add alias bad -> tell me a joke")
     assert res["status"] == "error" and "not a Tier 1 command" in res["reason"]
+
+
+@pytest.mark.parametrize("text,tool,params", [
+    ("launch firefox", "app.open", {"path": "firefox"}),
+    ("open google chrome", "app.open", {"path": "google chrome"}),
+    ("import ics ~/Downloads/invite.ics", "calendar.import_ics", {"filepath": "~/Downloads/invite.ics"}),
+    ("look up files with report in the name", "fs.find_file", {"name": "report"}),
+    ("start stopwatch", "utility.stopwatch", {"action": "start"}),
+])
+def test_routes_found_in_live_run(router, monkeypatch, text, tool, params):
+    seen = []
+    monkeypatch.setattr(router, "_execute", lambda t, p, raw: seen.append((t, p)) or {"status": "ok"})
+    router.route(text)
+    assert seen == [(tool, params)]
+
+
+def test_long_launch_requests_are_left_for_tier2(router):
+    assert router.route("launch something to write some text")["status"] == "no_match"
+
+
+def test_ics_import_end_to_end(router, tmp_path):
+    ics = tmp_path / "invite.ics"
+    ics.write_text("BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:x1\nDTSTART:20261022T100000\n"
+                   "SUMMARY:Design review\nEND:VEVENT\nEND:VCALENDAR\n")
+    assert router.route(f"import ics {ics}")["status"] == "ok"
+    assert [e["title"] for e in CalendarStore().query_range("2026-10-22", "2026-10-22")] == ["Design review"]
+
+
+@pytest.mark.parametrize("expr,expected", [
+    ("2^10", 1024), ("(45 * 2) + 10", 100), ("3 x 4", 12), ("max(2, 7)", 7), ("10 % 3", 1), ("sqrt(16)", 4),
+])
+def test_calculator(registry, expr, expected):
+    assert registry.execute("utility.calculate", {"expr": expr})["result"] == expected
+
+
+@pytest.mark.parametrize("expr", ["__import__('os')", "9**9**9", "().__class__", "1/0"])
+def test_calculator_rejects_unsafe_or_invalid(registry, expr):
+    assert registry.execute("utility.calculate", {"expr": expr})["status"] == "error"
+
+
+def test_weekday_due_dates_point_forward(registry):
+    from datetime import date
+    due = registry.execute("todo.add", {"text": "x", "due_date": "monday"})["todo"]["due_date"]
+    assert date.fromisoformat(due) > date.today()

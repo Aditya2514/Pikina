@@ -7,5 +7,5 @@ def run(params: dict) -> dict:
         "status": "ok",
         "tool": "utility.stopwatch",
         "action": action,
-        "message": f"Stopwatch {action}ed successfully."
+        "message": {"start": "Stopwatch started.", "pause": "Stopwatch paused.", "reset": "Stopwatch reset."}[action]
     }

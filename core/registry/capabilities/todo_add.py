@@ -14,7 +14,7 @@ def run(params: dict) -> dict:
     if due_date:
         try:
             import dateparser
-            dt = dateparser.parse(due_date)
+            dt = dateparser.parse(due_date, settings={"PREFER_DATES_FROM": "future"})
             if dt:
                 due_date = dt.date().isoformat()
         except ImportError:
