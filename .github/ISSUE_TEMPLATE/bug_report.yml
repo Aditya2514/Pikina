@@ -1,0 +1,42 @@
+name: Bug report
+description: Something in Pikina doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: The command you typed or the button you clicked, and what Pikina did.
+      placeholder: 'Typed "add event dentist on friday at 3pm" and the event landed on the wrong day.'
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Windows 11, Windows 10, Linux (X11), Linux (Wayland), Other]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Pikina version
+      description: Shown on the dashboard, or run `pikina-server` and read the banner.
+      placeholder: 0.4.0
+  - type: dropdown
+    id: tier2
+    attributes:
+      label: Was Ollama (Tier 2) running?
+      options: ["Yes", "No", "Not sure"]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Backend output
+      description: Paste what `pikina-server` printed around the problem. Remove anything private.
+      render: text
