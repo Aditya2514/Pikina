@@ -478,13 +478,123 @@ async function loadDeadlines() {
   }
 }
 
-// ── Status poll (for profile) ──
+// ── Status poll (profile + activity indicator) ──
 async function pollStatus() {
+  const seq = activitySeq;
   try {
     const res  = await fetch(`${BACKEND}/api/status`, { signal: AbortSignal.timeout(3000) });
     const data = await res.json();
-    document.getElementById('detail-profile').textContent = (data.profile || '--').toUpperCase();
-  } catch { /* silent */ }
+    // Skip if the user changed something while this request was in flight.
+    if (seq === activitySeq && !activityInFlight()) {
+      activityState = (data && data.activity) || null;
+      renderActivityPill(activityState);
+    }
+    document.getElementById('detail-profile').textContent = String(data.profile || '--').toUpperCase();
+  } catch {
+    // Offline or unknown: never leave a stale REC on screen.
+    if (!activityInFlight()) {
+      activityState = null;
+      renderActivityPill(null);
+    }
+  }
+}
+
+
+// ============================================================
+// ACTIVITY LOG — titlebar REC/PAUSED pill + settings toggles
+// ============================================================
+// Backend strings (tracker backend / reason) only ever go through textContent
+// or the title property, never innerHTML.
+
+const activityPill      = document.getElementById('activity-pill');
+const activityPillIcon  = document.getElementById('activity-pill-icon');
+const activityPillLabel = document.getElementById('activity-pill-label');
+
+let activityState = null;   // last `activity` object from the backend (null = unknown)
+let activitySeq   = 0;      // bumped on every local change; stale polls are dropped
+let activityBusy  = false;  // a pill toggle is in flight
+const activityPending = new Set();  // settings checkboxes with a request in flight
+
+// True while any activity change is waiting for the backend (pill or settings).
+function activityInFlight() {
+  return activityBusy || activityPending.size > 0;
+}
+
+// POST /api/activity/settings -> { activity } on success, { reason } on failure.
+async function postActivitySettings(changes) {
+  try {
+    const res = await fetch(`${BACKEND}/api/activity/settings`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(changes),
+      signal:  AbortSignal.timeout(5000),
+    });
+    let data = null;
+    try { data = await res.json(); } catch { /* not JSON */ }
+    if (res.ok && data && data.activity) return { activity: data.activity };
+    return { reason: (data && data.reason) || `Request failed (HTTP ${res.status}).` };
+  } catch {
+    return { reason: 'Backend offline — nothing was changed.' };
+  }
+}
+
+function describeTracker(act) {
+  const t = act.tracker || {};
+  if (t.running) return `active app names${t.backend ? ` (${t.backend})` : ''}`;
+  return `active app tracker not running${t.reason ? `: ${t.reason}` : ''}`;
+}
+
+function renderActivityPill(act) {
+  if (!activityPill) return;
+  if (!act || (!act.logging && !act.window_tracking)) {
+    activityPill.classList.add('hidden');
+    return;
+  }
+  if (act.paused) {
+    activityPill.className        = 'activity-pill paused';
+    activityPillIcon.textContent  = '❚❚';
+    activityPillLabel.textContent = 'PAUSED';
+    activityPill.title = 'Activity log paused: nothing is being recorded.\nClick to resume.';
+  } else {
+    activityPill.className        = 'activity-pill rec';
+    activityPillIcon.textContent  = '●';
+    activityPillLabel.textContent = 'REC';
+    const lines = [];
+    if (act.logging)         lines.push('Logging commands');
+    if (act.window_tracking) {
+      const tracker = describeTracker(act);
+      const running = !!(act.tracker && act.tracker.running);
+      lines.push(act.logging ? `+ ${tracker}` : running ? `Logging ${tracker}` : tracker.replace(/^a/, 'A'));
+    }
+    lines.push('Stays on this computer. Click to pause.');
+    activityPill.title = lines.join('\n');
+  }
+}
+
+if (activityPill) {
+  activityPill.addEventListener('click', async () => {
+    if (!activityState || activityBusy) return;
+    const previous = activityState;
+    const want     = !previous.paused;
+    activityBusy = true;
+    activitySeq++;
+    activityPill.disabled = true;
+    activityState = Object.assign({}, previous, { paused: want });
+    renderActivityPill(activityState);            // optimistic
+
+    const { activity, reason } = await postActivitySettings({ paused: want });
+    activitySeq++;                                 // drop polls sent while waiting
+    activityState = activity || previous;          // reconcile with the backend
+    renderActivityPill(activityState);
+    // A settings load that raced this toggle was dropped: sync the checkboxes here.
+    applyActivityToSettings(activityState);
+    activityPill.disabled = false;
+    activityBusy = false;
+    if (reason) {
+      cmdResult.textContent = `✗ Could not ${want ? 'pause' : 'resume'} the activity log: ${reason}`;
+      cmdResult.className   = 'cmd-result error';
+    }
+  });
 }
 
 
@@ -527,7 +637,7 @@ async function executeCommand(text) {
       const res = await fetch(`${BACKEND}/api/command`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ text, source: 'user_typed' }),
+        body:    JSON.stringify({ text, source: 'user_typed', origin: 'typed' }),
       });
       result = await res.json();
     }
@@ -1005,17 +1115,100 @@ async function loadSettings() {
   }
 }
 
+// tone: "ok" | "warn" | "danger" (theme tokens)
+function setSettingsStatus(text, tone) {
+  statusSettings.textContent = text || "";
+  statusSettings.style.color = `var(--c-${tone || "ok"})`;
+}
+
+// -- Activity settings: apply immediately on change (not on SAVE) --
+const inputActivityLogging = document.getElementById("settings-activity-logging");
+const inputWindowTracking  = document.getElementById("settings-window-tracking");
+
+function applyActivityToSettings(act) {
+  [[inputActivityLogging, "logging"], [inputWindowTracking, "window_tracking"]].forEach(([el, key]) => {
+    if (!el || activityPending.has(el)) return;
+    el.disabled = !act;
+    if (act) el.checked = !!act[key];
+  });
+}
+
+// What the status line should say about the current state ("" = nothing).
+function activityStatusNote(act) {
+  const t = act.tracker || {};
+  if (act.window_tracking && !t.running) {
+    return `Active-app tracker not running: ${t.reason || (act.paused ? "activity is paused" : "unknown reason")}`;
+  }
+  if (act.paused && (act.logging || act.window_tracking)) {
+    return "Activity log is paused: click PAUSED in the title bar to resume.";
+  }
+  return "";
+}
+
+async function loadActivitySettings() {
+  const seq = activitySeq;
+  try {
+    const res  = await fetch(`${BACKEND}/api/status`, { signal: AbortSignal.timeout(3000) });
+    const data = await res.json();
+    if (!data.activity) throw new Error("no activity state");
+    if (seq !== activitySeq || activityInFlight()) return;  // a change won the race
+    activityState = data.activity;
+    renderActivityPill(activityState);
+    applyActivityToSettings(activityState);
+    setSettingsStatus(activityStatusNote(activityState), "warn");
+  } catch {
+    applyActivityToSettings(null);
+    setSettingsStatus("Activity settings unavailable: is the backend running?", "warn");
+  }
+}
+
+async function changeActivitySetting(input, key) {
+  const want = input.checked;
+  activityPending.add(input);
+  activitySeq++;
+  input.disabled = true;
+  setSettingsStatus("Saving...", "ok");
+
+  const { activity, reason } = await postActivitySettings({ [key]: want });
+
+  activityPending.delete(input);
+  activitySeq++;
+  input.disabled = false;
+  if (activity) {
+    activityState = activity;
+    renderActivityPill(activity);
+    applyActivityToSettings(activity);
+    const note = activityStatusNote(activity);
+    const on   = !!activity[key];
+    const done = key === "logging"
+      ? (on ? "Logging the commands you run." : "Command logging off.")
+      : (on ? "Tracking active app names." : "Active-app tracking off.");
+    setSettingsStatus(note || done, note ? "warn" : "ok");
+  } else {
+    input.checked = !want;  // revert: the backend did not change it
+    setSettingsStatus(reason, "danger");
+  }
+}
+
+if (inputActivityLogging) {
+  inputActivityLogging.addEventListener("change", () => changeActivitySetting(inputActivityLogging, "logging"));
+}
+if (inputWindowTracking) {
+  inputWindowTracking.addEventListener("change", () => changeActivitySetting(inputWindowTracking, "window_tracking"));
+}
+
 if (btnSettings) {
   btnSettings.addEventListener("click", () => {
     modalSettings.classList.remove("hidden");
     modalBackdrop.classList.remove("hidden");
+    loadActivitySettings();
   });
 }
 if (btnCloseSettings) {
   btnCloseSettings.addEventListener("click", () => {
     modalSettings.classList.add("hidden");
     modalBackdrop.classList.add("hidden");
-    statusSettings.textContent = "";
+    setSettingsStatus("");
   });
 }
 
@@ -1029,7 +1222,7 @@ if (modalBackdrop) {
 if (btnSaveSettings) {
   btnSaveSettings.addEventListener("click", async () => {
     const url = inputWallpaperUrl.value.trim();
-    statusSettings.textContent = "Saving...";
+    setSettingsStatus("Saving...");
     try {
       const res = await fetch(`${BACKEND}/api/settings`, {
         method: "POST",
@@ -1037,13 +1230,13 @@ if (btnSaveSettings) {
         body: JSON.stringify({ wallpaperUrl: url, background3d: inputBg3d ? inputBg3d.checked : true })
       });
       if (res.ok) {
-        statusSettings.textContent = "Saved!";
+        setSettingsStatus("Saved!");
         applyWallpaper(url);
       } else {
-        statusSettings.textContent = "Failed to save.";
+        setSettingsStatus("Failed to save.", "danger");
       }
     } catch(e) {
-      statusSettings.textContent = "Error saving settings.";
+      setSettingsStatus("Error saving settings.", "danger");
     }
   });
 }

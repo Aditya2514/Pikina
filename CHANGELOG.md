@@ -16,6 +16,20 @@ All notable changes to Pikina OS. Versions follow [Semantic Versioning](https://
 - Dependencies are declared in `pyproject.toml` (`requirements.txt` removed).
 
 ### Added
+- **Activity log (learning layer, Phase 1).** Every action run through Pikina is logged to
+  `activity.db` as a normalised, privacy-safe key (`app.open:code`, `fs.find_file:*.pdf`), with
+  its source (typed, quick panel, CLI, alias, dashboard click), outcome, local hour and weekday,
+  and a session id. Typed text, to-do text, titles, file names, paths and alias names are never
+  stored. Past commands are rebuilt once from the replay log. Rows are deleted after 90 days.
+  `activity`, `pause activity` / `resume activity` and `forget my activity` (asks first);
+  `GET /api/activity`, `/api/activity/export`, `POST /api/activity/settings`; CLI
+  `activity export <file>` and `activity backfill`. See `docs/activity-log.md`.
+- **Opt-in active-app tracker:** off by default. Records app names only, never window titles.
+  Works on Hyprland (event socket), Sway/i3 (IPC), X11 (`xprop`) and Windows. Password
+  managers, unlock prompts and English Firefox private windows are recorded as `excluded`.
+  It has a REC/PAUSED pill in the dashboard title bar, switches in Settings and a tray item.
+  It stops with the kill switch.
+- `doctor` reports whether app tracking can run in your session.
 - **Plugins.** A feature is now one folder with a `plugin.json` and its capabilities.
   Built-in plugins ship in `src/pikina/plugins/`; your own go in `<data folder>/plugins/`
   and stay off until listed in `settings.json` → `plugins_enabled`. Broken plugins are
@@ -36,6 +50,10 @@ All notable changes to Pikina OS. Versions follow [Semantic Versioning](https://
 - pytest suite and GitHub Actions CI on Linux and Windows.
 
 ### Fixed
+- `open vs code` failed on Arch, whose package installs `code-oss`.
+- Saving settings could lose keys when two saves overlapped, and a hand-edit with a typo was
+  silently replaced. Settings are now written atomically under a lock, and a broken file is
+  never overwritten.
 - The dashboard's CLIP button did nothing; it now shows clipboard history.
 - Replies without a `message` were shown as raw JSON in the dashboard and quick panel.
 - Calculator returned wrong results for `^` and broke on `max`/`exp`; it no longer uses `eval`.

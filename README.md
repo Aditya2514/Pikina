@@ -169,7 +169,7 @@ sequenceDiagram
 
 ## ⚡ Capability Registry & Command Specs
 
-Pikina OS provides **23 built-in capabilities** spanning system controls, task management, calendar integration, math calculations, file searches, clipboard history and developer tools. New features are added as **plugins** (one folder each) — see [CONTRIBUTING.md](CONTRIBUTING.md#writing-a-plugin).
+Pikina OS provides **26 built-in capabilities** spanning system controls, task management, calendar integration, math calculations, file searches, clipboard history and developer tools. New features are added as **plugins** (one folder each) — see [CONTRIBUTING.md](CONTRIBUTING.md#writing-a-plugin).
 
 ### Safety Permission Levels
 
@@ -204,6 +204,9 @@ Pikina OS provides **23 built-in capabilities** spanning system controls, task m
 │ dev.doctor           │   0   │ "doctor", "doctor for ~/code/app", "check my setup"    │
 │ dev.ports            │   0   │ "what's on port 3000", "list ports"                    │
 │ dev.free_port        │   3   │ "free port 3000" (always asks first)                   │
+│ activity.summary     │   0   │ "activity", "activity this week", "what did I do today"│
+│ activity.pause       │   1   │ "pause activity", "resume activity"                    │
+│ activity.forget      │   4   │ "forget my activity" (always asks first)               │
 └──────────────────────┴───────┴────────────────────────────────────────────────────────┘
 ```
 
@@ -274,6 +277,7 @@ Pikina/
 │   ├── registry/               # Capability registry, shared executor, consent gatekeeper
 │   │   └── capabilities/       # One .json manifest + one .py handler per capability
 │   ├── plugins/                # Built-in plugins (devtools); yours go in <data folder>/plugins/
+│   ├── activity/               # Activity log (Phase 1): action keys, store, backfill, window tracker
 │   ├── validation/             # Action Validation Layer (AVL)
 │   ├── transactions/           # Plan executor & rollback engine (alias chains)
 │   ├── mcm/                    # Orchestrator, provenance rules, kill switch

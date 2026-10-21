@@ -64,6 +64,7 @@ def _system_checks() -> list:
             checks.append(_check("hyprctl", OK if shutil.which("hyprctl") else WARN,
                                  "available" if shutil.which("hyprctl") else "not found on PATH"))
 
+    checks.append(_tracker_check())
     checks.append(_ollama_check())
     checks.append(_memory_check())
     checks.append(_disk_check())
@@ -71,6 +72,20 @@ def _system_checks() -> list:
     if luks:
         checks.append(luks)
     return checks
+
+
+def _tracker_check():
+    """Can the opt-in active-app tracker run in this session? (It never reads titles into storage.)"""
+    try:
+        from pikina import settings
+        from pikina.osbridge.focus import detect_backend
+        backend, reason = detect_backend()
+        on = bool(settings.get("window_tracking", False))
+    except Exception as exc:
+        return _check("App tracking", WARN, f"couldn't check ({type(exc).__name__})")
+    if backend:
+        return _check("App tracking", OK, f"works here via {backend}; " + ("on" if on else "off (opt-in, in Settings)"))
+    return _check("App tracking", WARN if on else OK, f"not available: {reason}")
 
 
 def _ollama_check():

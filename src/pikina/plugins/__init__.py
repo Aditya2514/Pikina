@@ -40,11 +40,9 @@ def user_plugins_dir() -> Path:
 
 
 def enabled_user_plugins() -> set:
-    try:
-        settings = json.loads(paths.data_file(paths.SETTINGS).read_text(encoding="utf-8"))
-        return set(settings.get("plugins_enabled", []))
-    except (OSError, ValueError):
-        return set()
+    from pikina import settings
+    enabled = settings.get("plugins_enabled", [])
+    return {n for n in enabled if isinstance(n, str)} if isinstance(enabled, list) else set()
 
 
 def _read_plugin(folder: Path, source: str) -> Plugin:

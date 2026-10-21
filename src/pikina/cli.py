@@ -19,6 +19,9 @@ Commands:
   replay [N]        Show events from last N minutes (default 60)
   tools             List all registered capabilities
   plugins           List loaded, disabled and broken plugins
+  activity          What the activity log recorded today ("activity this week" for 7 days)
+  activity backfill Import past actions from the replay log again (safe to repeat)
+  activity export F Save everything the activity log holds to the JSON file F
   telemetry         Show current CPU / RAM / battery
   quit / exit       Exit
 """
@@ -86,6 +89,24 @@ def main():
             for err in registry.plugin_errors:
                 print(f"  [skipped]  {err['plugin']} — {err['error']}")
 
+        elif cmd == "activity" and len(parts) > 1 and parts[1].lower() in ("backfill", "export"):
+            from pikina.activity.store import ActivityStore
+            if parts[1].lower() == "backfill":
+                from pikina.activity.backfill import backfill
+                done = backfill(force=True)
+                print(f"  [Activity] {done.get('status')}: {done.get('added', 0)} rows added"
+                      + (f" ({done['reason']})" if done.get("reason") else ""))
+            elif len(parts) < 3:
+                print("  Usage: activity export <file.json>")
+            else:
+                import json
+                from pathlib import Path
+                out = Path(" ".join(parts[2:])).expanduser()
+                data = ActivityStore().export()
+                out.write_text(json.dumps(data, indent=2), encoding="utf-8")
+                print(f"  [Activity] Saved {len(data['activity'])} actions and "
+                      f"{len(data['app_switches'])} app switches to {out}")
+
         elif cmd == "telemetry":
             t = get_telemetry()
             print(f"\n  CPU:  {t['cpu']['percent']}%  ({t['cpu']['core_count']} cores)")
@@ -97,10 +118,14 @@ def main():
             print(f"  DISK: {t['disk']['used_gb']} / {t['disk']['total_gb']} GB  ({t['disk']['percent']}%)")
 
         else:
-            result = mcm.receive(raw, source="user_typed")
+            result = mcm.receive(raw, source="user_typed", origin="cli")
             status = result.get("status", "unknown")
             icon   = "[OK]" if status == "ok" else ("[X]" if status in ("error", "denied") else "->")
-            print(f"  {icon} {result}")
+            text   = result.get("message") or result.get("reason")
+            if text:
+                print(f"  {icon} " + str(text).replace("\n", "\n      "))
+            else:
+                print(f"  {icon} {result}")
 
 
 if __name__ == "__main__":

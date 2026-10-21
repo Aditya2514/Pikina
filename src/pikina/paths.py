@@ -21,6 +21,7 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 # File names inside the data folder
 MAIN_DB          = "pikina.db"            # to-dos + calendar
 REPLAY_DB        = "replay_store.sqlite"  # event audit log
+ACTIVITY_DB      = "activity.db"          # learning layer: what you did (normalised), app switches
 VECTOR_DB        = "vector_memory.db"
 FILE_INDEX_DB    = "index.db"
 KNOWLEDGE_GRAPH  = "knowledge_graph.json"

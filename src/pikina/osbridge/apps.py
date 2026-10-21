@@ -18,7 +18,9 @@ WINDOWS_APPS: dict[str, list[str]] = {
 }
 
 LINUX_APPS: dict[str, list[str]] = {
-    "vs code": ["code", "codium"], "vscode": ["code", "codium"], "code": ["code", "codium"],
+    # Arch's repo package installs `code-oss`; Microsoft's build is `code`.
+    "vs code": ["code", "code-oss", "codium"], "vscode": ["code", "code-oss", "codium"],
+    "code": ["code", "code-oss", "codium"],
     "chrome": ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"],
     "firefox": ["firefox"],
     "browser": ["firefox", "google-chrome", "chromium", "chromium-browser"],
@@ -32,6 +34,76 @@ LINUX_APPS: dict[str, list[str]] = {
     "calc": ["gnome-calculator", "kcalc", "galculator", "qalculate-gtk", "mate-calc"],
     "paint": ["pinta", "kolourpaint", "drawing", "mtpaint", "gimp"],
 }
+
+# One id per app, shared by launching, the activity log and the window tracker, so
+# "open vs code", a Tier 2 "Visual Studio Code" and a focused `code-oss` window all
+# count as the same app: `code`. Ids are the friendly names from the tables above.
+APP_SYNONYMS: dict[str, list[str]] = {
+    "code": ["vs code", "vscode", "visual studio code", "code-oss", "code - oss", "codium", "vscodium",
+             "code-url-handler", "code-insiders", "com.visualstudio.code", "com.vscodium.codium"],
+    "chrome": ["google chrome", "google-chrome", "google-chrome-stable"],
+    "chromium": ["chromium-browser", "org.chromium.chromium"],
+    "firefox": ["mozilla firefox", "firefox-esr", "navigator", "org.mozilla.firefox"],
+    "brave": ["brave-browser", "brave browser", "com.brave.browser"],
+    "edge": ["msedge", "microsoft-edge", "microsoft edge"],
+    "notepad": ["text editor", "gnome-text-editor", "org.gnome.texteditor", "gedit", "org.gnome.gedit",
+                "kate", "org.kde.kate", "kwrite", "org.kde.kwrite", "mousepad", "xed", "pluma", "featherpad"],
+    "explorer": ["files", "file manager", "nautilus", "org.gnome.nautilus", "dolphin", "org.kde.dolphin",
+                 "thunar", "nemo", "pcmanfm", "caja"],
+    "terminal": ["wt", "windows terminal", "windowsterminal", "x-terminal-emulator", "gnome-terminal",
+                 "gnome-terminal-server", "org.gnome.terminal", "org.gnome.ptyxis", "ptyxis", "konsole",
+                 "org.kde.konsole", "xfce4-terminal", "kitty", "alacritty", "foot", "footclient",
+                 "wezterm", "org.wezfurlong.wezterm", "ghostty", "com.mitchellh.ghostty", "xterm"],
+    "calculator": ["calc", "gnome-calculator", "org.gnome.calculator", "kcalc", "org.kde.kcalc", "galculator",
+                   "qalculate-gtk", "qalculate", "mate-calc", "calculatorapp"],
+    "paint": ["mspaint", "pinta", "kolourpaint", "drawing", "mtpaint"],
+    "powershell": ["pwsh"],
+    "proton-pass": ["proton pass", "me.proton.pass", "protonpass"],
+    "1password": ["1password.exe"],
+}
+_SYNONYM_TO_ID = {s: app for app, names in APP_SYNONYMS.items() for s in names}
+for _app in APP_SYNONYMS:
+    _SYNONYM_TO_ID[_app] = _app
+_GENERIC_TAILS = {"application", "desktop", "app", "client"}
+_SUFFIXES = (".exe", ".appimage", ".lnk", ".cmd", ".bat")
+
+
+def known_app(name: str | None) -> str | None:
+    """The canonical id if `name` is a synonym we know, else None."""
+    if not name:
+        return None
+    s = " ".join(name.strip().strip("\"'").lower().split())
+    return _SYNONYM_TO_ID.get(s)
+
+
+def canonical_app(name: str | None) -> str | None:
+    """
+    Normalise an app name, executable, path, window class or Wayland app id to one
+    lowercase id: 'Code.exe' -> 'code', 'org.keepassxc.KeePassXC' -> 'keepassxc',
+    'Visual Studio Code' -> 'code'. Unknown apps keep their own (cleaned) name.
+    """
+    if not name:
+        return None
+    s = " ".join(name.strip().strip("\"'").lower().split())
+    if not s:
+        return None
+    if "/" in s or "\\" in s or (len(s) > 2 and s[1] == ":"):
+        s = s.replace("\\", "/").rstrip("/").rsplit("/", 1)[-1]
+    for suffix in _SUFFIXES:
+        if s.endswith(suffix):
+            s = s[: -len(suffix)]
+    if s in _SYNONYM_TO_ID:
+        return _SYNONYM_TO_ID[s]
+    parts = s.split(".")
+    if len(parts) >= 3 and parts[0].isalpha():  # reverse-DNS app id, e.g. org.gnome.Nautilus
+        while len(parts) > 2 and parts[-1] in _GENERIC_TAILS:
+            parts.pop()
+        s = parts[-1]
+    elif s.endswith(".desktop"):                # a desktop file name, e.g. firefox.desktop
+        s = s[: -len(".desktop")]
+    s = s.replace(" ", "-")
+    return _SYNONYM_TO_ID.get(s, s)
+
 
 _DESKTOP_DIRS = [
     Path.home() / ".local/share/applications",

@@ -3,8 +3,12 @@ The single execution path for capabilities.
 
 Every caller (Tier 1 router, Tier 2 router, alias transactions, the HTTP API)
 goes through execute_action(), so the kill switch, the consent gate and the
-audit events are applied identically everywhere.
+audit events are applied identically everywhere. It is also where the
+activity log hears about every action (see pikina.activity).
 """
+from datetime import datetime, timezone
+
+from pikina.activity.recorder import record
 from pikina.eventbus.bus import EventBus
 from pikina.mcm import killswitch
 from pikina.registry.gatekeeper import needs_consent, request_consent
@@ -12,13 +16,23 @@ from pikina.validation.failure_classes import FailureClass
 
 
 def execute_action(registry, tool: str, params: dict, *, raw: str = "", tier=1,
-                   provenance: str = "TRUSTED_COMMAND", gate: bool = True) -> dict:
+                   provenance: str = "TRUSTED_COMMAND", gate: bool = True,
+                   origin: str = "typed", log_activity: bool = True, group_id: str | None = None) -> dict:
     """
     Run one capability.
       gate=False is only for callers that already obtained consent
       (the Tier 2 AVL holds and asks before returning).
+      origin is where the command came from (typed, quick_panel, cli, alias, ui).
+      log_activity=False keeps it out of the activity log (rollbacks: not something you did).
+      group_id links alias steps to their alias run.
     """
     bus = EventBus()
+    started = datetime.now(timezone.utc)  # before any consent dialog, which can take a while
+
+    def log(result, event_id):
+        if log_activity:
+            record(tool, params, result, source=origin, tier=tier, origin_event=event_id,
+                   group_id=group_id, ts=started)
 
     if killswitch.is_engaged():
         return {"status": "denied", "reason": "Kill switch is engaged — all actions are halted."}
@@ -30,18 +44,22 @@ def execute_action(registry, tool: str, params: dict, *, raw: str = "", tier=1,
                 "failure_class": FailureClass.VALIDATION}
 
     level = manifest["permission_level"]
+    if manifest.get("activity_log") is False:  # e.g. viewing or wiping the activity log itself
+        log_activity = False
 
     if gate and needs_consent(manifest):
         if not request_consent(tool, manifest["description"], params):
-            bus.publish(
+            denied_id = bus.publish(
                 topic="router.denied",
                 payload={"tool": tool, "params": params, "raw": raw, "tier": tier},
                 provenance=provenance,
                 permission_level=level,
             )
-            return {"status": "denied", "reason": "User declined consent dialog."}
+            denied = {"status": "denied", "reason": "User declined consent dialog."}
+            log(denied, denied_id)
+            return denied
 
-    bus.publish(
+    executing_id = bus.publish(
         topic="router.executing",
         payload={"tool": tool, "params": params, "raw": raw, "tier": tier},
         provenance=provenance,
@@ -60,4 +78,5 @@ def execute_action(registry, tool: str, params: dict, *, raw: str = "", tier=1,
         provenance=provenance,
         permission_level=level,
     )
+    log(result, executing_id)
     return result

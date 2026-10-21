@@ -39,7 +39,7 @@ def _alias(router, steps, trigger="chain"):
 ])
 def test_phrases_route_deterministically(router, monkeypatch, text, tool, params):
     seen = []
-    monkeypatch.setattr(router, "_execute", lambda t, p, raw: seen.append((t, p)) or {"status": "ok"})
+    monkeypatch.setattr(router, "_execute", lambda t, p, raw, **kw: seen.append((t, p)) or {"status": "ok"})
     router.route(text)
     assert seen == [(tool, params)]
 
@@ -145,7 +145,7 @@ def test_typed_alias_rejects_non_command_steps(registry):
 ])
 def test_routes_found_in_live_run(router, monkeypatch, text, tool, params):
     seen = []
-    monkeypatch.setattr(router, "_execute", lambda t, p, raw: seen.append((t, p)) or {"status": "ok"})
+    monkeypatch.setattr(router, "_execute", lambda t, p, raw, **kw: seen.append((t, p)) or {"status": "ok"})
     router.route(text)
     assert seen == [(tool, params)]
 
