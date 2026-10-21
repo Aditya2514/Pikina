@@ -1,0 +1,14 @@
+{
+  "tool": "activity.forget",
+  "description": "Permanently deletes everything the activity log has recorded (actions and app switches).",
+  "permission_level": 4,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "activity_log": false,
+  "params_schema": {"type": "object", "required": [], "properties": {}},
+  "patterns": [
+    {"regex": "(?:forget|delete|erase|clear|wipe)\\s+(?:all\\s+)?(?:of\\s+)?(?:my\\s+)?activity(?:\\s+(?:log|data|history))?$", "priority": 363}
+  ]
+}

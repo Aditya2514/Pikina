@@ -76,6 +76,11 @@
           }
         }
       }
+    },
+    "activity_log": {
+      "type": "boolean",
+      "default": true,
+      "description": "false keeps this capability out of the activity log (e.g. viewing or wiping the log itself)."
     }
   }
 }

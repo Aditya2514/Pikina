@@ -125,6 +125,60 @@ body::after {
 .wc-btn:hover { background: rgba(0, 212, 255, 0.15); color: var(--c-cyan); }
 .wc-close:hover { background: rgba(255, 45, 85, 0.2); color: var(--c-danger); border-color: var(--c-danger); }
 
+/* Activity indicator (● REC / ❚❚ PAUSED), click toggles pause */
+.activity-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 13px;
+  font-family: var(--font-hud);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--c-ok);
+  background: rgba(0, 255, 136, 0.06);
+  border: 1px solid rgba(0, 255, 136, 0.35);
+  transition: background var(--tx-fast), border-color var(--tx-fast);
+}
+.activity-pill.hidden { display: none; }
+.activity-pill:hover { background: rgba(0, 255, 136, 0.14); }
+.activity-pill.paused {
+  color: var(--c-warn);
+  background: rgba(255, 140, 0, 0.08);
+  border-color: rgba(255, 140, 0, 0.45);
+}
+.activity-pill.paused:hover { background: rgba(255, 140, 0, 0.16); }
+.activity-pill:disabled { cursor: progress; opacity: 0.7; }
+.activity-pill-icon { font-size: 10px; letter-spacing: 0; line-height: 1; }
+.activity-pill.rec .activity-pill-icon { animation: activity-rec-pulse 2s ease-in-out infinite; }
+
+@keyframes activity-rec-pulse {
+  0%, 100% { opacity: 1;    text-shadow: 0 0 6px rgba(0, 255, 136, 0.8); }
+  50%       { opacity: 0.35; text-shadow: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activity-pill.rec .activity-pill-icon { animation: none; }
+}
+
+/* Settings panel: small muted helper text */
+.settings-hint {
+  float: right;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--c-text-dim);
+}
+.settings-note {
+  margin: -6px 0 0 21px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--c-text-dim);
+}
+
 /* ════════════════════════════════════════════
    HUD LAYOUT GRID
    ════════════════════════════════════════════ */

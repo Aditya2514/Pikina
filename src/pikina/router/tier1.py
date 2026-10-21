@@ -5,7 +5,10 @@ each capability's manifest. A Tier 1 command runs with the model layer unloaded.
 """
 import re
 import uuid
+from datetime import datetime, timezone
 from typing import Optional
+
+from pikina.activity.recorder import record
 
 from pikina.registry.loader import CapabilityRegistry
 from pikina.registry.executor import execute_action
@@ -45,10 +48,11 @@ class Tier1Router:
         self._bus            = EventBus()
         self._alias_resolver = AliasResolver()
 
-    def route(self, text: str) -> dict:
+    def route(self, text: str, origin: str = "typed") -> dict:
         """
         Match text against the manifest phrases and execute the first match.
         Alias phrases are checked FIRST, before the regex route table.
+        origin (typed, quick_panel, cli) is passed on to the activity log.
         Returns a result dict. Never blocks waiting for a model.
         """
         text = text.strip()
@@ -56,16 +60,16 @@ class Tier1Router:
         # Aliases are checked before any manifest phrase
         alias = self._alias_resolver.resolve(text)
         if alias:
-            return self._execute_alias(alias, raw=text)
+            return self._execute_alias(alias, raw=text, origin=origin)
 
         define = _ADD_ALIAS.fullmatch(text)
         if define:
-            return self._define_alias(define.group("trigger"), define.group("steps"), raw=text)
+            return self._define_alias(define.group("trigger"), define.group("steps"), raw=text, origin=origin)
 
         routed = match_route(text, self._registry)
         if routed:
             tool, params = routed
-            return self._execute(tool, params, raw=text)
+            return self._execute(tool, params, raw=text, origin=origin)
 
         return {
             "status":  "no_match",
@@ -73,7 +77,7 @@ class Tier1Router:
             "hint":    "Try: 'open vs code', 'find file resume.pdf', 'doctor', 'what's on port 5000', 'list aliases'",
         }
 
-    def _define_alias(self, trigger: str, steps_text: str, raw: str) -> dict:
+    def _define_alias(self, trigger: str, steps_text: str, raw: str, origin: str = "typed") -> dict:
         """Turn 'step one ; step two' into tool calls using the Tier 1 route table."""
         steps = []
         for part in (p.strip() for p in steps_text.split(";")):
@@ -86,15 +90,16 @@ class Tier1Router:
             steps.append({"tool": routed[0], "params": routed[1]})
         if not steps:
             return {"status": "error", "reason": "An alias needs at least one step after '->'."}
-        result = self._execute("alias.add", {"trigger": trigger.strip(), "steps": steps}, raw=raw)
+        result = self._execute("alias.add", {"trigger": trigger.strip(), "steps": steps}, raw=raw, origin=origin)
         if result.get("status") == "ok":
             result["steps"] = steps
         return result
 
-    def _execute(self, tool: str, params: dict, raw: str) -> dict:
-        return execute_action(self._registry, tool, params, raw=raw, tier=1, provenance=TRUSTED)
+    def _execute(self, tool: str, params: dict, raw: str, origin: str = "typed", group_id: str | None = None) -> dict:
+        return execute_action(self._registry, tool, params, raw=raw, tier=1, provenance=TRUSTED,
+                              origin=origin, group_id=group_id)
 
-    def _execute_alias(self, alias: dict, raw: str) -> dict:
+    def _execute_alias(self, alias: dict, raw: str, origin: str = "typed") -> dict:
         """
         Execute a multi-step alias as a transaction.
         Every step runs through the full permission/consent gate.
@@ -103,8 +108,10 @@ class Tier1Router:
         """
         steps   = alias.get("steps", [])
         trigger = alias.get("trigger", raw)
+        started = datetime.now(timezone.utc)
+        group_id = "a-" + uuid.uuid4().hex[:10]  # links the steps to this run in the activity log
 
-        self._bus.publish(
+        started_id = self._bus.publish(
             topic="alias.started",
             payload={"trigger": trigger, "steps": len(steps), "raw": raw},
             provenance=TRUSTED,
@@ -130,6 +137,7 @@ class Tier1Router:
             plan_step.result = self._execute(
                 plan_step.tool, plan_step.params,
                 raw=f"{raw} [alias step {plan_step.step_id}/{len(steps)}]",
+                origin="alias", group_id=group_id,
             )
             return plan_step.result.get("status") not in ("error", "denied")
 
@@ -144,6 +152,7 @@ class Tier1Router:
                 self._registry, plan_step.rollback_action, undo_params,
                 raw=f"rollback of {plan_step.tool} (alias '{trigger}')", tier=1,
                 provenance=TRUSTED, gate=False,  # undoing the user's own change
+                log_activity=False,              # an undo is not something you chose to do
             )
             return undo.get("status") == "ok"
 
@@ -156,7 +165,12 @@ class Tier1Router:
         completed = sum(1 for s in plan_steps if s.status in ("done", "rolled_back", "no_rollback_needed",
                                                              "rollback_failed", "no_rollback_available"))
 
+        def log_run(outcome):
+            record("alias.run", {"trigger": trigger}, source=origin, tier=1, outcome=outcome,
+                   origin_event=started_id, group_id=group_id, ts=started)
+
         if plan.status == "completed":
+            log_run("ok")
             return {
                 "status":          "ok",
                 "message":         f"Alias '{trigger}' completed all {len(steps)} step(s).",
@@ -166,6 +180,7 @@ class Tier1Router:
             }
 
         failed = next(s for s in plan_steps if s.status == "failed")
+        log_run("denied" if failed.result.get("status") == "denied" else "error")
         reason = failed.result.get("reason", failed.result.get("message", "unknown error"))
         rollback_note = {
             "rolled_back":           "Earlier steps were rolled back.",

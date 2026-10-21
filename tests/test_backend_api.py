@@ -61,14 +61,14 @@ def test_capability_endpoint_goes_through_consent_gate(client, auth, backend, mo
 def test_unmatched_command_falls_through_to_tier2(client, auth, backend, monkeypatch):
     calls = []
     monkeypatch.setattr(backend.tier2, "route",
-                        lambda text: calls.append(text) or {"status": "ok", "tier": 2})
+                        lambda text, **kw: calls.append(text) or {"status": "ok", "tier": 2})
     res = client.post("/api/command", json={"text": "can you launch something to write text"}, headers=auth)
     assert res.get_json() == {"status": "ok", "tier": 2}
     assert calls == ["can you launch something to write text"]
 
 
 def test_tier1_command_does_not_touch_tier2(client, auth, backend, monkeypatch):
-    monkeypatch.setattr(backend.tier2, "route", lambda text: pytest.fail("Tier 2 should not run"))
+    monkeypatch.setattr(backend.tier2, "route", lambda text, **kw: pytest.fail("Tier 2 should not run"))
     res = client.post("/api/command", json={"text": "calculate 6 * 7"}, headers=auth)
     assert res.get_json()["result"] == 42
 

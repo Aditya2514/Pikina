@@ -26,6 +26,10 @@
       <span id="clock-date" class="clock-date">--- -- ----</span>
     </div>
     <div class="titlebar-controls">
+      <button type="button" class="activity-pill hidden" id="activity-pill" title="Activity log">
+        <span class="activity-pill-icon" id="activity-pill-icon"></span>
+        <span class="activity-pill-label" id="activity-pill-label"></span>
+      </button>
       <button class="wc-btn wc-settings" id="btn-settings" title="Settings">⚙</button>
       <button class="wc-btn wc-min"   id="btn-min"   title="Minimize">—</button>
       <button class="wc-btn wc-max"   id="btn-max"   title="Maximize">⬜</button>
@@ -260,7 +264,7 @@
       SETTINGS
       <button class="modal-close" id="modal-close-settings" title="Close">✕</button>
     </div>
-    <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+    <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto;">
       <div style="border-bottom: 1px solid rgba(0, 212, 255, 0.2); padding-bottom: 8px; margin-bottom: 4px;">
         <span style="font-family: 'Orbitron', sans-serif; font-size: 14px; color: var(--c-cyan);">WALLPAPER</span>
       </div>
@@ -271,6 +275,19 @@
         3D interactive background (follows your cursor)
       </label>
       <button class="cmd-send" id="settings-save-btn" style="width: 100%; margin-top: 8px;">SAVE SETTINGS</button>
+      <div style="border-bottom: 1px solid rgba(0, 212, 255, 0.2); padding-bottom: 8px; margin: 8px 0 4px;">
+        <span style="font-family: 'Orbitron', sans-serif; font-size: 14px; color: var(--c-cyan);">ACTIVITY</span>
+        <span class="settings-hint">applies immediately</span>
+      </div>
+      <label style="display: flex; align-items: center; gap: 8px; font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--c-cyan); cursor: pointer;">
+        <input type="checkbox" id="settings-activity-logging" disabled style="accent-color: var(--c-cyan);" />
+        Log commands I run (activity log)
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--c-cyan); cursor: pointer;">
+        <input type="checkbox" id="settings-window-tracking" disabled style="accent-color: var(--c-cyan);" />
+        Track the active app — app names only, never window titles
+      </label>
+      <div class="settings-note">Stays on this computer. Chrome/Brave incognito windows can't be detected — exclude the browser if that matters.</div>
       <div id="settings-status" style="font-family: 'Consolas', monospace; font-size: 11px; color: var(--c-ok); min-height: 14px;"></div>
     </div>
   </div>

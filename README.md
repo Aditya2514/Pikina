@@ -169,7 +169,7 @@ sequenceDiagram
 
 ## ⚡ Capability Registry & Command Specs
 
-Pikina OS provides **23 built-in capabilities** spanning system controls, task management, calendar integration, math calculations, file searches, clipboard history and developer tools. New features are added as **plugins** (one folder each) — see [CONTRIBUTING.md](CONTRIBUTING.md#writing-a-plugin).
+Pikina OS provides **26 built-in capabilities** spanning system controls, task management, calendar integration, math calculations, file searches, clipboard history and developer tools. New features are added as **plugins** (one folder each) — see [CONTRIBUTING.md](CONTRIBUTING.md#writing-a-plugin).
 
 ### Safety Permission Levels
 
@@ -204,8 +204,13 @@ Pikina OS provides **23 built-in capabilities** spanning system controls, task m
 │ dev.doctor           │   0   │ "doctor", "doctor for ~/code/app", "check my setup"    │
 │ dev.ports            │   0   │ "what's on port 3000", "list ports"                    │
 │ dev.free_port        │   3   │ "free port 3000" (always asks first)                   │
+│ activity.summary     │   0   │ "activity", "activity this week", "what did I do today"│
+│ activity.pause       │   1   │ "pause activity", "resume activity"                    │
+│ activity.forget      │   4   │ "forget my activity" (always asks first)               │
 └──────────────────────┴───────┴────────────────────────────────────────────────────────┘
 ```
+
+**Activity log (learning layer, Phase 1).** Every action you run through Pikina is logged as a privacy-safe key (`app.open:code`, `fs.find_file:*.pdf`, never what you typed). Tracking which app is in focus is opt-in, records app names only, and works on Hyprland, Sway, X11 and Windows. Nothing leaves your computer; rows are deleted after 90 days. Details: [docs/activity-log.md](docs/activity-log.md).
 
 On Linux, friendly app names map to whatever is installed: `notepad` → GNOME Text Editor / gedit / Kate / Mousepad, `calculator` → GNOME Calculator / KCalc, `explorer` → Nautilus / Dolphin / Thunar, and any other name is looked up on `PATH` and in installed `.desktop` entries (e.g. `open spotify`).
 
@@ -272,6 +277,7 @@ Pikina/
 │   ├── registry/               # Capability registry, shared executor, consent gatekeeper
 │   │   └── capabilities/       # One .json manifest + one .py handler per capability
 │   ├── plugins/                # Built-in plugins (devtools); yours go in <data folder>/plugins/
+│   ├── activity/               # Activity log (Phase 1): action keys, store, backfill, window tracker
 │   ├── validation/             # Action Validation Layer (AVL)
 │   ├── transactions/           # Plan executor & rollback engine (alias chains)
 │   ├── mcm/                    # Orchestrator, provenance rules, kill switch

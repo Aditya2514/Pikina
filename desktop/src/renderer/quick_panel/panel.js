@@ -34,7 +34,7 @@ async function runCommand(text) {
       const r = await fetch(`${BACKEND}/api/command`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ text, source: 'user_typed' }),
+        body:    JSON.stringify({ text, source: 'user_typed', origin: 'quick_panel' }),
       });
       res = await r.json();
     }

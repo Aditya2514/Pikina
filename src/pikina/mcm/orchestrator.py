@@ -20,13 +20,15 @@ class Orchestrator:
     def set_tier2_router(self, tier2_router) -> None:
         self._tier2_router = tier2_router
 
-    def receive(self, text: str, source: str = "user_typed") -> dict:
+    def receive(self, text: str, source: str = "user_typed", origin: str = "typed") -> dict:
         """
         Entry point for all input.
         1. Tags provenance.
         2. Enforces the hard rule: untrusted input never executes.
         3. Routes trusted commands to the Tier 1 router.
         4. If Tier 1 doesn't match, falls back to the Tier 2 local LLM router.
+        source decides trust (provenance); origin only says which surface sent it
+        (typed, quick_panel, cli) for the activity log, and never affects trust.
         Returns a result dict.
         """
         provenance = tag(source)
@@ -60,9 +62,9 @@ class Orchestrator:
         if self._router is None:
             return {"status": "error", "reason": "no_router_configured"}
 
-        result = self._router.route(text)
+        result = self._router.route(text, origin=origin)
         if result.get("status") == "no_match" and self._tier2_router is not None:
             # Fall back to Tier 2 local LLM call
-            return self._tier2_router.route(text)
+            return self._tier2_router.route(text, origin=origin)
 
         return result

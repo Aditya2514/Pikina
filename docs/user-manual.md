@@ -209,6 +209,12 @@ Recall stored facts and events from semantic vector memory.
 * **Syntax:** `free port 3000`, `kill whatever's on port 8080`
 * Stops the program listening on that port. Refuses Pikina's own backend and other users' programs.
 
+### 11. Activity Log (`activity.*`)
+* `activity`, `activity this week`, `what did I do today`: what has been recorded, so you can check the data is clean (Permission Level 0).
+* `pause activity` / `resume activity`: stop or restart recording, including after a restart (Level 1).
+* `forget my activity`: delete everything recorded. **Always asks first** (Level 4).
+* App tracking is opt-in, in Settings, and records app names only. What is and isn't recorded: [activity-log.md](activity-log.md).
+
 ### Plugins
 `pikina plugins` lists loaded, switched-off and skipped plugins. Your own plugins go in the
 `plugins/` folder inside your Pikina data folder and only load once their name is in

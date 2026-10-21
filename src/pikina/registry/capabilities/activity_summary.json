@@ -1,0 +1,22 @@
+{
+  "tool": "activity.summary",
+  "description": "Shows what the activity log has recorded: today's or this week's actions, sessions, top actions and apps.",
+  "permission_level": 0,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "read_only": true,
+  "activity_log": false,
+  "params_schema": {
+    "type": "object",
+    "required": [],
+    "properties": {
+      "days": {"type": "integer", "description": "1 = today (default), 7 = the last 7 days"}
+    }
+  },
+  "patterns": [
+    {"regex": "(?:show\\s+)?(?:my\\s+)?activity(?:\\s+(?:log|stats))?(?:\\s+(?P<range>today|this\\s+week|week))?$", "priority": 365},
+    {"regex": "what\\s+(?:did|have)\\s+i\\s+(?:do|done|been\\s+doing)(?:\\s+(?P<range>today|this\\s+week))?\\??$", "priority": 365}
+  ]
+}

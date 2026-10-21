@@ -1,0 +1,20 @@
+{
+  "tool": "activity.pause",
+  "description": "Pauses or resumes the activity log and the active-app tracker.",
+  "permission_level": 1,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "activity_log": false,
+  "params_schema": {
+    "type": "object",
+    "required": ["paused"],
+    "properties": {
+      "paused": {"type": "boolean", "description": "true to pause recording, false to resume"}
+    }
+  },
+  "patterns": [
+    {"regex": "(?P<verb>pause|stop|resume|unpause|restart|continue)\\s+(?:the\\s+)?(?:activity(?:\\s+(?:log|logging|tracking|tracker))?|tracking|logging)$", "priority": 364}
+  ]
+}

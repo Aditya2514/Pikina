@@ -174,7 +174,7 @@ class Tier2Router:
             )
             raise RuntimeError(f"Ollama API request failed: {e}") from e
 
-    def route(self, text: str) -> dict:
+    def route(self, text: str, origin: str = "typed") -> dict:
         """
         Retrieves context, formats prompt, calls Ollama, and validates/executes the response.
         Returns a result dict.
@@ -275,6 +275,11 @@ class Tier2Router:
         is_valid, fc, reason = validate_model_action(proposed_action, self.registry, retries_so_far=0)
         
         if not is_valid:
+            if reason == "User declined consent dialog.":
+                # A real choice you made, so the activity log keeps it (as denied)
+                from pikina.activity.recorder import record
+                record(str(proposed_action.get("tool", "")), proposed_action.get("params"),
+                       source=origin, tier=2, outcome="denied")
             # Return validation details to the user/caller
             return {
                 "status": "error",
@@ -288,5 +293,5 @@ class Tier2Router:
         #    AVL above for anything that needs it, so the gate is not repeated here.
         return execute_action(
             self.registry, proposed_action["tool"], proposed_action.get("params", {}),
-            raw=text, tier=2, provenance="model_output", gate=False,
+            raw=text, tier=2, provenance="model_output", gate=False, origin=origin,
         )
