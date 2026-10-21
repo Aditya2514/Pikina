@@ -4,7 +4,7 @@
 
 ### *Offline-First, Event-Driven Personal Operating Layer for Windows & Linux*
 
-[![Development Status](https://img.shields.io/badge/Status-Active_Development_%2B_Trial_Phase-FF9900?style=for-the-badge&logo=git&logoColor=white)](#-active-development--trial-phase-notice)
+[![Development Status](https://img.shields.io/badge/Status-Active_Development_%2B_Trial_Phase-FF9900?style=for-the-badge&logo=git&logoColor=white)](#-active-development--experimental-trial-phase-notice)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Electron](https://img.shields.io/badge/Electron-Desktop_HUD-4785D4?style=for-the-badge&logo=electron&logoColor=white)](https://electronjs.org)
 [![Platforms](https://img.shields.io/badge/Platforms-Windows_%7C_Linux-0078D4?style=for-the-badge)](src/pikina/osbridge)
@@ -61,14 +61,14 @@
 
 ## 🌟 Overview & Core Philosophy
 
-**Pikina OS** is a lightweight, zero-latency, offline-first personal operating system layer for Windows and Linux. It acts as an intelligent intermediary between user intent, operating system APIs, and local/cloud artificial intelligence models.
+**Pikina OS** is a lightweight, offline-first personal operating system layer for Windows and Linux. It acts as an intelligent intermediary between user intent, operating system APIs, and a local AI model (a metered cloud tier is planned).
 
 Unlike conventional AI desktop assistants that route every keystroke through cloud-hosted LLMs, Pikina OS is built on a **deterministic-first paradigm**:
 
 > [!IMPORTANT]
 > **Pikina OS Guiding Design Principles**
-> 1. **Infrastructure Before Intelligence:** Every core subsystem (file access, task tracking, application launching, calendar sync, stopwatch, math evaluation) works seamlessly with **zero LLMs active**.
-> 2. **Sub-Millisecond Deterministic Latency:** Commands matching structured patterns route via sub-millisecond C/Python regex matches without waiting for LLM inference.
+> 1. **Infrastructure Before Intelligence:** Every core subsystem (file access, task tracking, application launching, calendar sync, stopwatch, math evaluation) works with **zero LLMs active**.
+> 2. **Deterministic Routing First:** Commands matching known patterns are resolved by compiled Python regex routes with no model call, so they never wait on LLM inference.
 > 3. **Action Validation Layer (AVL):** Untrusted data never self-executes. High-risk operations (Level 4+, or Level 3 without rollback) need an explicit native confirmation popup (`MessageBoxW` on Windows, `zenity`/`kdialog` on Linux). If no dialog can be shown, the action is denied.
 > 4. **Irreversibility Focus:** Actions with non-reversible side effects carry higher permission bounds than simple data reads.
 > 5. **Dual Memory Store with Auto-Decay:** Short-term sensory events auto-expire, while frequently corroborated events get promoted to permanent semantic storage.
@@ -86,7 +86,7 @@ A futuristic, dark-mode visual interface featuring diagnostic telemetry bars for
 <img src="docs/assets/pikina_dashboard_ui.png" alt="Pikina OS JARVIS Dashboard HUD" width="100%" />
 
 ### 2. Hotkey Quick Panel Overlay (`desktop/src/renderer/quick_panel`)
-A lightweight, floating command launcher accessible anywhere via <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Space</kbd>. Provides instant search suggestions, system status indicators, and sub-millisecond command execution.
+A lightweight, floating command launcher accessible anywhere via <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Space</kbd>. Provides search suggestions as you type and system status indicators; known commands run through the Tier 1 regex router without a model call.
 
 <img src="docs/assets/pikina_quick_panel_ui.png" alt="Pikina OS Quick Panel Interface" width="100%" />
 
@@ -96,7 +96,7 @@ Intercepts elevated permission requests ($L4+$) and irreversible side effects be
 <img src="docs/assets/pikina_avl_consent_gate.png" alt="Pikina OS Action Validation Layer" width="100%" />
 
 ### 4. Dual-Tier Memory & Knowledge Graph (`src/pikina/memory`)
-Visualizes the automated vector flow: Ephemeral Store (short-term clipboard & file edits) $\rightarrow$ Promotion Sweep ($\ge 3$ corroborations) $\rightarrow$ Permanent Semantic Store & NetworkX Knowledge Graph.
+Visualizes the automated vector flow: Ephemeral Store (short-term clipboard & file edits) $\rightarrow$ Promotion Sweep ($\ge 3$ corroborations) $\rightarrow$ Permanent Semantic Store, alongside a NetworkX knowledge graph.
 
 <img src="docs/assets/pikina_memory_engine.png" alt="Pikina OS Dual Memory Engine" width="100%" />
 
@@ -124,14 +124,14 @@ sequenceDiagram
     participant T2 as Tier 2 Ollama LLM
     participant AVL as Action Validation Layer (AVL)
     participant WIN as OS Bridge (Win32 / Linux desktop)
-    participant MEM as Vector Store & Knowledge Graph
+    participant LOG as Event Bus & Replay Log
 
     U->>FE: Inputs Command ("open vs code" / "add todo...")
     FE->>T1: POST /api/command { text } + X-Pikina-Token
     alt Tier 1 Pattern Match (Regex)
-        T1-->>AVL: Route direct tool payload (Latency < 1ms)
+        T1-->>AVL: Route direct tool payload (no model call)
     else Tier 1 Miss
-        T1->>T2: Fallback to local Ollama (Llama-3/Phi-4)
+        T1->>T2: Fallback to local Ollama (llama3 by default)
         T2-->>AVL: Extracted Tool Call & Parameters
     end
 
@@ -143,7 +143,7 @@ sequenceDiagram
         AVL->>WIN: Execute capability
     end
 
-    WIN-->>MEM: Log event to Ephemeral Store & Replay Database
+    WIN-->>LOG: Log action events to replay_store.sqlite
     WIN-->>FE: Return Execution Result JSON
 ```
 
@@ -173,9 +173,9 @@ Pikina OS provides **26 built-in capabilities** spanning system controls, task m
 
 ### Safety Permission Levels
 
-- **Level 0 (Low Risk):** Read-only calculations, queries, listing items. Executes instantly.
-- **Level 1 (Medium Risk):** Modifies local application states, toggles settings, launches local executables.
-- **Level 4+ (High Risk):** Modifies system configurations, deletes data, or performs non-reversible operations. **Triggers a native confirmation dialog before execution** (Level 3 actions without rollback do too).
+- **Level 0 (Low Risk):** Calculations, queries and listings, plus everyday local writes (adding or updating tasks, events, aliases, preferences). Runs without a confirmation prompt.
+- **Level 1 (Medium Risk):** Removes local items (tasks, events, aliases), locks the screen, launches local executables.
+- **Level 4+ (High Risk):** Modifies system configurations or performs non-reversible operations. **Triggers a native confirmation dialog before execution** (Level 3 actions without rollback do too). None of the 20 core capabilities is above Level 1; the devtools plugin's free-port command (stops the program holding a port) is Level 3 without rollback, so it asks before it runs.
 
 ```markdown
 ┌──────────────────────┬───────┬────────────────────────────────────────────────────────┐
@@ -185,18 +185,18 @@ Pikina OS provides **26 built-in capabilities** spanning system controls, task m
 │ fs.find_file         │   0   │ "find file resume.pdf", "search for *.csv"             │
 │ todo.add             │   0   │ "add todo call project sponsor", "todo buy groceries"  │
 │ todo.complete        │   0   │ "mark task buy groceries as done", "complete c693836e" │
-│ todo.list            │   0   │ "list todos", "list all pending tasks", "show done"    │
+│ todo.list            │   0   │ "list todos", "list all pending tasks"                 │
 │ todo.remove          │   1   │ "remove todo buy groceries", "delete task c693836e"    │
 │ calendar.add_event   │   0   │ "add event meeting on 2026-07-20 at 14:00"             │
-│ calendar.query       │   0   │ "what do I have this week", "what is on 2026-07-20"    │
+│ calendar.query       │   0   │ "what do I have this week", "what's on 2026-07-20"     │
 │ calendar.update_event│   0   │ "change check-in time to 15:00"                        │
 │ calendar.remove_event│   1   │ "remove event project check-in"                        │
 │ calendar.import_ics  │   0   │ "import ics C:\Users\user\Downloads\invite.ics"        │
 │ alias.add            │   0   │ "add alias morning -> start stopwatch ; open notepad"  │
 │ alias.list           │   0   │ "list aliases", "show aliases"                         │
 │ alias.remove         │   1   │ "remove alias morning"                                 │
-│ prefs.update         │   0   │ "call me Aditya", "be formal", "quiet hours 22 to 08"  │
-│ memory.recall        │   0   │ "recall what I did yesterday", "where is project brief"│
+│ prefs.update         │   0   │ "call me Aditya", "quiet hours from 22:00 to 08:00"    │
+│ memory.recall        │   0   │ "recall what I did yesterday", "recall project brief"  │
 │ utility.calculate    │   0   │ "calculate (45 * 2) + 10", "calc 12 * 8"               │
 │ utility.stopwatch    │   0   │ "start stopwatch", "pause stopwatch", "reset stopwatch"│
 │ system.lock_screen   │   1   │ "lock screen", "lock workstation", "lock pc"           │
@@ -210,7 +210,7 @@ Pikina OS provides **26 built-in capabilities** spanning system controls, task m
 └──────────────────────┴───────┴────────────────────────────────────────────────────────┘
 ```
 
-**Activity log (learning layer, Phase 1).** Every action you run through Pikina is logged as a privacy-safe key (`app.open:code`, `fs.find_file:*.pdf`, never what you typed). Tracking which app is in focus is opt-in, records app names only, and works on Hyprland, Sway, X11 and Windows. Nothing leaves your computer; rows are deleted after 90 days. Details: [docs/activity-log.md](docs/activity-log.md).
+Every example except `calendar.update_event`'s matches a Tier 1 pattern; edits to an existing event are understood only by Tier 2, so they need Ollama running.
 
 On Linux, friendly app names map to whatever is installed: `notepad` → GNOME Text Editor / gedit / Kate / Mousepad, `calculator` → GNOME Calculator / KCalc, `explorer` → Nautilus / Dolphin / Thunar, and any other name is looked up on `PATH` and in installed `.desktop` entries (e.g. `open spotify`).
 
@@ -223,17 +223,17 @@ On Linux, friendly app names map to whatever is installed: `notepad` → GNOME T
 Pikina OS employs an automated multi-tier routing pipeline located in [`src/pikina/router`](src/pikina/router):
 
 1. **Tier 1 (Deterministic Router):**
-   Evaluates commands against compiled regex patterns. If matched, execution completes in **$< 1\text{ ms}$** without invoking AI models or consuming GPU/CPU compute.
+   Evaluates commands against compiled regex patterns. If one matches, the capability runs directly, without calling any AI model or touching the GPU. (Tier 1 latency has not been benchmarked; the Phase 4e observation log records Tier 1 commands at its 0.1 s resolution.)
 2. **Tier 2 (Local LLM Fallback):**
    If no regex matches, the command is dispatched to a local **Ollama** service (model set by `PIKINA_OLLAMA_MODEL`, default `llama3`). Ollama runs in JSON mode with a capped answer length, the model is loaded at backend startup and kept warm (`keep_alive`), and above `PIKINA_TIER2_MAX_TOOLS` capabilities only the most relevant ones are sent in the prompt. If Ollama isn't running, unmatched commands get a clear "model offline" reply instead of an error.
 3. **Graceful `no_match` Handling:**
-   Out-of-scope prompts yield an explicit `no_match` response, preventing hallucinated file deletions or execution errors.
+   Out-of-scope prompts yield an explicit `no_match` response instead of a guessed tool call.
 
 ### 2. Action Validation Layer (AVL) & Security
 
 Located in [`src/pikina/validation`](src/pikina/validation), [`registry/gatekeeper.py`](src/pikina/registry/gatekeeper.py) and [`registry/executor.py`](src/pikina/registry/executor.py):
 
-- **Permission Level Enforcement:** Validates that the requested tool parameter level does not exceed the allowed threshold.
+- **Model-Action Validation:** A Tier 2 proposal is rejected unless the tool exists, its required params are present, and the permission level the model declares matches the manifest exactly.
 - **One execution path:** Tier 1, Tier 2, alias chains and the HTTP API all run capabilities through `execute_action()`, so the same consent rule, kill switch and audit events apply everywhere.
 - **Consent Gate:** Any Level 4+ action, or Level 3 action without rollback, pauses for a native confirmation dialog (`MessageBoxW` on Windows; `zenity`, `kdialog` or `yad` on Linux, falling back to a terminal prompt for the CLI). No way to ask means **denied**.
 - **Kill Switch:** The ⏻ button halts every capability and stops the daemons until Pikina is restarted.
@@ -245,12 +245,12 @@ Located in [`src/pikina/validation`](src/pikina/validation), [`registry/gatekeep
 
 Located in [`src/pikina/memory`](src/pikina/memory) and [`src/pikina/context`](src/pikina/context):
 
-- **Ephemeral Vector Store:** Captures short-term file modifications, clipboard contents, and system logs.
-- **Permanent Vector Store:** Holds explicit declarations, user preferences, and promoted memories.
+- **Ephemeral Vector Store:** Captures clipboard contents and file creations/modifications from the sensory daemons (all `UNTRUSTED_DATA`).
+- **Permanent Vector Store:** Holds memories promoted from the ephemeral store. `TrustEngine` would also store trusted `user.command` events here directly, but nothing publishes that event yet.
 - **Promotion & Forgetting Engine:**
   - *Promotion:* Events corroborated $\ge 3$ times in the Ephemeral Store are promoted to Permanent storage.
-  - *Forgetting:* Automated background sweeps decay and purge stale ephemeral vectors.
-- **Knowledge Graph:** Tracks structural relationships between files, topics, tasks, and people using NetworkX serialized to JSON.
+  - *Forgetting:* An hourly background sweep deletes ephemeral entries older than 24 hours, promoting the corroborated ones first.
+- **Knowledge Graph:** A NetworkX graph saved as node-link JSON. Context assembly reads facts from it, but the running app does not add relationships to it yet.
 - **Context Assembly:** Assembles relevant facts within a strict 2,000-token budget to ground LLM reasoning.
 
 ### 4. Sensory Daemons & File Indexer
@@ -259,7 +259,7 @@ Located in [`src/pikina/daemons`](src/pikina/daemons):
 
 - **Clipboard Monitor (`ClipboardDaemon`):** Windows listens to `WM_CLIPBOARDUPDATE`; Linux polls `wl-paste` (Wayland) or `xclip`/`xsel` (X11) once a second and only reports changes. Content marked sensitive by password managers (`ExcludeClipboardContentFromMonitor` on Windows, `x-kde-passwordManagerHint` on Linux) is never read, and a 10,000-character cap applies. Clipboard content is always `UNTRUSTED_DATA`.
 - **File Watcher (`FileWatcherDaemon`):** Tracks file creation, modifications, and deletions in real-time using `watchdog`.
-- **File Indexer (`FileIndexerDaemon`):** Maintained via `GraphCache` to power instant fuzzy auto-completion for local files and folders.
+- **File Indexer (`FileIndexerDaemon`):** Crawls your user folders hourly into a SQLite index that `fs.find_file` searches first. Quick Panel file suggestions come from a separate `GraphCache` of opened paths, matched by substring and ranked by hits and recency.
 
 ---
 
@@ -317,9 +317,9 @@ Set `PIKINA_DATA_DIR` to use another folder. Data from versions before 0.4 (the 
 | **OS Automation & Hooks** | `pywin32`, `ctypes` / `loginctl`, `xdg-*`, `zenity` | Windows Win32 API / Linux desktop integration |
 | **File System Monitoring** | `watchdog` | Real-time workspace file modification events |
 | **Frontend UI Framework** | `Electron` | Frameless desktop HUD & Quick Panel windows |
-| **Backend REST Service** | `Flask`, `Flask-CORS` | High-speed IPC bridge between Python & Electron |
+| **Backend REST Service** | `Flask`, `Flask-CORS` | Local HTTP API between Python & Electron |
 | **Audit & Replay Log** | `SQLite3` | Persistent replay log of all system actions |
-| **Local LLM Service** | `Ollama` (`llama3`, `phi4`) | Tier 2 natural language tool parameter extraction |
+| **Local LLM Service** | `Ollama` (`llama3` by default) | Tier 2 natural language tool parameter extraction |
 | **Vector Embeddings** | `SentenceTransformers` (`All-MiniLM-L6-v2`) | Semantic memory representation & retrieval |
 | **Knowledge Graph** | `NetworkX` | Entity relationship mapping |
 | **Speech & Voice** *(planned, Phase 5)* | `Whisper.cpp`, `Kokoro-82M` | Offline Speech-to-Text & Text-to-Speech |
@@ -394,12 +394,11 @@ pikina             # terminal interface, no GUI
 
 ## 🤝 Commit & Contribution Conventions
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup and how to add a capability. Commit messages follow the phase convention:
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup and how to add a capability. New commit messages use this format:
 
 ```text
-phase1.1: implement capability registry and event bus
-phase1.5a: build electron quick panel and backend websocket bridge
-phase2.1: integrate win32 clipboard daemon with vector store
+phase<N>[.<sub>]: <what changed>     # roadmap work
+fix: / docs: / chore: <what changed>
 ```
 
 ### Running Tests

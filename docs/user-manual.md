@@ -96,10 +96,10 @@ A calendar system for recording, querying, and updating personal appointments. S
 
 #### Query Calendar (`calendar.query`)
 * **Permission Level:** 0
-* **Syntax:** `what do I have this week`, `what is on <date>`
+* **Syntax:** `what do I have this week`, `what's on <date>`
 * **Examples:**
   * `what do I have this week`
-  * `what is on 2026-07-20`
+  * `what's on 2026-07-20`
 
 #### Update Event (`calendar.update_event`)
 * **Permission Level:** 0
@@ -227,17 +227,17 @@ Recall stored facts and events from semantic vector memory.
 ### 1. Two-Tier Command Routing
 
 Pikina OS runs an automated fallback pipeline to ensure speed and local privacy:
-* **Tier 1 (Deterministic Router):** Command strings are first checked against regex patterns. If matched, they run instantly (sub-millisecond latency) without invoking AI.
+* **Tier 1 (Deterministic Router):** Command strings are first checked against regex patterns. If matched, the capability runs directly, with no model call.
 * **Tier 2 (Local LLM Fallback):** If no regex matches, the command falls back to local **Ollama** (model from `PIKINA_OLLAMA_MODEL`, default `llama3`). It translates the user phrasing into a structured tool call. The model is loaded when the backend starts and kept in memory, so the first command doesn't pay the 10–30 s load time. If Ollama isn't running, you get a "model offline" reply.
 * **`no_match` Fallback:** If you ask something out-of-scope (e.g., "tell me a joke"), the model yields `no_match` and the router gracefully declines rather than crashing or hallucinating a wrong command.
 
 ### 2. Dual-Tier Memory System
 * **Vector Store (`vector_memory.db`):** 
-  * *Ephemeral Tier:* Captures short-term files modifications, recent clipboard contents, and system logs.
-  * *Permanent Tier:* Holds explicit declarations, settings, and promoted memories.
+  * *Ephemeral Tier:* Captures recent clipboard contents and file creations/modifications.
+  * *Permanent Tier:* Holds memories promoted from the ephemeral tier.
   * *Promotion Engine:* If an event in the Ephemeral Tier is corroborated $\ge 3$ times, it is promoted to the Permanent Tier.
-  * *Forgetting Engine:* Automatically runs background sweeps to decay and delete old ephemeral vectors.
-* **Knowledge Graph:** Maps structural facts using a NetworkX graph serialized to JSON.
+  * *Forgetting Engine:* An hourly background sweep deletes ephemeral vectors older than 24 hours, promoting the corroborated ones first.
+* **Knowledge Graph:** A NetworkX graph serialized to JSON. Context assembly reads it, but the app does not add facts to it yet.
 * **Context Assembly:** Pulls structural facts and semantic memories, fits them into a token-budget (~2000 tokens), and feeds them to the LLM to ground its decisions.
 
 ### 3. Safety & AVL (Action Validation Layer)

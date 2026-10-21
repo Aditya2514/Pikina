@@ -31,7 +31,7 @@
       "priority": 260
     },
     {
-      "regex": "what(?:'s|is)\\s+on\\s+(?P<date>.+)",
+      "regex": "what(?:'s|\\s+is)\\s+on\\s+(?P<date>.+)",
       "priority": 270
     }
   ]
