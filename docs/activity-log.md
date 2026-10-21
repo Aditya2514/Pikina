@@ -53,6 +53,15 @@ Pikina is learning your routines so it can later suggest your next step. Phase 1
   matters, add the browser to your exclusion list.
 - **Websites.** Pikina sees app names, not pages. A banking site in Firefox shows up as
   `firefox`.
+- **Very long titles.** Hyprland cuts window titles at about 1,000 characters, so the
+  "Private Browsing" ending can be lost. Pikina then re-reads the full title, and if that fails
+  it treats a Firefox-family window as private.
+- **Windows Store apps.** Calculator, Settings and other Store apps are looked up through the
+  window that hosts them. This hasn't been tested on a real Windows machine yet; if they show
+  up as `none`, that's why.
+- **When the tracker can't see your windows,** for example if Hyprland restarted or `xprop`
+  is missing, the pill shows ○ OFF with the reason. It keeps retrying, and commands are logged
+  without an active app until it recovers.
 
 ## Where tracking works
 
