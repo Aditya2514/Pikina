@@ -175,7 +175,7 @@ Pikina OS provides **23 built-in capabilities** spanning system controls, task m
 
 - **Level 0 (Low Risk):** Calculations, queries and listings, plus everyday local writes (adding or updating tasks, events, aliases, preferences). Runs without a confirmation prompt.
 - **Level 1 (Medium Risk):** Removes local items (tasks, events, aliases), locks the screen, launches local executables.
-- **Level 4+ (High Risk):** Modifies system configurations or performs non-reversible operations. **Triggers a native confirmation dialog before execution** (Level 3 actions without rollback do too). None of the 19 built-in capabilities is above Level 1 yet, so today this gate is exercised by the test suite and is in place for future capabilities.
+- **Level 4+ (High Risk):** Modifies system configurations or performs non-reversible operations. **Triggers a native confirmation dialog before execution** (Level 3 actions without rollback do too). None of the 20 core capabilities is above Level 1; the devtools plugin's free-port command (stops the program holding a port) is Level 3 without rollback, so it asks before it runs.
 
 ```markdown
 ┌──────────────────────┬───────┬────────────────────────────────────────────────────────┐
