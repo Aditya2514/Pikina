@@ -16,6 +16,8 @@ def run(params: dict) -> dict:
         settings.update({"activity_paused": paused})
     except settings.SettingsError as exc:
         return {"status": "error", "reason": str(exc)}
+    except OSError as exc:
+        return {"status": "error", "reason": f"Couldn't save settings ({exc.strerror or exc})."}
     if paused:
         return {"status": "ok", "paused": True,
                 "message": "Activity log paused: nothing is recorded until you say 'resume activity'."}

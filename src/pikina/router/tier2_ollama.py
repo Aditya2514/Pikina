@@ -179,6 +179,8 @@ class Tier2Router:
         Retrieves context, formats prompt, calls Ollama, and validates/executes the response.
         Returns a result dict.
         """
+        from datetime import datetime, timezone
+        asked_at = datetime.now(timezone.utc)  # the activity log's time: before the model and any dialog
         # 1. Assemble context (4b). Memory is optional: if the embedding model or
         #    stores are unavailable, route without it instead of crashing.
         try:
@@ -276,10 +278,17 @@ class Tier2Router:
         
         if not is_valid:
             if reason == "User declined consent dialog.":
-                # A real choice you made, so the activity log keeps it (as denied)
-                from pikina.activity.recorder import record
-                record(str(proposed_action.get("tool", "")), proposed_action.get("params"),
-                       source=origin, tier=2, outcome="denied")
+                # A real choice you made, so the activity log keeps it (as denied),
+                # unless that capability is one kept out of the log.
+                tool = str(proposed_action.get("tool", ""))
+                try:
+                    quiet = self.registry.get_manifest(tool).get("activity_log") is False
+                except KeyError:
+                    quiet = True
+                if not quiet:
+                    from pikina.activity.recorder import record
+                    record(tool, proposed_action.get("params"), source=origin, tier=2, outcome="denied",
+                           ts=asked_at)
             # Return validation details to the user/caller
             return {
                 "status": "error",
@@ -293,5 +302,5 @@ class Tier2Router:
         #    AVL above for anything that needs it, so the gate is not repeated here.
         return execute_action(
             self.registry, proposed_action["tool"], proposed_action.get("params", {}),
-            raw=text, tier=2, provenance="model_output", gate=False, origin=origin,
+            raw=text, tier=2, provenance="model_output", gate=False, origin=origin, started_at=asked_at,
         )

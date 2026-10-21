@@ -4,6 +4,8 @@ Pikina OS — terminal interface.
 Run `pikina` (or `python -m pikina`) to talk to the router directly,
 without the backend server or the desktop app.
 """
+import sqlite3
+
 from pikina import __version__, paths
 from pikina.eventbus.replay import ReplayStore
 from pikina.governor.telemetry import get_telemetry
@@ -91,21 +93,24 @@ def main():
 
         elif cmd == "activity" and len(parts) > 1 and parts[1].lower() in ("backfill", "export"):
             from pikina.activity.store import ActivityStore
-            if parts[1].lower() == "backfill":
-                from pikina.activity.backfill import backfill
-                done = backfill(force=True)
-                print(f"  [Activity] {done.get('status')}: {done.get('added', 0)} rows added"
-                      + (f" ({done['reason']})" if done.get("reason") else ""))
-            elif len(parts) < 3:
-                print("  Usage: activity export <file.json>")
-            else:
-                import json
-                from pathlib import Path
-                out = Path(" ".join(parts[2:])).expanduser()
-                data = ActivityStore().export()
-                out.write_text(json.dumps(data, indent=2), encoding="utf-8")
-                print(f"  [Activity] Saved {len(data['activity'])} actions and "
-                      f"{len(data['app_switches'])} app switches to {out}")
+            try:
+                if parts[1].lower() == "backfill":
+                    from pikina.activity.backfill import backfill
+                    done = backfill(force=True)
+                    print(f"  [Activity] {done.get('status')}: {done.get('added', 0)} rows added"
+                          + (f" ({done['reason']})" if done.get("reason") else ""))
+                elif len(parts) < 3:
+                    print("  Usage: activity export <file.json>")
+                else:
+                    import json
+                    from pathlib import Path
+                    out = Path(" ".join(parts[2:])).expanduser()
+                    data = ActivityStore().export()
+                    out.write_text(json.dumps(data, indent=2), encoding="utf-8")
+                    print(f"  [Activity] Saved {len(data['activity'])} actions and "
+                          f"{len(data['app_switches'])} app switches to {out}")
+            except (OSError, sqlite3.Error) as exc:
+                print(f"  [Activity] Couldn't do that: {getattr(exc, 'strerror', None) or exc}")
 
         elif cmd == "telemetry":
             t = get_telemetry()
@@ -118,7 +123,11 @@ def main():
             print(f"  DISK: {t['disk']['used_gb']} / {t['disk']['total_gb']} GB  ({t['disk']['percent']}%)")
 
         else:
-            result = mcm.receive(raw, source="user_typed", origin="cli")
+            try:
+                result = mcm.receive(raw, source="user_typed", origin="cli")
+            except Exception as exc:  # one bad command must not end the session
+                print(f"  [X] {type(exc).__name__}: {exc}")
+                continue
             status = result.get("status", "unknown")
             icon   = "[OK]" if status == "ok" else ("[X]" if status in ("error", "denied") else "->")
             text   = result.get("message") or result.get("reason")

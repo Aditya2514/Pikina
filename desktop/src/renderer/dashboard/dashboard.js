@@ -485,10 +485,11 @@ async function pollStatus() {
     const res  = await fetch(`${BACKEND}/api/status`, { signal: AbortSignal.timeout(3000) });
     const data = await res.json();
     // Skip if the user changed something while this request was in flight.
+    killSwitchOn = !!(data && data.kill_switch);
     if (seq === activitySeq && !activityInFlight()) {
       activityState = (data && data.activity) || null;
-      renderActivityPill(activityState);
     }
+    renderActivityPill(activityState);
     document.getElementById('detail-profile').textContent = String(data.profile || '--').toUpperCase();
   } catch {
     // Offline or unknown: never leave a stale REC on screen.
@@ -511,6 +512,7 @@ const activityPillIcon  = document.getElementById('activity-pill-icon');
 const activityPillLabel = document.getElementById('activity-pill-label');
 
 let activityState = null;   // last `activity` object from the backend (null = unknown)
+let killSwitchOn  = false;  // from /api/status: when engaged nothing can be recorded
 let activitySeq   = 0;      // bumped on every local change; stale polls are dropped
 let activityBusy  = false;  // a pill toggle is in flight
 const activityPending = new Set();  // settings checkboxes with a request in flight
@@ -546,8 +548,26 @@ function describeTracker(act) {
 
 function renderActivityPill(act) {
   if (!activityPill) return;
+  if (act && act.settings_error) {        // fails closed: recording is paused until it's fixed
+    activityPill.className        = 'activity-pill paused';
+    activityPillIcon.textContent  = '!';
+    activityPillLabel.textContent = 'PAUSED';
+    activityPill.title = `${act.settings_error}`;
+    return;
+  }
   if (!act || (!act.logging && !act.window_tracking)) {
     activityPill.classList.add('hidden');
+    return;
+  }
+  const trackerRunning = !!(act.tracker && act.tracker.running);
+  const recording = !killSwitchOn && !act.paused && (act.logging || (act.window_tracking && trackerRunning));
+  if (!act.paused && !recording) {        // switched on, but nothing can be recorded right now
+    activityPill.className        = 'activity-pill idle';
+    activityPillIcon.textContent  = '○';
+    activityPillLabel.textContent = 'OFF';
+    activityPill.title = killSwitchOn
+      ? 'Kill switch is engaged: nothing is being recorded. Restart Pikina to resume.'
+      : `Nothing is being recorded: ${describeTracker(act)}.`;
     return;
   }
   if (act.paused) {

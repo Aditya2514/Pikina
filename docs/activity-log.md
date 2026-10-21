@@ -32,13 +32,18 @@ Pikina is learning your routines so it can later suggest your next step. Phase 1
   file type, so `find file tax_return.pdf` becomes `fs.find_file:*.pdf`.
 - **Unknown apps.** An app you open is logged by name only if it's a known app or an
   installed program. Otherwise it's `app.open:?`.
-- **Alias names.** An alias is logged as a hash (`alias.run:88b847f5e1`). The `activity`
-  command shows the name again for the aliases you have now.
+- **Alias names.** An alias is logged by a keyed hash (`alias.run:3f9c0a1b77de`). The key is
+  random on each install and is never exported, so the hash can't be reversed with a word
+  list. The `activity` command shows the name again for the aliases you have now.
 - **Plugin parameters.** Plugin commands are logged by their command name only.
 - **Undos.** The steps Pikina undoes after an alias fails are not logged.
 - **Excluded apps.** Password managers, unlock prompts, authenticator apps and Tor Browser
-  are written as `excluded`. Their name is not kept, and that time isn't credited to another
-  app. Add your own, such as a banking app, to `"activity_exclude_apps"` in `settings.json`.
+  are written as `excluded`. This applies both when they're in focus and when you open one
+  (`app.open:excluded`). Their name is not kept, and that time isn't credited to another app.
+  Add your own, such as a banking app, to `"activity_exclude_apps"` in `settings.json`, for
+  example `["MyBank", "Vivaldi"]`. Channel variants such as `vivaldi-stable` are covered too.
+- **Sites opened as apps.** A Chrome, Brave or Edge "app window" for a website is recorded as
+  the browser (`chrome`), never as the site. Excluding the browser covers its app windows.
 
 ### What this can't detect
 
@@ -59,16 +64,25 @@ Pikina is learning your routines so it can later suggest your next step. Phase 1
 | Windows | Yes. Checks the foreground app once a second |
 | GNOME or KDE on Wayland | Not yet. These desktops don't expose the active window to other programs; the HUD says so |
 
+## If settings.json is broken
+
+If you hand-edit `settings.json` and leave a typo, Pikina **pauses all recording** until you
+fix or delete the file. The title-bar pill shows `! PAUSED` and explains why. A typo never
+lifts a pause or drops your exclusions. Only a real `true` or `false` counts:
+`"activity_logging": "false"` (a string) counts as off.
+
 ## Controls
 
 | Command | What it does |
 |:---|:---|
 | `activity` / `activity this week` | Today's or this week's actions, sessions, top actions and apps |
-| `pause activity` / `resume activity` | Stops recording everything until you resume, even across restarts |
+| `pause activity` / `resume activity` | Stops recording everything (commands and app switches) until you resume, even across restarts. A `paused` marker is written so that time isn't credited to the last app |
 | `forget my activity` | Deletes every recorded action and app switch. Asks first |
 
 - **In the dashboard,** the ● REC / ❚❚ PAUSED pill in the title bar pauses or resumes with
-  one click. Settings has the two on/off switches.
+  one click. It shows ○ OFF when something is switched on but nothing can be recorded, such as
+  after the kill switch or when app tracking can't run in your session. Settings has the two
+  on/off switches, and they are independent: you can track apps without logging commands.
 - **In the tray,** there is a *Pause activity log* item.
 - **In the terminal,** `pikina` then `activity export ~/activity.json` saves everything,
   and `activity backfill` re-imports history from the audit log.
@@ -77,10 +91,16 @@ Pikina is learning your routines so it can later suggest your next step. Phase 1
 
 - **Raw rows are deleted after 90 days.** Later phases will keep only counts.
 - **Backfill.** On first start, Pikina rebuilds up to 90 days of past commands from its
-  audit log (the replay log), so learning doesn't start from zero. This extracts the same
-  normalised keys and copies nothing else. Backfilled rows have the source `backfill`, because
-  the old log can't tell the dashboard from the quick panel.
-- **Forget.** After `forget my activity`, the backfill does not run again by itself.
+  audit log (the replay log), so learning doesn't start from zero.
+  - It imports only what happened **before live recording began**, so anything done while
+    paused or with logging off is never imported later.
+  - It extracts the same normalised keys and copies nothing else.
+  - Backfilled rows have the source `backfill`, because the old log can't tell the dashboard
+    from the quick panel.
+- **Forget is final.** After `forget my activity`, nothing from before that moment comes
+  back, not even with `activity backfill`. Deleted rows are overwritten on disk.
+- **The `activity` command's own reply** (your top apps and actions) is kept out of the
+  audit log.
 
 ## The Phase 1 gate
 

@@ -1,14 +1,17 @@
 """
 Backfill: rebuild activity rows from the replay (audit) log, so learning doesn't
-start from zero. Runs once, automatically, when the backend first starts with
-the activity log on; `pikina activity backfill` re-runs it (it's idempotent:
-each row remembers the replay event it came from).
+start from zero. Runs once, automatically, when the backend starts with the
+activity log on; `pikina activity backfill` re-runs it (idempotent: each row
+remembers the replay event it came from).
+
+It only imports history from BEFORE live recording began (activity_meta
+"live_since"). From then on the live recorder is the source of truth, and what it
+skipped on purpose — while paused or switched off, rollbacks, commands that view
+or control the log — stays skipped. Nothing older than the 90-day window or than
+your last "forget my activity" is ever imported.
 
 Only normalised keys are extracted. The replay log's raw text, parameters and
 results (file paths, clipboard text) are read in memory and never copied.
-
-What's skipped: rollbacks (an undo isn't something you chose), actions whose
-outcome was never logged, and anything older than the 90-day retention window.
 Backfilled rows can't tell the dashboard from the quick panel, so their source
 is "backfill" (alias steps stay "alias", calendar clicks "ui").
 """
@@ -29,12 +32,37 @@ _ROLLBACK = re.compile(r"^rollback of \S+ \(alias '.*'\)$", re.S)
 _TOPICS = ("alias.started", "router.executing", "router.result", "router.denied", "validation.rejected")
 
 
+def quiet_tools() -> set:
+    """Tools whose manifest says "activity_log": false (core and plugins), read without importing handlers."""
+    from pikina import plugins
+    from pikina.registry import loader
+    folders = [loader._CAPABILITIES_DIR]
+    try:
+        found, _errors, _disabled = plugins.discover()
+        folders += [p.capabilities_dir for p in found]
+    except Exception:
+        pass
+    out = set()
+    for folder in folders:
+        for f in Path(folder).glob("*.json"):
+            try:
+                manifest = json.loads(f.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if isinstance(manifest, dict) and manifest.get("activity_log") is False and manifest.get("tool"):
+                out.add(manifest["tool"])
+    return out
+
+
 def _open_readonly(path: Path) -> sqlite3.Connection:
-    return sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=10.0)
+    # A plain path (not a file: URI) also works for network shares and mapped drives on Windows.
+    conn = sqlite3.connect(str(path), timeout=10.0)
+    conn.execute("PRAGMA query_only=ON")
+    return conn
 
 
 def backfill(store: ActivityStore | None = None, replay_path: Path | None = None,
-             now: datetime | None = None, force: bool = False) -> dict:
+             now: datetime | None = None, force: bool = False, skip_tools: set | None = None) -> dict:
     store = store or ActivityStore()
     now = now or datetime.now(timezone.utc)
     if not force and store.meta("backfilled_at"):
@@ -42,29 +70,39 @@ def backfill(store: ActivityStore | None = None, replay_path: Path | None = None
     if not recorder.is_enabled():
         return {"status": "skipped", "reason": "the activity log is off or paused", "added": 0}
 
+    epoch = store.meta("forget_epoch") or "0"
+    since = utc_iso(now - timedelta(days=RETENTION_DAYS))
+    floor = store.meta("no_backfill_before")
+    if floor and floor > since:
+        since = floor
+    until = store.meta("live_since") or utc_iso(now)
+
     path = Path(replay_path) if replay_path else paths.data_file(paths.REPLAY_DB)
-    rows = _rows_from_replay(path, now) if path.exists() else []
-    added = store.add_backfill(rows) if rows else 0
-    store.set_meta("backfilled_at", utc_iso(now))
+    rows: list = []
+    if path.exists() and since < until:
+        rows = _rows_from_replay(path, since, until, quiet_tools() if skip_tools is None else skip_tools)
+        if rows is None:
+            return {"status": "error", "reason": "couldn't read the replay log", "added": 0}
+    added = store.add_backfill(rows, forget_epoch=epoch, done_at=utc_iso(now))
+    if added is None:
+        return {"status": "skipped", "reason": "your activity was forgotten while importing", "added": 0}
     return {"status": "ok", "added": added, "found": len(rows)}
 
 
-def _rows_from_replay(path: Path, now: datetime) -> list[dict]:
-    cutoff = utc_iso(now - timedelta(days=RETENTION_DAYS))
+def _rows_from_replay(path: Path, since: str, until: str, skip: set) -> list[dict] | None:
     try:
         conn = _open_readonly(path)
+        try:
+            events = conn.execute(
+                f"SELECT id, topic, timestamp, payload FROM events WHERE topic IN ({','.join('?' * len(_TOPICS))}) "
+                "AND timestamp >= ? AND timestamp < ? ORDER BY timestamp, rowid", (*_TOPICS, since, until)).fetchall()
+        finally:
+            conn.close()
     except sqlite3.Error:
-        return []
-    try:
-        events = conn.execute(
-            f"SELECT id, topic, timestamp, payload FROM events WHERE topic IN ({','.join('?' * len(_TOPICS))}) "
-            "AND timestamp >= ? ORDER BY timestamp, rowid", (*_TOPICS, cutoff)).fetchall()
-    except sqlite3.Error:
-        return []
-    finally:
-        conn.close()
+        return None
 
-    pending = defaultdict(deque)   # (tool, tier) -> executions waiting for their result
+    by_exec: dict = {}             # router.executing id -> entry (results carry exec_id since Phase 1)
+    pending = defaultdict(deque)   # (tool, tier) -> executions waiting for their result (older logs)
     open_aliases: dict = {}        # alias raw text -> latest run
     aliases: list = []
     out: list = []
@@ -72,7 +110,7 @@ def _rows_from_replay(path: Path, now: datetime) -> list[dict]:
     def finish(entry, status_ok: bool, outcome: str, result=None):
         if entry.get("alias") is not None:
             entry["alias"]["steps"].append((status_ok, outcome))
-        if entry["source"] is None:
+        if entry["source"] is None or entry["tool"] in skip:
             return
         ts = entry["ts"]
         slim = {"launched": result.get("launched")} if isinstance(result, dict) and result.get("launched") else None
@@ -114,13 +152,28 @@ def _rows_from_replay(path: Path, now: datetime) -> list[dict]:
             if topic == "router.denied":
                 finish(entry, False, "denied")
             else:
+                by_exec[event_id] = entry
                 pending[(entry["tool"], tier)].append(entry)
 
         elif topic == "router.result":
-            queue = pending.get((p.get("tool"), str(p.get("tier", 1))))
-            if queue:
-                entry = queue.popleft()
-                result = p.get("result")
+            result = p.get("result")
+            entry = None
+            if p.get("exec_id"):                      # exact pairing
+                entry = by_exec.pop(p["exec_id"], None)
+                if entry is not None:
+                    try:
+                        pending[(entry["tool"], entry["tier"])].remove(entry)
+                    except ValueError:
+                        pass
+            else:                                     # older logs: newest open execution of that tool
+                queue = pending.get((p.get("tool"), str(p.get("tier", 1))))
+                if queue:
+                    entry = queue.pop()
+                    by_exec.pop(entry["id"], None)
+                    for orphan in queue:              # earlier ones never got a result: drop them
+                        by_exec.pop(orphan["id"], None)
+                    queue.clear()
+            if entry is not None:
                 status = result.get("status") if isinstance(result, dict) else None
                 finish(entry, status not in ("error", "denied", None), recorder.outcome_of(result), result)
 
@@ -148,6 +201,6 @@ def _rows_from_replay(path: Path, now: datetime) -> list[dict]:
             sid = new_session_id()
         last = row["ts"]
         local = row["ts"].astimezone()
-        row.update(session_id=sid, hour=local.hour, weekday=local.weekday(),
+        row.update(session_id=sid, hour=local.hour, weekday=local.weekday(), day=local.date().isoformat(),
                    ts=utc_iso(row["ts"]), active_app=None, suggestion_id=None)
     return out
