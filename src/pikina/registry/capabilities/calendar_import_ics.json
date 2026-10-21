@@ -8,12 +8,20 @@
   "rollback_action": null,
   "params_schema": {
     "type": "object",
-    "required": ["filepath"],
+    "required": [
+      "filepath"
+    ],
     "properties": {
       "filepath": {
         "type": "string",
         "description": "Absolute path to the .ics file."
       }
     }
-  }
+  },
+  "patterns": [
+    {
+      "regex": "import\\s+(?:an?\\s+)?(?:ics|calendar|invite)(?:\\s+file)?\\s+(?:from\\s+)?(?P<filepath>.+)",
+      "priority": 100
+    }
+  ]
 }

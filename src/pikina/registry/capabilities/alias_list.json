@@ -11,5 +11,11 @@
     "required": [],
     "properties": {}
   },
-  "read_only": true
+  "read_only": true,
+  "patterns": [
+    {
+      "regex": "(list|show)\\s+aliases?",
+      "priority": 120
+    }
+  ]
 }

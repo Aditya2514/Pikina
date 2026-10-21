@@ -65,7 +65,8 @@ class ReplayStore:
             ))
             conn.commit()
 
-    def query(self, since_minutes: int = 30, topic: str = None, limit: int = 200) -> list:
+    def query(self, since_minutes: int = 30, topic: str = None, limit: int = 200,
+              newest_first: bool = False) -> list:
         """Return events from the last N minutes, optionally filtered by topic."""
         cutoff = (datetime.now(timezone.utc) - timedelta(minutes=since_minutes)).isoformat()
         sql    = "SELECT * FROM events WHERE timestamp >= ?"
@@ -73,7 +74,7 @@ class ReplayStore:
         if topic:
             sql += " AND topic = ?"
             params.append(topic)
-        sql += " ORDER BY timestamp ASC LIMIT ?"
+        sql += f" ORDER BY timestamp {'DESC' if newest_first else 'ASC'} LIMIT ?"
         params.append(limit)
 
         with self._get_conn() as conn:

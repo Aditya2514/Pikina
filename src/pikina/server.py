@@ -250,6 +250,18 @@ def create_app(start_daemons: bool = False, enable_tier2: bool | None = None,
     def tools():
         return jsonify({"tools": backend.registry.list_tools()})
 
+    @app.get("/api/plugins")
+    def plugins():
+        from pikina import plugins as plugin_mod
+        reg = backend.registry
+        return jsonify({
+            "loaded": [dict(p.to_dict(), tools=[t["tool"] for t in reg.list_tools() if t["source"] == p.name])
+                       for p in reg.plugins],
+            "disabled": reg.disabled_plugins,
+            "errors": reg.plugin_errors,
+            "user_folder": str(plugin_mod.user_plugins_dir()),
+        })
+
     @app.get("/api/suggest")
     def suggest():
         q = request.args.get("q", "").strip().lower()

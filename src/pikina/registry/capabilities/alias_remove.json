@@ -8,12 +8,20 @@
   "rollback_action": null,
   "params_schema": {
     "type": "object",
-    "required": ["trigger"],
+    "required": [
+      "trigger"
+    ],
     "properties": {
       "trigger": {
         "type": "string",
         "description": "The exact trigger phrase of the alias to remove."
       }
     }
-  }
+  },
+  "patterns": [
+    {
+      "regex": "remove\\s+alias\\s+(?P<trigger>.+)",
+      "priority": 130
+    }
+  ]
 }

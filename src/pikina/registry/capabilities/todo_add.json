@@ -34,5 +34,15 @@
   },
   "rollback_params": {
     "text": "$result.todo.id"
-  }
+  },
+  "patterns": [
+    {
+      "regex": "add\\s+a\\s+task\\s+(?:to\\s+)?(?P<text>.+)",
+      "priority": 140
+    },
+    {
+      "regex": "(?:add\\s+)?(?:todo|task)\\s+(?P<text>.+)",
+      "priority": 150
+    }
+  ]
 }

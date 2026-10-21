@@ -1,0 +1,21 @@
+{
+  "tool": "dev.doctor",
+  "description": "Checks your coding environment (tools, Ollama, memory model, disk, encryption) and optionally a project folder (git, virtualenv, node_modules, .env keys).",
+  "permission_level": 0,
+  "estimated_cost": 0.05,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "read_only": true,
+  "params_schema": {
+    "type": "object",
+    "required": [],
+    "properties": {
+      "path": {"type": "string", "description": "Optional project folder to check, e.g. ~/code/pikina"}
+    }
+  },
+  "patterns": [
+    {"regex": "(?:run\\s+)?(?:dev\\s+)?doctor(?:\\s+(?:for|on|in)\\s+(?P<path>.+))?$", "priority": 252},
+    {"regex": "check\\s+my\\s+(?:dev\\s+)?(?:setup|environment)$", "priority": 253}
+  ]
+}

@@ -1,4 +1,4 @@
-# Pikina OS — User Manual & Technical Capabilities Guide (Phase 4e)
+# Pikina OS — User Manual & Technical Capabilities Guide (v0.4)
 
 Welcome to the comprehensive user manual for **Pikina OS**, a personal operating system layer for Windows and Linux. This manual documents every feature, command phrasing, backend daemon, and safety mechanism built into the system as of Phase 4e.
 
@@ -184,6 +184,35 @@ Recall stored facts and events from semantic vector memory.
 * **Permission Level:** 1
 * **Syntax:** `lock screen`, `lock workstation`, `lock pc`
 * **Linux:** tries `loginctl lock-session`, `xdg-screensaver lock`, the desktop's ScreenSaver D-Bus API, `xflock4` and `dm-tool lock` in turn.
+
+### 9. Clipboard History (`clipboard.history`)
+* **Permission Level:** 0
+* **Syntax:** `clipboard`, `clip history`, `what did I copy` (or the **CLIP** button)
+* Shows what you copied in the last 7 days, newest first. Copied text is never run as a command.
+
+### 10. Developer Tools (the built-in `devtools` plugin)
+
+#### Doctor (`dev.doctor`)
+* **Permission Level:** 0
+* **Syntax:** `doctor`, `check my dev setup`, `doctor for ~/code/my-app`
+* Checks Python, git, Node, `gh`, clipboard and dialog tools, Ollama and its model, the memory model,
+  free disk space and disk encryption. With a folder it also checks the project's git branch and
+  unpushed/behind commits, its virtualenv, `node_modules`, and which `.env` keys are missing
+  (names only — values are never read out).
+
+#### Ports (`dev.ports`)
+* **Permission Level:** 0
+* **Syntax:** `what's on port 3000`, `who is using port 5432`, `list ports`
+
+#### Free a Port (`dev.free_port`)
+* **Permission Level:** 3, no undo — **always asks first**
+* **Syntax:** `free port 3000`, `kill whatever's on port 8080`
+* Stops the program listening on that port. Refuses Pikina's own backend and other users' programs.
+
+### Plugins
+`pikina plugins` lists loaded, switched-off and skipped plugins. Your own plugins go in the
+`plugins/` folder inside your Pikina data folder and only load once their name is in
+`settings.json` under `"plugins_enabled"`. How to write one: `CONTRIBUTING.md` → *Writing a plugin*.
 
 ---
 

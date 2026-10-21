@@ -8,12 +8,36 @@
   "rollback_action": null,
   "params_schema": {
     "type": "object",
-    "required": ["path"],
+    "required": [
+      "path"
+    ],
     "properties": {
       "path": {
         "type": "string",
         "description": "Executable name (e.g. 'code') or full path"
       }
     }
-  }
+  },
+  "patterns": [
+    {
+      "regex": "open\\s+(?P<path>vs\\s*code|vscode)",
+      "priority": 10
+    },
+    {
+      "regex": "(?:open|start|launch|run)\\s+(?:the\\s+)?(?P<path>calc(?:ulator)?)",
+      "priority": 20
+    },
+    {
+      "regex": "(?:open|start|launch|run)\\s+(?:the\\s+)?(?P<path>paint)",
+      "priority": 30
+    },
+    {
+      "regex": "(?:open|start|launch|run)\\s+(?:the\\s+)?(?P<path>notepad)",
+      "priority": 40
+    },
+    {
+      "regex": "(?:open|launch)\\s+(?:the\\s+)?(?P<path>[\\w.+-]+(?:\\s+[\\w.+-]+){0,2})\\s*$",
+      "priority": 50
+    }
+  ]
 }

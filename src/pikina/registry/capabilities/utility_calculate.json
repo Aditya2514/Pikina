@@ -18,5 +18,11 @@
       }
     }
   },
-  "read_only": true
+  "read_only": true,
+  "patterns": [
+    {
+      "regex": "(?:calculate|calc)\\s+(?P<expr>.+)",
+      "priority": 330
+    }
+  ]
 }

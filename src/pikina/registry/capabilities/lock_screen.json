@@ -9,5 +9,11 @@
   "params_schema": {
     "type": "object",
     "properties": {}
-  }
+  },
+  "patterns": [
+    {
+      "regex": "lock\\s+(my\\s+)?(screen|workstation|pc|computer|laptop)",
+      "priority": 60
+    }
+  ]
 }

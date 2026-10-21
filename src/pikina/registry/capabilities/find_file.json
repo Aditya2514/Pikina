@@ -26,5 +26,19 @@
       }
     }
   },
-  "read_only": true
+  "read_only": true,
+  "patterns": [
+    {
+      "regex": "(?:find|look\\s+up|search\\s+for|where\\s+is)\\s+(?:files?\\s+(?:with\\s+)?|file\\s+called\\s+)?(?P<name>[\\w\\s.*-]+\\.\\w+)",
+      "priority": 70
+    },
+    {
+      "regex": "(?:look\\s+up|search\\s+for)\\s+files?\\s+(?:with\\s+|named?\\s+|called\\s+)?(?P<name>[\\w\\s*.-]+?)(?:\\s+in\\s+(?:the\\s+)?name)?$",
+      "priority": 80
+    },
+    {
+      "regex": "find\\s+(?:file\\s+)?(?P<name>.+)",
+      "priority": 90
+    }
+  ]
 }

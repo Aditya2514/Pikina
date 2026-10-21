@@ -8,12 +8,24 @@
   "rollback_action": null,
   "params_schema": {
     "type": "object",
-    "required": ["text"],
+    "required": [
+      "text"
+    ],
     "properties": {
       "text": {
         "type": "string",
         "description": "The task ID or substring text to complete."
       }
     }
-  }
+  },
+  "patterns": [
+    {
+      "regex": "mark\\s+(?:the\\s+)?(?:(?:task|todo)\\s+)?(?P<text>.+?)\\s+as\\s+(?:done|complete[d]?|finished)$",
+      "priority": 160
+    },
+    {
+      "regex": "(?:mark\\s+)?(?:complete|done)\\s+(?P<text>.+)",
+      "priority": 170
+    }
+  ]
 }

@@ -9,3 +9,9 @@ def run(params: dict) -> dict:
     # Run the import
     import os
     return import_ics(os.path.expanduser(filepath))
+
+
+def parse(params: dict) -> dict:
+    """Allow a quoted path: import ics "~/Downloads/my invite.ics"."""
+    params["filepath"] = params["filepath"].strip("\"'")
+    return params

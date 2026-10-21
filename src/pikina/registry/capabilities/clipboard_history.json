@@ -1,0 +1,21 @@
+{
+  "tool": "clipboard.history",
+  "description": "Shows the text you copied recently (password-manager secrets are never recorded).",
+  "permission_level": 0,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "read_only": true,
+  "params_schema": {
+    "type": "object",
+    "required": [],
+    "properties": {
+      "limit": {"type": "integer", "description": "How many recent copies to show (default 10)"}
+    }
+  },
+  "patterns": [
+    {"regex": "(?:show\\s+)?(?:my\\s+)?(?:clipboard|clip)(?:\\s+history)?$", "priority": 370},
+    {"regex": "what\\s+did\\s+i\\s+copy(?:\\s+recently)?\\??$", "priority": 370}
+  ]
+}

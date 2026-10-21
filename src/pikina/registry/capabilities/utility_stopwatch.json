@@ -8,13 +8,42 @@
   "rollback_action": null,
   "params_schema": {
     "type": "object",
-    "required": ["action"],
+    "required": [
+      "action"
+    ],
     "properties": {
       "action": {
         "type": "string",
-        "enum": ["start", "pause", "reset"],
+        "enum": [
+          "start",
+          "pause",
+          "reset"
+        ],
         "description": "The control action for the stopwatch."
       }
     }
-  }
+  },
+  "patterns": [
+    {
+      "regex": "(?:start|start\\s+the)\\s+stopwatch",
+      "priority": 340,
+      "params": {
+        "action": "start"
+      }
+    },
+    {
+      "regex": "(?:stop|pause|stop\\s+the|pause\\s+the)\\s+stopwatch",
+      "priority": 350,
+      "params": {
+        "action": "pause"
+      }
+    },
+    {
+      "regex": "reset\\s+(the\\s+)?stopwatch",
+      "priority": 360,
+      "params": {
+        "action": "reset"
+      }
+    }
+  ]
 }

@@ -59,6 +59,7 @@ where = ["src"]
 [tool.setuptools.package-data]
 "pikina.registry" = ["manifest_schema.json"]
 "pikina.registry.capabilities" = ["*.json"]
+"pikina.plugins" = ["*/plugin.json", "*/capabilities/*.json", "*/capabilities/*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -213,6 +213,12 @@ html, body {
   min-height: 16px;
   transition: color var(--tx-fast);
 }
+.panel-result.multiline {
+  white-space: pre-line;
+  text-align: left;
+  max-height: 150px;
+  overflow-y: auto;
+}
 .panel-result.ok     { color: var(--c-ok); }
 .panel-result.error  { color: var(--c-danger); }
 
