@@ -51,5 +51,18 @@
   },
   "rollback_params": {
     "text": "$result.event.id"
-  }
+  },
+  "patterns": [
+    {
+      "regex": "add\\s+(?:appointment|event|meeting)\\s+(?P<title>.+?)\\s+(?:on|at|date)\\s+(?P<date>.+)",
+      "priority": 240
+    },
+    {
+      "regex": "add\\s+(?:appointment|event|meeting)\\s+(?P<title>.+)",
+      "priority": 250,
+      "params": {
+        "date": ""
+      }
+    }
+  ]
 }

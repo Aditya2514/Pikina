@@ -24,5 +24,15 @@
       }
     }
   },
-  "read_only": true
+  "read_only": true,
+  "patterns": [
+    {
+      "regex": "what(?:\\s+do\\s+I\\s+have|\\s+'s|\\s+is\\s+happening)?\\s+(?P<range>(?:this|next)\\s+week)\\b",
+      "priority": 260
+    },
+    {
+      "regex": "what(?:'s|is)\\s+on\\s+(?P<date>.+)",
+      "priority": 270
+    }
+  ]
 }

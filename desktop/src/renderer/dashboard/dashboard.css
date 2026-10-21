@@ -466,6 +466,14 @@ body::after {
   letter-spacing: 1px;
 }
 
+.cmd-result.multiline {
+  white-space: pre-line;
+  text-align: left;
+  font-size: 11px;
+  line-height: 1.6;
+  max-height: 260px;
+  overflow-y: auto;
+}
 .cmd-result.ok     { color: var(--c-ok); }
 .cmd-result.error  { color: var(--c-danger); }
 .cmd-result.denied { color: var(--c-warn); }

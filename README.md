@@ -169,7 +169,7 @@ sequenceDiagram
 
 ## ⚡ Capability Registry & Command Specs
 
-Pikina OS provides **19 built-in capabilities** spanning system controls, task management, calendar integration, math calculations, and file searches.
+Pikina OS provides **23 built-in capabilities** spanning system controls, task management, calendar integration, math calculations, file searches, clipboard history and developer tools. New features are added as **plugins** (one folder each) — see [CONTRIBUTING.md](CONTRIBUTING.md#writing-a-plugin).
 
 ### Safety Permission Levels
 
@@ -200,6 +200,10 @@ Pikina OS provides **19 built-in capabilities** spanning system controls, task m
 │ utility.calculate    │   0   │ "calculate (45 * 2) + 10", "calc 12 * 8"               │
 │ utility.stopwatch    │   0   │ "start stopwatch", "pause stopwatch", "reset stopwatch"│
 │ system.lock_screen   │   1   │ "lock screen", "lock workstation", "lock pc"           │
+│ clipboard.history    │   0   │ "clipboard", "what did I copy"                         │
+│ dev.doctor           │   0   │ "doctor", "doctor for ~/code/app", "check my setup"    │
+│ dev.ports            │   0   │ "what's on port 3000", "list ports"                    │
+│ dev.free_port        │   3   │ "free port 3000" (always asks first)                   │
 └──────────────────────┴───────┴────────────────────────────────────────────────────────┘
 ```
 
@@ -267,6 +271,7 @@ Pikina/
 │   ├── router/                 # Tier 1 regex router, Tier 2 Ollama router, aliases
 │   ├── registry/               # Capability registry, shared executor, consent gatekeeper
 │   │   └── capabilities/       # One .json manifest + one .py handler per capability
+│   ├── plugins/                # Built-in plugins (devtools); yours go in <data folder>/plugins/
 │   ├── validation/             # Action Validation Layer (AVL)
 │   ├── transactions/           # Plan executor & rollback engine (alias chains)
 │   ├── mcm/                    # Orchestrator, provenance rules, kill switch

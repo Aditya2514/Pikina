@@ -8,12 +8,20 @@
   "rollback_action": null,
   "params_schema": {
     "type": "object",
-    "required": ["text"],
+    "required": [
+      "text"
+    ],
     "properties": {
       "text": {
         "type": "string",
         "description": "The event ID or substring title to remove."
       }
     }
-  }
+  },
+  "patterns": [
+    {
+      "regex": "(?:remove|delete)\\s+(?:event|appointment)\\s+(?P<text>.+)",
+      "priority": 280
+    }
+  ]
 }

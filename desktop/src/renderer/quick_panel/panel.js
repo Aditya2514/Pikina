@@ -46,15 +46,16 @@ async function runCommand(text) {
 
   const status = res.status || 'unknown';
   const messages = {
-    ok:       `✓ ${res.launched || res.message || 'Done'}`,
+    ok:       `✓ ${res.message || res.display || res.summary || res.launched || 'Done'}`,
     denied:   `⊘ Denied`,
     rejected: `⊘ Rejected — untrusted provenance`,
     no_match: `? No route matched: "${text}"`,
     error:    `✗ ${res.reason || 'Error'}`,
   };
 
-  result.textContent = messages[status] || `→ ${JSON.stringify(res).slice(0,80)}`;
+  result.textContent = messages[status] || `→ ${res.message || res.reason || 'Done'}`;
   result.className   = `panel-result ${status === 'ok' ? 'ok' : 'error'}`;
+  result.classList.toggle('multiline', result.textContent.includes('\n'));
 }
 
 const commandHistory = [];

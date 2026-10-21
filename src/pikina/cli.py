@@ -18,6 +18,7 @@ Commands:
   <anything>        Route through MCM -> Tier 1 regex, then Tier 2 Ollama (e.g. "open vs code")
   replay [N]        Show events from last N minutes (default 60)
   tools             List all registered capabilities
+  plugins           List loaded, disabled and broken plugins
   telemetry         Show current CPU / RAM / battery
   quit / exit       Exit
 """
@@ -74,6 +75,16 @@ def main():
             for t in registry.list_tools():
                 lvl = t["permission_level"]
                 print(f"  [L{lvl}] {t['tool']:30s} — {t['description']}")
+
+        elif cmd == "plugins":
+            from pikina import plugins as plugin_mod
+            print(f"\n[Plugins] Your plugins folder: {plugin_mod.user_plugins_dir()}\n")
+            for p in registry.plugins:
+                print(f"  [on]       {p.name} {p.version} ({p.source}) — {p.description}")
+            for name in registry.disabled_plugins:
+                print(f"  [off]      {name} — add it to \"plugins_enabled\" in settings.json")
+            for err in registry.plugin_errors:
+                print(f"  [skipped]  {err['plugin']} — {err['error']}")
 
         elif cmd == "telemetry":
             t = get_telemetry()

@@ -13,3 +13,9 @@ def run(params: dict) -> dict:
     if not path:
         return {"status": "error", "reason": "Missing required param: 'path'"}
     return launch(path)
+
+
+def parse(params: dict) -> dict:
+    """Typed app names are matched case-insensitively ("Open VS Code")."""
+    params["path"] = params["path"].lower()
+    return params

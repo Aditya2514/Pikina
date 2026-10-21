@@ -1,0 +1,23 @@
+{
+  "tool": "dev.ports",
+  "description": "Shows which programs are listening on network ports, or what holds one port.",
+  "permission_level": 0,
+  "estimated_cost": 0.01,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "read_only": true,
+  "params_schema": {
+    "type": "object",
+    "required": [],
+    "properties": {
+      "port": {"type": "integer", "description": "Optional port number, e.g. 5001"}
+    }
+  },
+  "patterns": [
+    {"regex": "what(?:'s|\\s+is)\\s+(?:running\\s+)?on\\s+port\\s+(?P<port>\\d+)\\??$", "priority": 250},
+    {"regex": "who(?:'s|\\s+is)\\s+using\\s+port\\s+(?P<port>\\d+)\\??$", "priority": 250},
+    {"regex": "(?:list|show)\\s+(?:all\\s+|my\\s+)?(?:open\\s+|listening\\s+|used\\s+)?ports$", "priority": 250},
+    {"regex": "ports$", "priority": 250}
+  ]
+}

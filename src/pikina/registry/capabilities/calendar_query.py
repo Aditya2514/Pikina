@@ -55,3 +55,13 @@ def run(params: dict) -> dict:
                 display += f"\n  {ev['title']}{time_str}{type_str} (ID: {ev['id']})"
                 
         return {"status": "ok", "events": events, "display": display}
+
+
+def parse(params: dict) -> dict:
+    """Turn "this week" / "next week" into a date range."""
+    if "range" not in params:
+        return params
+    from datetime import date, timedelta
+    today = date.today()
+    start = today + timedelta(days=7) if "next" in params["range"].lower() else today
+    return {"start_date": start.isoformat(), "end_date": (start + timedelta(days=7)).isoformat()}

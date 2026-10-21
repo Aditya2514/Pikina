@@ -54,6 +54,28 @@
     "read_only": {
       "type": "boolean",
       "description": "True if the action changes nothing, so a transaction can skip it during rollback."
+    },
+    "patterns": {
+      "type": "array",
+      "description": "Typed phrases (Tier 1). Named regex groups become params; lower priority numbers are tried first (core uses 10-370, step 10).",
+      "items": {
+        "type": "object",
+        "required": [
+          "regex"
+        ],
+        "properties": {
+          "regex": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "params": {
+            "type": "object",
+            "description": "Fixed params added when this phrase matches"
+          }
+        }
+      }
     }
   }
 }

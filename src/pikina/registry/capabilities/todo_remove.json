@@ -8,12 +8,20 @@
   "rollback_action": null,
   "params_schema": {
     "type": "object",
-    "required": ["text"],
+    "required": [
+      "text"
+    ],
     "properties": {
       "text": {
         "type": "string",
         "description": "The task ID or substring text to remove."
       }
     }
-  }
+  },
+  "patterns": [
+    {
+      "regex": "(?:remove|delete)\\s+(?:todo|task)\\s+(?P<text>.+)",
+      "priority": 230
+    }
+  ]
 }

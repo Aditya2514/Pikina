@@ -18,5 +18,11 @@
       }
     }
   },
-  "read_only": true
+  "read_only": true,
+  "patterns": [
+    {
+      "regex": "recall\\s+(?P<query>.+)",
+      "priority": 110
+    }
+  ]
 }

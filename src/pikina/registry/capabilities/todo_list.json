@@ -31,5 +31,42 @@
       }
     }
   },
-  "read_only": true
+  "read_only": true,
+  "patterns": [
+    {
+      "regex": "(?:list|show)\\s+(?:all\\s+)?(?:my\\s+)?(?:pending|open|remaining|unfinished)\\s+(?:todos|tasks|to-dos)",
+      "priority": 180,
+      "params": {
+        "status": "pending"
+      }
+    },
+    {
+      "regex": "what\\s+(?:are|is)\\s+(?:my|on\\s+my)\\s+(?:tasks|todos|to-dos|to-do\\s+list|todo\\s+list)\\??$",
+      "priority": 190,
+      "params": {
+        "status": "pending"
+      }
+    },
+    {
+      "regex": "(?:list|show)\\s+done\\s+(?:todos|tasks|list)",
+      "priority": 200,
+      "params": {
+        "status": "done"
+      }
+    },
+    {
+      "regex": "(?:list|show)\\s+all\\s+(?:todos|tasks|list)",
+      "priority": 210,
+      "params": {
+        "status": "all"
+      }
+    },
+    {
+      "regex": "(?:list|show)\\s+(?:todos|tasks|list)",
+      "priority": 220,
+      "params": {
+        "status": "pending"
+      }
+    }
+  ]
 }

@@ -1,0 +1,6 @@
+{
+  "name": "devtools",
+  "version": "0.1.0",
+  "api_version": 1,
+  "description": "Dev doctor, and port and process tools for your coding environment."
+}

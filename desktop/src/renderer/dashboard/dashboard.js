@@ -7,6 +7,13 @@
 
 const BACKEND = (window.pikina && window.pikina.BACKEND) || 'http://localhost:5001';
 
+// The readable part of a backend reply: never raw JSON.
+function replyText(result) {
+  if (!result) return 'Done';
+  return result.message || result.display || result.summary || result.launched
+    || result.reason || 'Done';
+}
+
 let calendarMiniObj = null;
 let calendarDetailedObj = null;
 
@@ -556,7 +563,7 @@ async function executeCommand(text) {
   }
 
   const messages = {
-    ok:       `✓ ${result.message || result.launched || JSON.stringify(result).slice(0, 80)}`,
+    ok:       `✓ ${replyText(result)}`,
     denied:   `⊘ Denied — ${result.reason || 'user declined'}`,
     rejected: `⊘ Rejected — ${result.reason || 'untrusted provenance'}`,
     no_match: `? ${result.message || 'No route matched'}`,
@@ -565,7 +572,7 @@ async function executeCommand(text) {
 
   cmdResult.className   = `cmd-result ${['ok'].includes(status) ? 'ok' : ['error', 'denied', 'rejected'].includes(status) ? 'error' : ''}`;
 
-  if (status === 'ok' && result.results && Array.isArray(result.results)) {
+  if (status === 'ok' && result.pattern !== undefined && Array.isArray(result.results)) {
     cmdResult.innerHTML = '';
     const header = document.createElement('div');
     header.textContent = `✓ Found ${result.count} files for '${result.pattern}':`;
@@ -671,7 +678,9 @@ async function executeCommand(text) {
         cmdResult.appendChild(memoryBox);
     });
   } else {
-    cmdResult.textContent = messages[status] || `→ ${JSON.stringify(result).slice(0, 100)}`;
+    cmdResult.textContent = messages[status] || `→ ${replyText(result)}`;
+    // Multi-line replies (calendar days, doctor checks, clipboard history) read top to bottom
+    cmdResult.classList.toggle('multiline', cmdResult.textContent.includes('\n'));
   }
 
   // Publish to event log

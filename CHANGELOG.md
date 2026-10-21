@@ -16,6 +16,17 @@ All notable changes to Pikina OS. Versions follow [Semantic Versioning](https://
 - Dependencies are declared in `pyproject.toml` (`requirements.txt` removed).
 
 ### Added
+- **Plugins.** A feature is now one folder with a `plugin.json` and its capabilities.
+  Built-in plugins ship in `src/pikina/plugins/`; your own go in `<data folder>/plugins/`
+  and stay off until listed in `settings.json` → `plugins_enabled`. Broken plugins are
+  skipped and reported, never crash Pikina. `pikina plugins` and `GET /api/plugins` list them.
+- **Typed phrases live in each capability's manifest** (`patterns`), replacing the
+  hard-coded route table in the Tier 1 router.
+- **devtools plugin:** `doctor` (checks Python, git, Node, Ollama, memory model, disk,
+  disk encryption, and — with `doctor for <folder>` — a project's git state, venv,
+  node_modules and missing `.env` keys, by name only), `what's on port N`, `list ports`,
+  and `free port N` (always asks first; won't touch Pikina itself or other users' programs).
+- `clipboard` / `what did I copy` shows recent clipboard history.
 - Linux support (consent dialogs, app launching, screen lock, clipboard daemon).
 - Tier 2 (Ollama) fallback in the desktop app, with model warm-up and JSON mode.
 - Alias chains run as transactions and roll back on failure.
@@ -25,6 +36,8 @@ All notable changes to Pikina OS. Versions follow [Semantic Versioning](https://
 - pytest suite and GitHub Actions CI on Linux and Windows.
 
 ### Fixed
+- The dashboard's CLIP button did nothing; it now shows clipboard history.
+- Replies without a `message` were shown as raw JSON in the dashboard and quick panel.
 - Calculator returned wrong results for `^` and broke on `max`/`exp`; it no longer uses `eval`.
 - `find_file` searched only the last folder; name searches only matched prefixes.
 - Weekday due dates ("by friday") resolved to the past.

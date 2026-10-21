@@ -1,0 +1,20 @@
+{
+  "tool": "dev.free_port",
+  "description": "Stops the program listening on a port so you can use it again. Asks first.",
+  "permission_level": 3,
+  "estimated_cost": 0.02,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["port"],
+    "properties": {
+      "port": {"type": "integer", "description": "Port number to free, e.g. 3000"}
+    }
+  },
+  "patterns": [
+    {"regex": "(?:free|kill|clear|release)\\s+port\\s+(?P<port>\\d+)$", "priority": 251},
+    {"regex": "kill\\s+(?:whatever|what)(?:'s|\\s+is)\\s+on\\s+port\\s+(?P<port>\\d+)$", "priority": 251}
+  ]
+}

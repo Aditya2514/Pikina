@@ -32,5 +32,35 @@
   "rollback_params": {
     "field": "$params.field",
     "value": "$result.previous_value"
-  }
+  },
+  "patterns": [
+    {
+      "regex": "call\\s+me\\s+(?P<value>.+)",
+      "priority": 290,
+      "params": {
+        "field": "preferred_name"
+      }
+    },
+    {
+      "regex": "be\\s+(?P<value>casual|formal|neutral)",
+      "priority": 300,
+      "params": {
+        "field": "formality"
+      }
+    },
+    {
+      "regex": "be\\s+(?P<value>concise|detailed|balanced)",
+      "priority": 310,
+      "params": {
+        "field": "verbosity"
+      }
+    },
+    {
+      "regex": "quiet\\s+hours\\s+from\\s+(?P<start>\\d{2}:\\d{2})\\s+to\\s+(?P<end>\\d{2}:\\d{2})",
+      "priority": 320,
+      "params": {
+        "field": "quiet_hours"
+      }
+    }
+  ]
 }
