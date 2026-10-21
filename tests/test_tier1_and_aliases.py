@@ -34,6 +34,8 @@ def _alias(router, steps, trigger="chain"):
     ("list all tasks", "todo.list", {"status": "all"}),
     ("open vs code", "app.open", {"path": "vs code"}),
     ("lock screen", "system.lock_screen", {}),
+    ("what's on 2026-07-20", "calendar.query", {"date": "2026-07-20"}),
+    ("what is on 2026-07-20", "calendar.query", {"date": "2026-07-20"}),
 ])
 def test_phrases_route_deterministically(router, monkeypatch, text, tool, params):
     seen = []
