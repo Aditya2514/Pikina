@@ -113,9 +113,18 @@ lifts a pause or drops your exclusions. Only a real `true` or `false` counts:
 - **The `activity` command's own reply** (your top apps and actions) is kept out of the
   audit log. Replies already stored there by the first Phase 1 build are cut down to their
   status once, on the next start.
-- **Markers in the app log:** `paused` (a pause began), `stopped` (tracking was turned off,
-  the kill switch was used, or Pikina quit), `none` (nothing focused) and `excluded`. None of
-  them name an app.
+- **Markers in the app log:**
+  - `paused`: a pause began.
+  - `stopped`: tracking was turned off, the kill switch was used, or Pikina quit, while a
+    real app was the last one recorded.
+  - `none`: nothing was focused.
+  - `excluded`: see above.
+
+  None of them name an app.
+- **The audit log is separate.** Pikina's audit log (`replay_store.sqlite`) still keeps
+  the full text of the commands you type. That includes project names, folders and to-do
+  text. The activity log above never does. The audit log isn't trimmed automatically yet;
+  deleting it is your call.
 
 ## The Phase 1 gate
 

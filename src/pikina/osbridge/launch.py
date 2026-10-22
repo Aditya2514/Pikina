@@ -147,11 +147,19 @@ def switch_workspace(workspace, env=None) -> dict:
     ws = str(workspace).strip()
     if not _WORKSPACE.match(ws):
         return {"status": "error", "reason": f"Not a workspace name: '{ws}'."}
-    if env.get("HYPRLAND_INSTANCE_SIGNATURE") and shutil.which("hyprctl"):
+    hypr_env = _live_hyprland_env(env)
+    if hypr_env is not None and shutil.which("hyprctl"):
         hyprctl = shutil.which("hyprctl")
-        if ws in _hyprland_active_workspace(hyprctl):
+        if ws in _hyprland_active_workspace(hyprctl, hypr_env):
             return {"status": "ok", "workspace": ws}  # already there: don't trigger back-and-forth
         argv = [hyprctl, "dispatch", "workspace", ws if ws.isdigit() else f"name:{ws}"]
+        try:
+            done = subprocess.run(argv, capture_output=True, text=True, timeout=3, env=hypr_env)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return {"status": "error", "reason": f"Couldn't switch workspace ({type(exc).__name__})."}
+        if done.returncode != 0:
+            return {"status": "error", "reason": "Hyprland refused the workspace switch."}
+        return {"status": "ok", "workspace": ws}
     elif (env.get("SWAYSOCK") or env.get("I3SOCK")) and (shutil.which("swaymsg") or shutil.which("i3-msg")):
         tool = shutil.which("swaymsg") or shutil.which("i3-msg")
         target = ["number", ws] if ws.isdigit() else [ws]
@@ -167,10 +175,28 @@ def switch_workspace(workspace, env=None) -> dict:
     return {"status": "ok", "workspace": ws}
 
 
-def _hyprland_active_workspace(hyprctl: str) -> set:
+def _live_hyprland_env(env) -> dict | None:
+    """
+    The environment for hyprctl pointed at the RUNNING Hyprland: its signature, found the
+    same way the app tracker finds it (a live hyprland.lock), so a stale or missing
+    HYPRLAND_INSTANCE_SIGNATURE (e.g. Pikina outlived a Hyprland restart) still works.
+    None when no Hyprland is running.
+    """
+    try:
+        from pikina.osbridge.focus import hyprland
+        live = hyprland.socket_dir(env)
+    except Exception:
+        live = None
+    if live is None:
+        return None
+    return {**dict(env), "HYPRLAND_INSTANCE_SIGNATURE": live.name}
+
+
+def _hyprland_active_workspace(hyprctl: str, env=None) -> set:
     """The current workspace's id and name (empty if it can't be read)."""
     try:
-        out = subprocess.run([hyprctl, "activeworkspace", "-j"], capture_output=True, text=True, timeout=2)
+        out = subprocess.run([hyprctl, "activeworkspace", "-j"], capture_output=True, text=True, timeout=2,
+                             env=env)
         data = json.loads(out.stdout or "{}")
     except (OSError, subprocess.TimeoutExpired, ValueError):
         return set()

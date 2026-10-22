@@ -40,7 +40,11 @@ def run(params: dict) -> dict:
             problems.append(f"{label}: {result.get('reason', 'failed')}")
 
     if entry.get("workspace") not in (None, ""):
-        note(f"workspace {entry['workspace']}", launch.switch_workspace(entry["workspace"]))
+        result = launch.switch_workspace(entry["workspace"])
+        if result.get("status") == "skipped":   # set up, but no Hyprland/Sway to switch: say so
+            problems.append(f"workspace {entry['workspace']}: {result.get('reason')}")
+        else:
+            note(f"workspace {entry['workspace']}", result)
 
     terminal = entry.get("terminal")
     preferred = terminal if isinstance(terminal, str) else None

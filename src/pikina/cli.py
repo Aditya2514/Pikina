@@ -130,7 +130,8 @@ def main():
                 continue
             status = result.get("status", "unknown")
             icon   = "[OK]" if status == "ok" else ("[X]" if status in ("error", "denied") else "->")
-            text   = result.get("message") or result.get("reason")
+            text   = (result.get("message") or result.get("display") or result.get("summary")
+                      or result.get("reason"))
             if text:
                 print(f"  {icon} " + str(text).replace("\n", "\n      "))
             else:

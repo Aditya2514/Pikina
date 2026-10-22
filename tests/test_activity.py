@@ -587,10 +587,26 @@ def test_paused_tracker_writes_nothing(tracker, store):
 
 
 def test_tracker_without_a_backend_reports_why():
-    tr = WindowTracker(detect=lambda: (None, "GNOME on Wayland isn't supported yet"), make_source=None)
+    tr = WindowTracker(detect=lambda: (None, "GNOME on Wayland isn't supported yet"), make_source=lambda b, cb: None)
     assert tr.start() is False
     assert tr.status() == {"running": False, "backend": None, "reason": "GNOME on Wayland isn't supported yet"}
+    t0 = time.monotonic()
     tr.stop()
+    assert time.monotonic() - t0 < 2
+
+
+def test_tracker_keeps_retrying_until_the_window_system_appears(store):
+    answers = [(None, "xprop isn't installed"), (None, "xprop isn't installed"), ("x11", None)]
+    detect = lambda: answers.pop(0) if len(answers) > 1 else answers[0]  # noqa: E731
+    tr = WindowTracker(detect=detect, make_source=lambda b, cb: FakeSource(cb))
+    assert tr.start() is False and "xprop" in tr.status()["reason"]
+    deadline = time.monotonic() + 8          # retries after 1 s, then 2 s
+    while time.monotonic() < deadline and not tr.running:
+        time.sleep(0.1)
+    try:
+        assert tr.status() == {"running": True, "backend": "x11", "reason": None}
+    finally:
+        tr.stop()
 
 
 def test_tracker_stop_is_prompt_and_unhooks_active_app(tracker):

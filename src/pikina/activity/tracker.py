@@ -53,27 +53,53 @@ class WindowTracker:
         self._last_raw = None             # last (app, private, pid) seen; never a title
         self._source = None
         self._writer = None
+        self._retry = None
         self.backend: str | None = None
         self.reason: str | None = None
         self.dropped = 0
 
     # -- lifecycle -----------------------------------------------------------
     def start(self) -> bool:
-        backend, reason = self._detect()
-        self.backend, self.reason = backend, reason
-        if not backend:
-            return False
-        self._writer = threading.Thread(target=self._write_loop, name="WindowTrackerWriter", daemon=True)
-        self._writer.start()
+        """
+        Start listening. If no backend can be found right now (Hyprland not up yet, xprop
+        not installed), keep retrying in the background (1 s, doubling to 30 s) until it
+        works or stop() is called; status() explains why meanwhile. True if running now.
+        """
+        if self._try_start():
+            return True
+        self._retry = threading.Thread(target=self._retry_loop, name="WindowTrackerRetry", daemon=True)
+        self._retry.start()
+        return False
+
+    def _try_start(self) -> bool:
         try:
-            self._source = self._make_source(backend, self._on_focus)
-            self._source.start()
+            backend, reason = self._detect()
+        except Exception as exc:
+            backend, reason = None, f"Couldn't check for a window system ({type(exc).__name__})."
+        self.backend, self.reason = backend, reason
+        if not backend or self._stopping.is_set():
+            return False
+        try:  # the source first: it only queues, so nothing is lost before the writer runs
+            source = self._make_source(backend, self._on_focus)
+            source.start()
         except Exception as exc:
             self.reason = f"Couldn't start the {backend} listener ({type(exc).__name__})."
+            return False
+        self._source = source
+        self._writer = threading.Thread(target=self._write_loop, name="WindowTrackerWriter", daemon=True)
+        self._writer.start()
+        recorder.set_active_app_provider(self.current_app)
+        if self._stopping.is_set():  # stop() raced with this start: undo it
             self.stop()
             return False
-        recorder.set_active_app_provider(self.current_app)
         return True
+
+    def _retry_loop(self) -> None:
+        delay = 1.0
+        while not self._stopping.wait(delay):
+            if self._try_start():
+                return
+            delay = min(delay * 2, 30.0)
 
     def stop(self) -> None:
         # Mark the end, so the time after this isn't credited to the last app (Phase 2 dwell times).
@@ -98,6 +124,9 @@ class WindowTracker:
         writer, self._writer = self._writer, None
         if writer is not None and writer is not threading.current_thread():
             writer.join(timeout=3)
+        retry, self._retry = self._retry, None
+        if retry is not None and retry is not threading.current_thread():
+            retry.join(timeout=3)
 
     def _source_failure(self) -> str | None:
         src = self._source

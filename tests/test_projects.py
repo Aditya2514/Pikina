@@ -150,7 +150,7 @@ def test_declining_the_dev_command_still_opens_a_plain_terminal(router, proj, sp
 
 def test_workspace_apps_and_links(router, proj, spawned, monkeypatch):
     ran = []
-    monkeypatch.setenv("HYPRLAND_INSTANCE_SIGNATURE", "abc")
+    monkeypatch.setattr(launch, "_live_hyprland_env", lambda env: {"HYPRLAND_INSTANCE_SIGNATURE": "abc"})
     monkeypatch.setattr(launch.subprocess, "run",
                         lambda argv, **k: ran.append(argv) or subprocess.CompletedProcess(argv, 0, "", ""))
     monkeypatch.setattr(apps, "launch", lambda name: {"status": "ok", "launched": name})
@@ -395,6 +395,7 @@ def test_already_on_the_workspace_doesnt_bounce_back(monkeypatch):
         return subprocess.CompletedProcess(argv, 0, out, "")
     monkeypatch.setattr(launch.shutil, "which", lambda n, *a, **k: "/usr/bin/hyprctl" if n == "hyprctl" else None)
     monkeypatch.setattr(launch.subprocess, "run", fake_run)
+    monkeypatch.setattr(launch, "_live_hyprland_env", lambda env: {"HYPRLAND_INSTANCE_SIGNATURE": "x"})
     assert launch.switch_workspace(3, env={"HYPRLAND_INSTANCE_SIGNATURE": "x"})["status"] == "ok"
     assert ran == [["/usr/bin/hyprctl", "activeworkspace", "-j"]]
 
@@ -417,3 +418,47 @@ def test_approvals_are_tied_to_this_install(tmp_path, monkeypatch):
     here = projects.dev_digest("npm run dev", tmp_path)
     monkeypatch.setenv("PIKINA_DATA_DIR", str(tmp_path / "other"))
     assert projects.dev_digest("npm run dev", tmp_path) != here
+
+
+
+# ---------------------------------------------------------------------------
+# Checkup fixes (found by running everything end to end)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Hyprland instance folders")
+@pytest.mark.parametrize("his", ["", "0123abc_1700000000_dead"])
+def test_workspace_switch_finds_the_live_hyprland(tmp_path, monkeypatch, his):
+    import os as _os
+    live = tmp_path / "hypr" / "feed_1800000000_live"
+    live.mkdir(parents=True)
+    (live / ".socket2.sock").write_text("")
+    (live / "hyprland.lock").write_text(f"{_os.getpid()}\nwayland-1\n")
+    seen = []
+
+    def fake_run(argv, env=None, **k):
+        seen.append((argv[1:], env.get("HYPRLAND_INSTANCE_SIGNATURE")))
+        return subprocess.CompletedProcess(argv, 0, "{}" if "activeworkspace" in argv else "", "")
+    monkeypatch.setattr(launch.shutil, "which", lambda n, *a, **k: "/usr/bin/hyprctl" if n == "hyprctl" else None)
+    monkeypatch.setattr(launch.subprocess, "run", fake_run)
+    env = {"XDG_RUNTIME_DIR": str(tmp_path), "WAYLAND_DISPLAY": "wayland-1"}
+    if his:
+        env["HYPRLAND_INSTANCE_SIGNATURE"] = his          # stale: Pikina outlived a restart
+    assert launch.switch_workspace(2, env=env)["status"] == "ok"
+    assert seen[-1] == (["dispatch", "workspace", "2"], "feed_1800000000_live")
+
+
+def test_a_configured_workspace_that_cant_be_switched_is_reported(router, proj, spawned, monkeypatch):
+    monkeypatch.setattr(launch, "_live_hyprland_env", lambda env: None)
+    monkeypatch.delenv("SWAYSOCK", raising=False)
+    monkeypatch.delenv("I3SOCK", raising=False)
+    _save("p", path=str(proj), workspace=2)
+    res = router.route("work on p")
+    assert any(p.startswith("workspace 2:") for p in res["problems"])
+
+
+def test_cli_prints_readable_replies(tmp_path):
+    env = dict(__import__("os").environ, PIKINA_DATA_DIR=str(tmp_path), PIKINA_TIER2="0")
+    out = subprocess.run([sys.executable, "-m", "pikina.cli"], input="list todos\nwhat's on today\nquit\n",
+                         capture_output=True, text=True, env=env, timeout=60)
+    assert "No matching tasks found." in out.stdout and "Events on" in out.stdout
+    assert "{'status'" not in out.stdout
