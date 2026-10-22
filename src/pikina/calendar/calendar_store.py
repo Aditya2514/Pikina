@@ -5,6 +5,12 @@ from datetime import datetime, timezone
 
 from pikina import paths
 
+# One list for every way an event is created or edited (commands, dashboard forms).
+EVENT_TYPES = ("personal", "college", "appointment", "meeting", "work", "holiday", "other")
+# Only yearly repeats are expanded when the calendar is read; others would silently not repeat.
+RECURRENCE = ("none", "yearly")
+
+
 class CalendarStore:
     def __init__(self, db_path=None):
         self.db_path = str(db_path or paths.data_file(paths.MAIN_DB))

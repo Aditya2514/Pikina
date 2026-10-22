@@ -1,4 +1,4 @@
-from pikina.calendar.calendar_store import CalendarStore
+from pikina.calendar.calendar_store import RECURRENCE, CalendarStore
 
 def run(params: dict) -> dict:
     event_id  = params.get("event_id", "").strip()
@@ -9,6 +9,8 @@ def run(params: dict) -> dict:
     source    = params.get("source", "user").strip().lower()
     recurring = params.get("recurring", "none").strip().lower()
 
+    if recurring not in RECURRENCE:
+        return {"status": "error", "reason": "Repeating events can only be yearly for now."}
     if not event_id:
         return {"status": "error", "reason": "Missing required param: 'event_id'"}
     if not title:

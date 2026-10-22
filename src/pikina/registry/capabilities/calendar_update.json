@@ -51,9 +51,6 @@
         "type": "string",
         "enum": [
           "none",
-          "daily",
-          "weekly",
-          "monthly",
           "yearly"
         ],
         "description": "Optional recurrence schedule."

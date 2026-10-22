@@ -31,4 +31,5 @@ contextBridge.exposeInMainWorld('pikina', {
 
   // Listeners for main -> renderer events
   onTriggerWallpaper: (callback) => ipcRenderer.on('trigger-wallpaper', callback),
+  onBackendState:     (callback) => ipcRenderer.on('backend-state', (_, state) => callback(state)),
 });

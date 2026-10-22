@@ -317,10 +317,29 @@ function reloadAfterBackendStart() {
     pollWeather();
     loadDeadlines();
     pollStatus();
-    if (typeof calendarMiniObj !== 'undefined' && calendarMiniObj) calendarMiniObj.refetchEvents();
-    if (typeof calendarDetailedObj !== 'undefined' && calendarDetailedObj) calendarDetailedObj.refetchEvents();
+    if (!calendarFetchOk) {  // the calendars fetch on first draw; only redo it if that failed
+      if (typeof calendarMiniObj !== 'undefined' && calendarMiniObj) calendarMiniObj.refetchEvents();
+      if (typeof calendarDetailedObj !== 'undefined' && calendarDetailedObj) calendarDetailedObj.refetchEvents();
+    }
   } catch (e) { console.error(e); }
 }
+
+let calendarFetchOk = false;   // set by the calendars' event sources
+
+// Why the backend is offline, from the main process: starting | external | started | slow | crashed | missing
+let backendStartState = 'starting';
+if (window.pikina && window.pikina.onBackendState) {
+  window.pikina.onBackendState((state) => {
+    backendStartState = state;
+    if (!backendOnline) setBackendStatus(false);
+  });
+}
+
+// If the backend still isn't up after 10 s, show the offline texts instead of "Loading..."
+// and the default background (the loads themselves fall back when they fail).
+setTimeout(() => {
+  if (!backendOnline) { loadSettings(); pollWeather(); loadDeadlines(); }
+}, 10000);
 
 // One list of event types for creating and editing (the backend stores any of these).
 const EVENT_TYPES = ['personal', 'college', 'appointment', 'meeting', 'work', 'holiday', 'other'];
@@ -346,7 +365,11 @@ function setBackendStatus(online, profile) {
     tier.textContent  = 'TIER 1 ACTIVE';
   } else {
     dot.className   = 'status-dot offline';
-    label.textContent = 'BACKEND OFFLINE — starting it (or run pikina-server)';
+    label.textContent = backendStartState === 'missing'
+      ? 'BACKEND OFFLINE — pikina-server not found (pip install -e . in the repo)'
+      : backendStartState === 'crashed'
+        ? 'BACKEND OFFLINE — pikina-server stopped; run it in a terminal to see why'
+        : 'BACKEND OFFLINE — starting it (or run pikina-server)';
     tier.textContent  = 'STANDALONE';
   }
 
@@ -1358,8 +1381,10 @@ function initMiniCalendar() {
             className: `fc-event-${type}`
           };
         });
+        calendarFetchOk = true;
         successCallback(mapped);
       } catch (err) {
+        calendarFetchOk = false;
         failureCallback(err);
       }
     }
@@ -1466,8 +1491,10 @@ function initDetailedCalendar() {
             className: `fc-event-${type}`
           };
         });
+        calendarFetchOk = true;
         successCallback(mapped);
       } catch (err) {
+        calendarFetchOk = false;
         failureCallback(err);
       }
     },
@@ -1572,10 +1599,7 @@ function initDetailedCalendar() {
             <div style="flex: 1;">
               <label style="color: var(--c-cyan); font-weight: bold; display: block; margin-bottom: 2px; font-size: 10px;">RECURRING</label>
               <select id="edit-event-recurring" class="cmd-input" style="width: 100%; box-sizing: border-box; padding: 6px; font-family: inherit; font-size: 11px; background: #020810; border: 1px solid rgba(0, 212, 255, 0.2); color: #fff;">
-                <option value="none" ${recurring === 'none' ? 'selected' : ''}>NONE</option>
-                <option value="daily" ${recurring === 'daily' ? 'selected' : ''}>DAILY</option>
-                <option value="weekly" ${recurring === 'weekly' ? 'selected' : ''}>WEEKLY</option>
-                <option value="monthly" ${recurring === 'monthly' ? 'selected' : ''}>MONTHLY</option>
+                <option value="none" ${recurring !== 'yearly' ? 'selected' : ''}>NONE</option>
                 <option value="yearly" ${recurring === 'yearly' ? 'selected' : ''}>YEARLY</option>
               </select>
             </div>

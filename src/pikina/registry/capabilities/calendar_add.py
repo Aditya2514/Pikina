@@ -1,5 +1,5 @@
 import re
-from pikina.calendar.calendar_store import CalendarStore
+from pikina.calendar.calendar_store import EVENT_TYPES, RECURRENCE, CalendarStore
 
 def run(params: dict) -> dict:
     title      = params.get("title", "").strip()
@@ -28,10 +28,10 @@ def run(params: dict) -> dict:
     except ImportError:
         pass
 
-    if event_type not in ("personal", "college", "appointment", "holiday"):
+    if event_type not in EVENT_TYPES:
         event_type = "personal"
-    if recurring not in ("none", "yearly"):
-        recurring = "none"
+    if recurring not in RECURRENCE:
+        return {"status": "error", "reason": "Repeating events can only be yearly for now."}
 
     # Normalize time_input if explicitly passed
     if parsed_time:

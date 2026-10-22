@@ -52,7 +52,19 @@ if (!gotTheLock) {
 // Dashboard window
 // ---------------------------------------------------------------------------
 
+let backendState = 'starting';
+function sendBackendState() {
+  if (dashboardWindow && !dashboardWindow.isDestroyed()) dashboardWindow.webContents.send('backend-state', backendState);
+}
+
 function createDashboard() {
+  // One dashboard only: a second launch during startup must not open another.
+  if (dashboardWindow && !dashboardWindow.isDestroyed()) {
+    if (dashboardWindow.isMinimized()) dashboardWindow.restore();
+    dashboardWindow.show();
+    dashboardWindow.focus();
+    return;
+  }
   // Load icon safely — don't crash if file is missing/corrupt
   let winIcon;
   try {
@@ -108,6 +120,7 @@ function createDashboard() {
     console.error('[Main] Dashboard failed to load:', errorCode, errorDesc);
   });
 
+  dashboardWindow.webContents.on('did-finish-load', sendBackendState);  // tell it why it may be offline
   dashboardWindow.loadFile(path.join(RENDERER, 'dashboard', 'index.html'));
 
   if (IS_DEV) {
@@ -321,7 +334,12 @@ app.whenReady().then(async () => {
   // Start the Python backend unless one is already running, and give it a few seconds
   // before the dashboard opens, so the HUD's first requests don't all fail. If it is slow
   // the HUD opens anyway, shows "BACKEND OFFLINE", and loads everything once it answers.
-  const backendReady = ensureBackend().then((state) => { console.log(`[Main] Backend: ${state}`); return state; });
+  const backendReady = ensureBackend().then((state) => {
+    console.log(`[Main] Backend: ${state}`);
+    backendState = state;
+    sendBackendState();
+    return state;
+  });
   await Promise.race([backendReady, new Promise((resolve) => setTimeout(resolve, 8000))]);
 
   // Attach the API token to every renderer request to the backend.
