@@ -317,14 +317,15 @@ function reloadAfterBackendStart() {
     pollWeather();
     loadDeadlines();
     pollStatus();
-    if (!calendarFetchOk) {  // the calendars fetch on first draw; only redo it if that failed
+    if (calendarFetchFailed) {  // the calendars fetch on first draw; only redo it if that failed
+      calendarFetchFailed = false;
       if (typeof calendarMiniObj !== 'undefined' && calendarMiniObj) calendarMiniObj.refetchEvents();
       if (typeof calendarDetailedObj !== 'undefined' && calendarDetailedObj) calendarDetailedObj.refetchEvents();
     }
   } catch (e) { console.error(e); }
 }
 
-let calendarFetchOk = false;   // set by the calendars' event sources
+let calendarFetchFailed = false;   // set by the calendars' event sources when a fetch fails
 
 // Why the backend is offline, from the main process: starting | external | started | slow | crashed | missing
 let backendStartState = 'starting';
@@ -337,8 +338,13 @@ if (window.pikina && window.pikina.onBackendState) {
 
 // If the backend still isn't up after 10 s, show the offline texts instead of "Loading..."
 // and the default background (the loads themselves fall back when they fail).
+// Display only, no requests: if the backend appears at that very moment it loads normally.
 setTimeout(() => {
-  if (!backendOnline) { loadSettings(); pollWeather(); loadDeadlines(); }
+  if (backendOnline) return;
+  document.getElementById('weather-desc').textContent = 'WEATHER UNAVAILABLE';
+  document.getElementById('deadline-list').innerHTML =
+    '<div class="deadline-empty">Could not load objectives.</div>';
+  if (!settingsLoaded) applyBackground3d(true);   // the default until your settings load
 }, 10000);
 
 // One list of event types for creating and editing (the backend stores any of these).
@@ -1381,10 +1387,9 @@ function initMiniCalendar() {
             className: `fc-event-${type}`
           };
         });
-        calendarFetchOk = true;
         successCallback(mapped);
       } catch (err) {
-        calendarFetchOk = false;
+        calendarFetchFailed = true;
         failureCallback(err);
       }
     }
@@ -1491,10 +1496,9 @@ function initDetailedCalendar() {
             className: `fc-event-${type}`
           };
         });
-        calendarFetchOk = true;
         successCallback(mapped);
       } catch (err) {
-        calendarFetchOk = false;
+        calendarFetchFailed = true;
         failureCallback(err);
       }
     },
