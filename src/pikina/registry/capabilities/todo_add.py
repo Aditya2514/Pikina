@@ -21,7 +21,11 @@ def run(params: dict) -> dict:
             pass  # Fall back to using the raw input string if library not available
 
     store = ToDoStore()
-    return store.add(text, bucket, due_date)
+    result = store.add(text, bucket, due_date)
+    if isinstance(result, dict) and result.get("status") == "ok" and "message" not in result:
+        when = f", due {due_date}" if due_date else ""
+        result["message"] = f"Added task '{text.strip()}' ({bucket}{when})."
+    return result
 
 
 def parse(params: dict) -> dict:

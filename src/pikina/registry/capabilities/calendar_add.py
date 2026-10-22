@@ -47,4 +47,8 @@ def run(params: dict) -> dict:
     description = params.get("description", "").strip()
 
     store = CalendarStore()
-    return store.add_event(title, parsed_date, parsed_time, event_type, "user", recurring, description)
+    result = store.add_event(title, parsed_date, parsed_time, event_type, "user", recurring, description)
+    if isinstance(result, dict) and result.get("status") == "ok" and "message" not in result:
+        at = f" at {parsed_time}" if parsed_time else ""
+        result["message"] = f"Added '{title}' on {parsed_date}{at}."
+    return result

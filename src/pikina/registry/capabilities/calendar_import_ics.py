@@ -8,7 +8,11 @@ def run(params: dict) -> dict:
 
     # Run the import
     import os
-    return import_ics(os.path.expanduser(filepath))
+    result = import_ics(os.path.expanduser(filepath))
+    if isinstance(result, dict) and result.get("status") == "ok" and "message" not in result:
+        n, bad = result.get("added_count", 0), result.get("skipped_errors", 0)
+        result["message"] = f"Imported {n} event{'s' if n != 1 else ''}" + (f", skipped {bad}." if bad else ".")
+    return result
 
 
 def parse(params: dict) -> dict:

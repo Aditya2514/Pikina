@@ -97,10 +97,16 @@ def run(params: dict) -> dict:
             if h not in results:
                 results.append(h)
 
+    shown = results[:max_results]
+    home = str(Path.home())
+    lines = [("~" + r[len(home):]) if r.startswith(home) else r for r in shown[:10]]
+    message = (f"Found {len(shown)} file{'s' if len(shown) != 1 else ''} matching {name}:\n" + "\n".join(lines)
+               if shown else f"No files matching {name}.")
     return {
         "status":         "ok",
-        "results":        results[:max_results],
-        "count":          len(results[:max_results]),
+        "results":        shown,
+        "count":          len(shown),
         "roots_searched": [str(r) for r in search_roots],
         "pattern":        name,
+        "message":        message,
     }
