@@ -204,3 +204,40 @@ def _rows_from_replay(path: Path, since: str, until: str, skip: set) -> list[dic
         row.update(session_id=sid, hour=local.hour, weekday=local.weekday(), day=local.date().isoformat(),
                    ts=utc_iso(row["ts"]), active_app=None, suggestion_id=None)
     return out
+
+
+def scrub_replay_log(path: Path | None = None) -> int:
+    """
+    The first Phase 1 build wrote the full reply of commands like "activity" (your top apps
+    and actions) into the replay log. Reduce those stored replies to their status, once.
+    Returns how many events were rewritten.
+    """
+    path = Path(path) if path else paths.data_file(paths.REPLAY_DB)
+    if not path.exists():
+        return 0
+    quiet = quiet_tools()
+    try:
+        conn = sqlite3.connect(str(path), timeout=10.0)
+    except sqlite3.Error:
+        return 0
+    changed = 0
+    try:
+        conn.execute("PRAGMA secure_delete=ON")  # don't leave the old text in free pages
+        rows = conn.execute("SELECT id, payload FROM events WHERE topic = 'router.result' "
+                            "AND payload LIKE '%\"activity.%'").fetchall()
+        with conn:
+            for event_id, payload in rows:
+                try:
+                    p = json.loads(payload or "{}")
+                except ValueError:
+                    continue
+                result = p.get("result")
+                if p.get("tool") in quiet and isinstance(result, dict) and set(result) - {"status"}:
+                    p["result"] = {"status": result.get("status")}
+                    conn.execute("UPDATE events SET payload = ? WHERE id = ?", (json.dumps(p), event_id))
+                    changed += 1
+    except sqlite3.Error:
+        pass
+    finally:
+        conn.close()
+    return changed

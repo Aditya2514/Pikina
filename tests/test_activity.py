@@ -727,12 +727,13 @@ def test_unhealthy_listener_reports_why_and_gives_no_active_app(store):
 
 
 def test_sessions_survive_the_clock_jumping_back(store):
-    t0 = datetime(2026, 10, 20, 15, 0, tzinfo=timezone.utc)
-    store.add_action(ts=t0 + timedelta(hours=5, minutes=30), action="a", source="typed", outcome="ok")  # RTC in local time
-    store.add_action(ts=t0, action="b", source="typed", outcome="ok")
-    store.add_action(ts=t0 + timedelta(minutes=45), action="c", source="typed", outcome="ok")
+    now = datetime.now(timezone.utc)
+    store.add_action(ts=now + timedelta(hours=5, minutes=30), action="a", source="typed", outcome="ok")  # RTC in local time
+    store.add_action(ts=now, action="b", source="typed", outcome="ok")        # NTP fixed the clock
+    store.add_action(ts=now + timedelta(seconds=5), action="c", source="typed", outcome="ok")
+    store.add_action(ts=now + timedelta(minutes=45), action="d", source="typed", outcome="ok")
     sids = {r["action"]: r["session_id"] for r in store.recent()}
-    assert sids["a"] != sids["b"] != sids["c"]
+    assert sids["a"] != sids["b"] == sids["c"] != sids["d"]
 
 
 def test_day_is_the_local_date(store):
@@ -857,3 +858,161 @@ def test_tier2_decline_is_recorded_once(registry, store, consent, monkeypatch, t
         assert got[0]["source"] == "quick_panel"
         assert before <= datetime.fromisoformat(got[0]["ts"]) <= datetime.now(timezone.utc)
     assert backfill(store=store, force=True)["added"] == 0   # no duplicate from the audit log
+
+
+# ---------------------------------------------------------------------------
+# Re-verification round: upgrades, migrations, markers, best-effort switches
+# ---------------------------------------------------------------------------
+
+def _old_build_db(path, rows, backfilled_at=None):
+    """An activity.db as the first Phase 1 build (1de9443) wrote it: no day column, no live_since."""
+    import sqlite3
+    conn = sqlite3.connect(path)
+    conn.executescript("""
+        CREATE TABLE activity (id INTEGER PRIMARY KEY, ts TEXT NOT NULL, action TEXT NOT NULL,
+            source TEXT NOT NULL, hour INTEGER NOT NULL, weekday INTEGER NOT NULL, active_app TEXT,
+            session_id TEXT NOT NULL, outcome TEXT NOT NULL, tier TEXT, group_id TEXT,
+            suggestion_id TEXT, origin_event TEXT UNIQUE);
+        CREATE TABLE app_switches (id INTEGER PRIMARY KEY, ts TEXT NOT NULL, app TEXT NOT NULL,
+            backend TEXT, session_id TEXT NOT NULL);
+        CREATE TABLE activity_meta (key TEXT PRIMARY KEY, value TEXT);""")
+    for ts, action in rows:
+        conn.execute("INSERT INTO activity (ts, action, source, hour, weekday, session_id, outcome) "
+                     "VALUES (?, ?, 'typed', 9, 0, 's-1', 'ok')", (ts, action))
+    if backfilled_at:
+        conn.execute("INSERT INTO activity_meta VALUES ('backfilled_at', ?)", (backfilled_at,))
+    conn.commit()
+    conn.close()
+
+
+def test_upgrading_a_first_build_database(replay):
+    now = datetime.now(timezone.utc)
+    d1, d2 = now - timedelta(days=5), now - timedelta(days=3)
+    _old_build_db(paths.data_file(paths.ACTIVITY_DB), [(utc_iso(d1), "todo.list"), (utc_iso(d2), "todo.add")],
+                  backfilled_at=utc_iso(d1 - timedelta(hours=1)))
+    # something you did between those (e.g. while paused) is in the replay log
+    _event(replay, "router.executing", {"tool": "fs.find_file", "params": {"name": "x.pdf"}, "raw": "find file x.pdf", "tier": 1}, d1 + timedelta(hours=2))
+    _event(replay, "router.result", {"tool": "fs.find_file", "result": {"status": "ok"}, "tier": 1}, d1 + timedelta(hours=2))
+    store = ActivityStore()
+    assert store.stats()["days_with_data"] == 2          # day filled in for old rows
+    assert store.meta("live_since") <= utc_iso(d1)        # anchored to the oldest Phase 1 moment
+    assert backfill(store=store, force=True)["added"] == 0
+
+
+def test_a_forget_from_the_first_build_stays_final(replay):
+    old = datetime.now(timezone.utc) - timedelta(days=10)
+    _old_build_db(paths.data_file(paths.ACTIVITY_DB), [], backfilled_at="forgotten")
+    _event(replay, "router.executing", {"tool": "todo.list", "params": {}, "raw": "list todos", "tier": 1}, old)
+    _event(replay, "router.result", {"tool": "todo.list", "result": {"status": "ok"}, "tier": 1}, old)
+    assert backfill(store=ActivityStore(), force=True)["added"] == 0
+
+
+def test_alias_run_while_paused_before_the_store_existed_is_not_backfilled(router):
+    router._alias_resolver._aliases = [{"trigger": "morning", "steps": [{"tool": "todo.list", "params": {}}]}]
+    router.route("pause activity")          # nothing has opened activity.db yet
+    Orchestrator(router=router).receive("morning")
+    router.route("resume activity")
+    assert backfill(force=True)["added"] == 0
+
+
+def test_stopping_the_tracker_writes_a_boundary(tracker, store):
+    _focus(tracker, "Code", 1000)
+    _settle(tracker, store, 1)
+    tracker.stop()
+    assert [r["app"] for r in reversed(store.switches())] == ["code", "stopped"]
+    assert store.stats()["top_apps"] == [{"app": "code", "count": 1}]
+
+
+def test_kill_switch_stops_app_rows_too(live_app, store):
+    app, backend, sources = live_app
+    c = app.test_client()
+    c.post("/api/activity/settings", json={"window_tracking": True}, headers=H)
+    c.post("/api/killswitch", headers=H)
+    before = len(store.switches())
+    sources[-1].on_focus("firefox", False, None)
+    time.sleep(0.5)
+    assert len(store.switches()) == before
+    killswitch.release()
+
+
+def test_start_daemons_starts_saved_tracking(live_app, monkeypatch):
+    import pikina.daemons.clipboard as clip
+    import pikina.daemons.file_indexer as idx
+    import pikina.daemons.file_watcher as fw
+    import pikina.memory.forgetting_engine as fe
+
+    class Noop:
+        def __init__(self, *a, **k): pass
+        def start(self): pass
+        def stop(self): pass
+    for mod, name in ((clip, "ClipboardDaemon"), (idx, "FileIndexerDaemon"),
+                      (fw, "FileWatcherDaemon"), (fe, "ForgettingEngine")):
+        monkeypatch.setattr(mod, name, Noop)
+    app, backend, sources = live_app
+    monkeypatch.setattr(backend, "_slow_init", lambda: None)
+    backend._daemons_started = False
+    settings.update({"window_tracking": True})
+    backend.start_daemons()
+    assert backend.activity_status()["tracker"]["running"] is True
+
+
+def test_pause_holds_even_if_saving_fails(client, store, monkeypatch):
+    def full_disk(changes):
+        raise OSError(28, "No space left on device")
+    monkeypatch.setattr(settings, "update", full_disk)
+    res = client.post("/api/activity/settings", json={"paused": True}, headers=H)
+    assert res.status_code == 500 and "No space" in res.get_json()["reason"]
+    client.post("/api/command", json={"text": "list todos"}, headers=H)
+    assert rows(store) == []
+    recorder.set_runtime_pause(False)
+
+
+def test_a_broken_activity_db_never_blocks_a_switch(client):
+    paths.data_file(paths.ACTIVITY_DB).write_bytes(b"this is not a database" * 100)
+    from pikina.activity import store as store_mod
+    store_mod._ready.discard(str(paths.data_file(paths.ACTIVITY_DB)))
+    res = client.post("/api/activity/settings", json={"paused": True}, headers=H)
+    assert res.status_code == 200 and res.get_json()["activity"]["paused"] is True
+    assert settings.read()["activity_paused"] is True
+
+
+def test_summary_tells_the_truth_under_fail_closed_rules(router):
+    settings.update({"activity_logging": "false"})
+    assert "Activity log: OFF" in router.route("activity")["message"]
+    paths.data_file(paths.SETTINGS).write_text("{broken", encoding="utf-8")
+    assert "settings.json can't be read" in router.route("activity")["message"]
+
+
+def test_other_chromium_forks_web_apps_are_the_browser(tracker, store):
+    _focus(tracker, "helium-chase.com__-Default", 1000)
+    _focus(tracker, "cromite-hinge.co__", 1005)
+    assert _settle(tracker, store, 2) == ["helium", "cromite"]
+
+
+def test_a_row_timed_before_a_long_dialog_joins_the_current_session(store):
+    now = datetime.now(timezone.utc)
+    store.add_switch(ts=now - timedelta(minutes=5), app="code", backend="x11")
+    store.add_action(ts=now - timedelta(minutes=50), action="dev.free_port:3000", source="typed", outcome="ok")
+    store.add_switch(ts=now, app="firefox", backend="x11")
+    sids = {r["session_id"] for r in store.switches()} | {r["session_id"] for r in store.recent()}
+    assert len(sids) == 1
+
+
+def test_alias_hashes_follow_a_recreated_database(router):
+    first = alias_hash("morning")
+    for f in paths.data_dir().glob(paths.ACTIVITY_DB + "*"):
+        f.unlink()
+    ActivityStore()
+    assert alias_hash("morning") != first
+
+
+def test_replay_scrub_removes_old_summary_replies(replay):
+    from pikina.activity.backfill import scrub_replay_log
+    _event(replay, "router.result", {"tool": "activity.summary", "tier": 1,
+                                     "result": {"status": "ok", "message": "Apps: zzsecretapp ×3"}},
+           datetime.now(timezone.utc))
+    _event(replay, "router.result", {"tool": "todo.list", "tier": 1, "result": {"status": "ok", "todos": []}},
+           datetime.now(timezone.utc))
+    assert scrub_replay_log() == 1
+    data = b"".join(f.read_bytes() for f in paths.data_dir().glob(paths.REPLAY_DB + "*"))
+    assert b"zzsecretapp" not in data

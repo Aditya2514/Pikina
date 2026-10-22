@@ -52,9 +52,13 @@ def isolated_env(tmp_path, monkeypatch):
     monkeypatch.setattr(EventBus, "_instance", None)
     monkeypatch.setattr(VectorStore, "_instance", None)
     monkeypatch.setattr(VectorStore, "model", property(lambda self: FakeEmbedder()))
+    from pikina.activity import recorder
+    recorder.set_runtime_pause(False)
+    recorder.set_active_app_provider(None)
     killswitch.release()
     yield tmp_path
     killswitch.release()
+    recorder.set_runtime_pause(False)
 
 
 class ConsentRecorder:

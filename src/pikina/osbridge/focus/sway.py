@@ -260,8 +260,9 @@ class SwaySource(FocusSource):
     def _window_event(self, sock: socket.socket, payload: bytes) -> None:
         event = _decode(payload)
         change = event.get("change")
-        if change == "close":
-            sock.sendall(pack(GET_TREE))  # maybe the last window on the workspace: re-seed
+        if change in ("close", "move"):
+            # the last window on the workspace may have closed or moved away: re-seed
+            sock.sendall(pack(GET_TREE))
             return
         if change != "focus":
             return

@@ -64,6 +64,14 @@ def outcome_of(result) -> str:
     return "error"
 
 
+_runtime_pause = {"on": False}
+
+
+def set_runtime_pause(on: bool) -> None:
+    """A pause asked for in this process that holds even if saving it to settings.json failed."""
+    _runtime_pause["on"] = bool(on)
+
+
 def flags() -> dict:
     """
     The effective switches. Only a real true/false counts: "activity_logging": "false"
@@ -74,7 +82,7 @@ def flags() -> dict:
     if not ok:
         return {"logging": False, "paused": True, "settings_ok": False}
     return {"logging": data.get("activity_logging", True) is True,
-            "paused": data.get("activity_paused", False) is not False,
+            "paused": data.get("activity_paused", False) is not False or _runtime_pause["on"],
             "settings_ok": True}
 
 

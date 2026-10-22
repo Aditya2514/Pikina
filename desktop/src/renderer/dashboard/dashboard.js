@@ -567,7 +567,7 @@ function renderActivityPill(act) {
     activityPillLabel.textContent = 'OFF';
     activityPill.title = killSwitchOn
       ? 'Kill switch is engaged: nothing is being recorded. Restart Pikina to resume.'
-      : `Nothing is being recorded: ${describeTracker(act)}.`;
+      : `Nothing is being recorded: ${describeTracker(act).replace(/\.$/, '')}.`;
     return;
   }
   if (act.paused) {
@@ -935,6 +935,8 @@ document.getElementById('act-kill').addEventListener('click', () => {
     window.pikina.killSwitch();
   }
   setReactorState('idle');
+  killSwitchOn = true;                 // nothing records from here on: don't leave REC up
+  renderActivityPill(activityState);
   cmdResult.textContent = '⏻ Kill-switch engaged — all actions and daemons halted. Restart Pikina to resume.';
   cmdResult.className   = 'cmd-result error';
 });

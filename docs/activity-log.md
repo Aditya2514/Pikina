@@ -109,7 +109,11 @@ lifts a pause or drops your exclusions. Only a real `true` or `false` counts:
 - **Forget is final.** After `forget my activity`, nothing from before that moment comes
   back, not even with `activity backfill`. Deleted rows are overwritten on disk.
 - **The `activity` command's own reply** (your top apps and actions) is kept out of the
-  audit log.
+  audit log. Replies already stored there by the first Phase 1 build are cut down to their
+  status once, on the next start.
+- **Markers in the app log:** `paused` (a pause began), `stopped` (tracking was turned off,
+  the kill switch was used, or Pikina quit), `none` (nothing focused) and `excluded`. None of
+  them name an app.
 
 ## The Phase 1 gate
 

@@ -109,7 +109,7 @@ def main():
                     out.write_text(json.dumps(data, indent=2), encoding="utf-8")
                     print(f"  [Activity] Saved {len(data['activity'])} actions and "
                           f"{len(data['app_switches'])} app switches to {out}")
-            except (OSError, sqlite3.Error) as exc:
+            except (OSError, ValueError, sqlite3.Error) as exc:
                 print(f"  [Activity] Couldn't do that: {getattr(exc, 'strerror', None) or exc}")
 
         elif cmd == "telemetry":

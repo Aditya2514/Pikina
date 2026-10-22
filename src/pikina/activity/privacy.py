@@ -38,6 +38,8 @@ PIKINA_APPS = {"pikina-desktop", "pikina", "pikina-os", "electron"}
 EXCLUDED = "excluded"   # placeholder written instead of an excluded app's name
 NOTHING = "none"        # nothing focused (empty workspace)
 PAUSED = "paused"       # marks where a pause began, so that time isn't credited to the last app
+STOPPED = "stopped"     # the tracker was turned off, killed or Pikina quit
+MARKERS = {EXCLUDED, NOTHING, PAUSED, STOPPED}
 
 # Chromium-family "app mode" windows (a site opened as an app) get an id like
 # chrome-chatgpt.com__-Default or brave-<extension id>-Default: that names the site.
@@ -45,9 +47,13 @@ _WEB_APP = re.compile(r"^(chrome|chromium|brave|msedge|vivaldi|opera|thorium)-.+
 _CHANNEL = re.compile(r"-(stable|beta|unstable|dev|nightly|canary|snapshot|bin|git)$")
 
 
+_ANY_WEB_APP = re.compile(r"^([a-z0-9]+)-.*__")   # other Chromium forks: <exe>-<host>__<path>...
+
+
 def web_app_browser(raw: str | None) -> str | None:
     """'chrome' for 'chrome-chatgpt.com__-Default', else None. The site part is never kept."""
-    m = _WEB_APP.match((raw or "").strip().lower())
+    s = (raw or "").strip().lower()
+    m = _WEB_APP.match(s) or _ANY_WEB_APP.match(s)
     return m.group(1) if m else None
 
 

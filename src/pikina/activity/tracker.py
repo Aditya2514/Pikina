@@ -49,6 +49,7 @@ class WindowTracker:
         self._own_pids = {os.getpid(), os.getppid()}
         self._lock = threading.Lock()
         self._current: str | None = None  # last real app written (not excluded/none/paused)
+        self._last_written: str | None = None
         self._last_raw = None             # last (app, private, pid) seen; never a title
         self._source = None
         self._writer = None
@@ -75,7 +76,11 @@ class WindowTracker:
         return True
 
     def stop(self) -> None:
-        self._stopping.set()  # first: the writer must not write anything from here on
+        # Mark the end, so the time after this isn't credited to the last app (Phase 2 dwell times).
+        if self._last_written is not None and self._last_written not in privacy.MARKERS \
+                and not self._stopping.is_set() and not self._is_paused():
+            self._commit(datetime.now(timezone.utc), privacy.STOPPED)
+        self._stopping.set()  # from here on the writer must not write anything
         recorder.clear_active_app_provider(self.current_app)
         src, self._source = self._source, None
         if src is not None:
@@ -155,7 +160,8 @@ class WindowTracker:
             print(f"[Tracker] Not recorded: {type(exc).__name__}")
             return False
         with self._lock:
-            self._current = None if label in (privacy.EXCLUDED, privacy.NOTHING, privacy.PAUSED) else label
+            self._current = None if label in privacy.MARKERS else label
+            self._last_written = label
         return True
 
     def _write_loop(self) -> None:

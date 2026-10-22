@@ -28,11 +28,16 @@ def _alias_names() -> dict:
 
 
 def _state() -> str:
-    s = settings.read()
-    if s.get("activity_paused"):
+    """What is really being recorded (the same strict rules the recorder uses)."""
+    from pikina.activity import recorder
+    f = recorder.flags()
+    if not f["settings_ok"]:
+        return "Activity log: PAUSED — settings.json can't be read; fix or delete it to resume"
+    if f["paused"]:
         return "Activity log: PAUSED (say 'resume activity' to continue)"
-    log = "ON" if s.get("activity_logging", True) else "OFF"
-    win = "ON" if s.get("window_tracking", False) else "OFF"
+    data, _ok = settings.read_checked()
+    log = "ON" if f["logging"] else "OFF"
+    win = "ON" if data.get("window_tracking", False) is True else "OFF"
     return f"Activity log: {log} · active-app tracking: {win}"
 
 

@@ -792,6 +792,12 @@ def test_sway_empty_workspace_means_nothing_focused(short_dir, capsys):
         assert rec.wait_for(5)
         assert rec.calls == [("Alacritty", False, 99), (None, False, None), ("firefox", False, 88),
                              (None, False, None), ("Alacritty", False, 99)]
+
+        # Moving the only window to another workspace sends window::move: re-seed too.
+        srv.tree = EMPTY_WORKSPACE
+        srv.event({"change": "move", "container": {"app_id": "Alacritty", "pid": 99, "name": "htop"}})
+        assert rec.wait_for(6)
+        assert rec.calls[-1] == (None, False, None)
     finally:
         stop_quickly(src)
         srv.close()

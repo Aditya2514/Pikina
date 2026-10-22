@@ -13,6 +13,7 @@ import json
 import os
 import secrets
 import socket
+import sqlite3
 import sys
 import threading
 import urllib.request
@@ -133,9 +134,13 @@ class Backend:
     def _slow_init(self) -> None:
         """Model loading and network sync, kept off the startup path."""
         try:
-            from pikina.activity.backfill import backfill
+            from pikina.activity.backfill import backfill, scrub_replay_log
             from pikina.activity.store import ActivityStore
-            ActivityStore().prune()
+            store = ActivityStore()
+            store.prune()
+            if not store.meta("replay_scrubbed"):
+                scrub_replay_log()
+                store.set_meta("replay_scrubbed", "1")
             done = backfill()
             if done.get("added"):
                 print(f"[Backend] Activity log: {done['added']} past actions imported from the replay log.")
@@ -224,16 +229,27 @@ class Backend:
                 if not isinstance(changes[key], bool):
                     raise ValueError(f"'{key}' must be true or false")
                 clean[setting] = changes[key]
+        from pikina.activity import recorder
         with self._tracker_lock:
             if clean.get("window_tracking") and killswitch.is_engaged():
                 raise KillSwitchEngaged("Kill switch is engaged — restart Pikina to turn tracking on.")
             if clean.get("window_tracking") is False:
                 self._stop_tracker()  # turning off works even if saving fails below
-            ActivityStore()  # marks when live recording began, so backfill never covers paused time
             if clean:
-                settings.update(clean)
+                try:
+                    settings.update(clean)
+                except Exception:
+                    if clean.get("activity_paused") is True:
+                        recorder.set_runtime_pause(True)  # a pause holds even if it couldn't be saved
+                    raise
+                if "activity_paused" in clean:
+                    recorder.set_runtime_pause(False)    # the saved setting is in charge again
             if clean.get("window_tracking"):
                 self.set_window_tracking(True)
+        try:  # mark when live recording began (best effort: a DB problem must not block a switch)
+            ActivityStore(timeout=0.5)
+        except (sqlite3.Error, OSError):
+            pass
         return self.activity_status()
 
 
@@ -484,8 +500,8 @@ def create_app(start_daemons: bool = False, enable_tier2: bool | None = None,
             return jsonify({"status": "error", "reason": str(exc)}), 400
         except (KillSwitchEngaged, settings.SettingsError) as exc:
             return jsonify({"status": "error", "reason": str(exc)}), 409
-        except OSError as exc:
-            return jsonify({"status": "error", "reason": f"Couldn't save settings ({exc.strerror or exc})."}), 500
+        except (OSError, sqlite3.Error) as exc:
+            return jsonify({"status": "error", "reason": f"Couldn't save settings ({getattr(exc, 'strerror', None) or exc})."}), 500
 
     @app.get("/api/activity")
     def activity_recent():

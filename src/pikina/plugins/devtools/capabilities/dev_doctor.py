@@ -80,7 +80,7 @@ def _tracker_check():
         from pikina import settings
         from pikina.osbridge.focus import detect_backend
         backend, reason = detect_backend()
-        on = bool(settings.get("window_tracking", False))
+        on = settings.get("window_tracking", False) is True
     except Exception as exc:
         return _check("App tracking", WARN, f"couldn't check ({type(exc).__name__})")
     if backend:

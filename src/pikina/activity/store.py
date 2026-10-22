@@ -118,6 +118,8 @@ class ActivityStore:
 
     def _init_db(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        existed = self.path.exists()
+        recreated = not existed and str(self.path) in _ready  # deleted by hand while Pikina ran
         with self._conn() as conn:
             try:
                 conn.execute("PRAGMA journal_mode=WAL")  # tracker writes while the HUD reads
@@ -127,12 +129,59 @@ class ActivityStore:
             cols = {r[1] for r in conn.execute("PRAGMA table_info(activity)")}
             if "day" not in cols:  # databases from the first Phase 1 build
                 conn.execute("ALTER TABLE activity ADD COLUMN day TEXT NOT NULL DEFAULT ''")
-            now = utc_iso(min(datetime.now(timezone.utc), self._live_since or datetime.now(timezone.utc)))
-            # Live recording starts now: backfill only imports what happened before this.
-            conn.execute("INSERT OR IGNORE INTO activity_meta(key, value) VALUES ('live_since', ?)", (now,))
+            conn.execute("UPDATE activity SET day = date(ts, 'localtime') WHERE day = ''")
+            now_dt = datetime.now(timezone.utc)
+            if self._meta(conn, "live_since") is None:
+                conn.execute("INSERT OR IGNORE INTO activity_meta(key, value) VALUES ('live_since', ?)",
+                             (self._first_live_moment(conn, existed, now_dt),))
+            if recreated or self._meta(conn, "backfilled_at") == "forgotten":
+                # Deleting the file by hand (or a forget from the first build) is a forget:
+                # nothing from before now may come back through backfill.
+                conn.execute("INSERT OR REPLACE INTO activity_meta(key, value) VALUES ('no_backfill_before', ?)",
+                             (utc_iso(now_dt),))
+                conn.execute("INSERT OR REPLACE INTO activity_meta(key, value) VALUES ('backfilled_at', ?)",
+                             (utc_iso(now_dt),))
             # Per-install secret for alias hashes; never exported.
             conn.execute("INSERT OR IGNORE INTO activity_meta(key, value) VALUES ('alias_key', ?)",
                          (secrets.token_hex(16),))
+        from pikina.activity import keys  # a new database has a new alias key
+        keys._alias_secrets.pop(str(self.path), None)
+
+    def _first_live_moment(self, conn, existed: bool, now: datetime) -> str:
+        """
+        When live recording began. For a new file: now, or the start of the action that is
+        creating it, or the first Phase 1 event in the replay log (results carrying an
+        exec_id) if activity.db was deleted and recreated. For a database from the first
+        Phase 1 build: its oldest recorded moment.
+        """
+        moments = [now]
+        if self._live_since:
+            moments.append(self._live_since)
+        if existed:
+            for q in ("SELECT MIN(ts) FROM activity", "SELECT MIN(ts) FROM app_switches"):
+                value = conn.execute(q).fetchone()[0]
+                if value:
+                    moments.append(parse_ts(value))
+            done = self._meta(conn, "backfilled_at")
+            if done and done != "forgotten":
+                try:
+                    moments.append(parse_ts(done))
+                except ValueError:
+                    pass
+        replay = self.path.with_name(paths.REPLAY_DB)
+        if replay.exists():
+            try:
+                rc = sqlite3.connect(str(replay), timeout=2.0)
+                try:
+                    value = rc.execute("SELECT MIN(timestamp) FROM events WHERE topic = 'router.result' "
+                                       "AND payload LIKE '%\"exec_id\"%'").fetchone()[0]
+                finally:
+                    rc.close()
+                if value:
+                    moments.append(parse_ts(value))
+            except (sqlite3.Error, ValueError):
+                pass
+        return utc_iso(min(moments))
 
     # ------------------------------------------------------------------
     # Sessions: a new one starts after 30 minutes without any activity
@@ -153,8 +202,11 @@ class ActivityStore:
         sid = self._meta(conn, "session_id")
         last = self._meta(conn, "session_last_ts")
         last_ts = parse_ts(last) if last else None
-        # abs(): if the clock jumped (dual-boot RTC, NTP fix), a big gap either way is a new session
-        jumped = last_ts is not None and abs(ts - last_ts) > SESSION_GAP
+        # A big gap either way is a new session — but backwards only when the clock itself
+        # jumped (dual-boot RTC, NTP fix), not for a row timed before a long consent dialog.
+        backdated = abs(datetime.now(timezone.utc) - ts) > timedelta(minutes=1)
+        jumped = last_ts is not None and (ts - last_ts > SESSION_GAP
+                                          or (last_ts - ts > SESSION_GAP and not backdated))
         if not sid or last_ts is None or jumped:
             sid = new_session_id()
             self._set_meta(conn, "session_id", sid)
@@ -244,7 +296,8 @@ class ActivityStore:
         try:
             with self._conn() as conn:
                 conn.execute("VACUUM")
-                conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")  # and none left in the WAL file
+                busy = conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()  # none left in the WAL
+                compacted = not (busy and busy[0])  # another reader still has old pages open
         except sqlite3.DatabaseError:
             compacted = False
         return {"actions": a, "app_switches": s, "compacted": compacted}
@@ -290,7 +343,7 @@ class ActivityStore:
             first = conn.execute("SELECT MIN(ts) FROM activity").fetchone()[0]
             top_apps = [{"app": r[0], "count": r[1]} for r in conn.execute(
                 f"SELECT app, COUNT(*) AS n FROM app_switches {where + ' AND' if where else 'WHERE'} "
-                f"app NOT IN ('excluded', 'none', 'paused') GROUP BY app ORDER BY n DESC, app LIMIT 10", args)]
+                f"app NOT IN ('excluded', 'none', 'paused', 'stopped') GROUP BY app ORDER BY n DESC, app LIMIT 10", args)]
         return {"actions": total, "by_outcome": by_outcome, "by_source": by_source, "top_actions": top,
                 "sessions": sessions, "app_switches": switches, "top_apps": top_apps,
                 "days_with_data": days, "first_action_at": first}
