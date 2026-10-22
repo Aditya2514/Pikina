@@ -1,0 +1,21 @@
+{
+  "tool": "project.add",
+  "description": "Saves a project folder for the switcher, detecting its dev command (which only runs after you allow it).",
+  "permission_level": 1,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["path"],
+    "properties": {
+      "name": {"type": "string", "description": "Name to use, e.g. pikina (default: the folder's name)"},
+      "path": {"type": "string", "description": "The project folder, e.g. ~/code/pikina"}
+    }
+  },
+  "patterns": [
+    {"regex": "(?:add|save|register)\\s+project\\s+(?P<name>[\\w .-]+?)\\s+(?:at|in|from|=)\\s+(?P<path>\\S.*)$", "priority": 44},
+    {"regex": "(?:add|save|register)\\s+project\\s+(?P<path>(?:~|/|\\.|[A-Za-z]:[\\\\/]).*)$", "priority": 44}
+  ]
+}

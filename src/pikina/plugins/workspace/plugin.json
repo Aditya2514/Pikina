@@ -1,0 +1,6 @@
+{
+  "name": "workspace",
+  "version": "0.1.0",
+  "api_version": 1,
+  "description": "Project switcher: 'work on <project>' opens its editor, terminal, dev server, workspace and links, and shows git status."
+}

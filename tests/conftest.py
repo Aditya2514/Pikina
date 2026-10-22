@@ -66,6 +66,7 @@ class ConsentRecorder:
 
     def __init__(self):
         self.answer = False
+        self.can_ask = True   # False = no dialog tool and no terminal to ask in
         self.calls = []
 
     def __call__(self, message: str) -> bool:
@@ -77,6 +78,7 @@ class ConsentRecorder:
 def consent(monkeypatch):
     recorder = ConsentRecorder()
     monkeypatch.setattr("pikina.osbridge.consent.ask", recorder)
+    monkeypatch.setattr("pikina.osbridge.consent.can_ask", lambda: recorder.can_ask)
     return recorder
 
 

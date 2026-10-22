@@ -67,6 +67,13 @@ def _ask_terminal(message: str) -> bool | None:
     return answer.strip().lower() in ("y", "yes")
 
 
+def can_ask() -> bool:
+    """Is there any way to show a yes/no question right now (dialog tool or this terminal)?"""
+    if IS_WINDOWS:
+        return True
+    return bool(has_display() and which_first(["zenity", "kdialog", "yad"])) or _in_foreground_terminal()
+
+
 def ask(message: str) -> bool:
     """Ask the human. True only on an explicit yes."""
     if IS_WINDOWS:

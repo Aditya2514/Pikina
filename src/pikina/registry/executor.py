@@ -32,7 +32,9 @@ def execute_action(registry, tool: str, params: dict, *, raw: str = "", tier=1,
     started = started_at or datetime.now(timezone.utc)  # before any consent dialog, which can take a while
 
     def log(result, event_id):
-        if log_activity:
+        # "no_match": the capability said the request wasn't for it (e.g. "dark mode" when you
+        # have no such project) and it goes on to the model: not an action of yours.
+        if log_activity and not (isinstance(result, dict) and result.get("status") == "no_match"):
             record(tool, params, result, source=origin, tier=tier, origin_event=event_id,
                    group_id=group_id, ts=started)
 

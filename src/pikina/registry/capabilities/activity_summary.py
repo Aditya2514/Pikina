@@ -2,7 +2,7 @@
 from datetime import datetime, time, timedelta
 
 from pikina import settings
-from pikina.activity.keys import alias_hash
+from pikina.activity.keys import alias_hash, project_hash
 from pikina.activity.store import RETENTION_DAYS, ActivityStore, parse_ts
 
 
@@ -18,13 +18,20 @@ def _since(days: int) -> datetime:
 
 
 def _alias_names() -> dict:
-    """alias.run:<hash> -> 'alias "<trigger>"' for the aliases you have now (display only)."""
+    """alias.run:<hash> / project.open:<hash> -> a readable name, for what you have now (display only)."""
+    names = {}
     try:
         from pikina.router.alias_resolver import AliasResolver
-        return {f"alias.run:{alias_hash(a.get('trigger'))}": f'alias "{a.get("trigger")}"'
-                for a in AliasResolver().list_aliases()}
+        names.update({f"alias.run:{alias_hash(a.get('trigger'))}": f'alias "{a.get("trigger")}"'
+                      for a in AliasResolver().list_aliases()})
     except Exception:
-        return {}
+        pass
+    try:
+        from pikina import projects
+        names.update({f"project.open:{project_hash(n)}": f'project "{n}"' for n in projects.load()})
+    except Exception:
+        pass
+    return names
 
 
 def _state() -> str:

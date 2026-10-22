@@ -139,7 +139,8 @@ class Tier1Router:
                 raw=f"{raw} [alias step {plan_step.step_id}/{len(steps)}]",
                 origin="alias", group_id=group_id,
             )
-            return plan_step.result.get("status") not in ("error", "denied")
+            # no_match: the step's command wasn't for anything you have (e.g. "dark mode"): a failure
+            return plan_step.result.get("status") not in ("error", "denied", "no_match")
 
         def undo_step(plan_step: PlanStep) -> bool:
             manifest = self._registry.get_manifest(plan_step.tool)
@@ -188,7 +189,8 @@ class Tier1Router:
             "failed":                "",
         }.get(plan.status, "")
         return {
-            "status":          failed.result.get("status", "error"),
+            # a step that matched nothing makes the alias fail; it must not send the trigger to the model
+            "status":          "error" if failed.result.get("status") == "no_match" else failed.result.get("status", "error"),
             "reason":          f"Alias '{trigger}' stopped at step {failed.step_id} ({failed.tool}): {reason}. {rollback_note}".strip(),
             "steps_completed": completed,
             "steps_total":     len(steps),

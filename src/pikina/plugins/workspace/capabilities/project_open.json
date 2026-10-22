@@ -1,0 +1,45 @@
+{
+  "tool": "project.open",
+  "description": "Switches to a saved project: its workspace, editor, terminal (with its dev server, after you allow it once), apps and links, plus git status.",
+  "permission_level": 1,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": [
+      "name"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "The saved project's name (see 'list projects')"
+      }
+    }
+  },
+  "patterns": [
+    {
+      "regex": "work\\s+on\\s+(?:project\\s+)?(?P<name>[\\w .-]+?)\\s*$",
+      "priority": 45
+    },
+    {
+      "regex": "open\\s+project\\s+(?P<name>[\\w .-]+?)\\s*$",
+      "priority": 45
+    },
+    {
+      "regex": "switch\\s+to\\s+(?:project\\s+)?(?P<name>[\\w .-]+?)\\s*$",
+      "priority": 45,
+      "params": {
+        "loose": true
+      }
+    },
+    {
+      "regex": "(?P<name>[\\w.-]+(?:\\s+[\\w.-]+)?)\\s+mode$",
+      "priority": 380,
+      "params": {
+        "loose": true
+      }
+    }
+  ]
+}

@@ -28,6 +28,7 @@ KNOWLEDGE_GRAPH  = "knowledge_graph.json"
 FILE_GRAPH       = "file_graph.json"
 PROFILE          = "profile.json"
 ALIASES          = "aliases.json"
+PROJECTS         = "projects.json"         # project switcher: your projects and what each opens
 SETTINGS         = "settings.json"
 API_TOKEN        = ".api_token"
 ENV_FILE         = ".env"

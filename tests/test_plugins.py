@@ -42,7 +42,7 @@ def _enable(data_dir: Path, *names):
 # ---------------------------------------------------------------------------
 
 def test_builtin_devtools_plugin_loads(registry):
-    assert [p.name for p in registry.plugins] == ["devtools"]
+    assert [p.name for p in registry.plugins] == ["devtools", "workspace"]
     assert registry.plugin_errors == []
     for tool in ("dev.doctor", "dev.ports", "dev.free_port"):
         assert registry.origin(tool) == "devtools"

@@ -215,6 +215,50 @@ Recall stored facts and events from semantic vector memory.
 * `forget my activity`: delete everything recorded. **Always asks first** (Level 4).
 * App tracking is opt-in, in Settings, and records app names only. What is and isn't recorded: [activity-log.md](activity-log.md).
 
+### 12. Project Switcher (`project.*`, the built-in `workspace` plugin)
+* `add project pikina at ~/code/pikina` (or `add project ~/code/pikina`): saves the folder.
+  If the project has a dev command (`npm run dev`, `pnpm run dev`, `yarn dev`, `bun run dev`,
+  `python manage.py runserver`), it is detected and stored.
+* `work on pikina` (also `open project pikina`, `switch to pikina`) does these in order:
+  1. switches to the project's workspace (Hyprland or Sway);
+  2. opens the folder in VS Code;
+  3. opens a terminal there and starts the dev server in it. When you stop the server with
+     Ctrl+C, the terminal stays open.
+  4. opens its apps and links;
+  5. shows git status: branch, uncommitted files, and commits not pushed or behind (as of
+     your last fetch).
+* **The dev command runs code from the project, so Pikina asks you once.** It asks again
+  if the command or the folder changes, and approvals don't carry over to another machine. If
+  you say no, the terminal opens without it.
+  * The question needs a dialog tool (`zenity`, `kdialog` or `yad`). Without one, run
+    `pikina` in a terminal and say `work on <name>` there once; it asks in the terminal.
+  * Git status never runs commands set in the project's own `.git/config`. If that config
+    defines filters, status is skipped and Pikina says so.
+* `<name> mode` (e.g. `college mode`) opens a project. A project can have no folder at all,
+  just apps and links. If you have no project by that name, the request goes to the local
+  model as usual.
+* `list projects` and `remove project <name>`. Removing a project only forgets the entry;
+  your folder is never touched.
+* Switching to a project never closes what another one opened.
+* **Everything else lives in `projects.json`** in your data folder: workspace number,
+  editor, terminal (`true`, a terminal name such as `"foot"`, or `false`), dev command,
+  apps and links. Example:
+  ```json
+  {"projects": {
+    "pikina":  {"path": "~/code/pikina", "workspace": 2, "dev": null},
+    "college": {"workspace": 5, "editor": null, "terminal": false,
+                "apps": ["obsidian"], "urls": ["https://onlinedegree.iitm.ac.in"]}
+  }}
+  ```
+* Terminals Pikina knows: kitty, alacritty, foot (and footclient), wezterm, ghostty,
+  gnome-terminal, konsole, xfce4-terminal and xterm. It uses `$TERMINAL` first. On Windows
+  it uses Windows Terminal or `cmd`.
+* Terminal editors (`"editor": "nvim"`, helix, vim, nano, micro) open inside a terminal.
+* Folders must be full paths (`~/code/x` or `/home/you/code/x`); a relative path in the file
+  counts from your home folder.
+* Saying `work on X` while you're already on its workspace keeps you there. Pikina won't
+  bounce you back to the previous workspace.
+
 ### Plugins
 `pikina plugins` lists loaded, switched-off and skipped plugins. Your own plugins go in the
 `plugins/` folder inside your Pikina data folder and only load once their name is in
