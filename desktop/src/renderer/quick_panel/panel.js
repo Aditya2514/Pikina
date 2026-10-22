@@ -1,6 +1,6 @@
 'use strict';
 
-const BACKEND = (window.pikina && window.pikina.BACKEND) || 'http://localhost:5001';
+const BACKEND = (window.pikina && window.pikina.BACKEND) || 'http://127.0.0.1:5001';
 
 const ring       = document.getElementById('status-ring');
 const statusText = document.getElementById('status-text');
@@ -63,6 +63,7 @@ let historyIndex = -1;
 
 const cmdSuggestions = document.getElementById("cmd-suggestions");
 let suggestionTimeout = null;
+let suggestionSeq = 0;      // bumped on submit: replies to older requests are dropped
 let currentSuggestions = [];
 let selectedSuggestionIndex = -1;
 
@@ -75,10 +76,12 @@ input.addEventListener("input", () => {
   }
 
   clearTimeout(suggestionTimeout);
+  const seq = ++suggestionSeq;
   suggestionTimeout = setTimeout(async () => {
     try {
       const res = await fetch(`${BACKEND}/api/suggest?q=${encodeURIComponent(q)}`);
       const data = await res.json();
+      if (seq !== suggestionSeq || input.value !== q) return;  // submitted or edited since
       currentSuggestions = data.suggestions || [];
       renderSuggestions();
     } catch (e) {}
@@ -192,6 +195,8 @@ input.addEventListener('keydown', (e) => {
         commandHistory.push(cmd);
       }
       historyIndex = commandHistory.length;
+      clearTimeout(suggestionTimeout);
+      suggestionSeq++;
       runCommand(cmd);
       input.value = '';
       cmdSuggestions.classList.add("hidden");

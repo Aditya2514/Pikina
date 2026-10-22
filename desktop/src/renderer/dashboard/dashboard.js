@@ -5,7 +5,7 @@
 
 'use strict';
 
-const BACKEND = (window.pikina && window.pikina.BACKEND) || 'http://localhost:5001';
+const BACKEND = (window.pikina && window.pikina.BACKEND) || 'http://127.0.0.1:5001';
 
 // The readable part of a backend reply: never raw JSON.
 function replyText(result) {
@@ -309,8 +309,23 @@ setInterval(updateClock, 1000);
 
 let backendOnline = false;
 
+// The dashboard can open before the backend is listening (it is started at the same
+// time). When it comes online, load everything that only loads once.
+function reloadAfterBackendStart() {
+  try {
+    loadSettings();
+    pollWeather();
+    loadDeadlines();
+    pollStatus();
+    if (typeof calendarMiniObj !== 'undefined' && calendarMiniObj) calendarMiniObj.refetchEvents();
+    if (typeof calendarDetailedObj !== 'undefined' && calendarDetailedObj) calendarDetailedObj.refetchEvents();
+  } catch (e) { console.error(e); }
+}
+
 function setBackendStatus(online, profile) {
+  const cameOnline = online && !backendOnline;
   backendOnline = online;
+  if (cameOnline) reloadAfterBackendStart();
   const dot   = document.getElementById('status-dot');
   const label = document.getElementById('status-label');
   const tier  = document.getElementById('status-tier');
@@ -321,7 +336,7 @@ function setBackendStatus(online, profile) {
     tier.textContent  = 'TIER 1 ACTIVE';
   } else {
     dot.className   = 'status-dot offline';
-    label.textContent = 'BACKEND OFFLINE — Start python backend_server.py';
+    label.textContent = 'BACKEND OFFLINE — starting it (or run pikina-server)';
     tier.textContent  = 'STANDALONE';
   }
 
@@ -548,6 +563,13 @@ function describeTracker(act) {
 
 function renderActivityPill(act) {
   if (!activityPill) return;
+  if (act && killSwitchOn) {              // nothing can be recorded until Pikina restarts
+    activityPill.className        = 'activity-pill idle';
+    activityPillIcon.textContent  = '○';
+    activityPillLabel.textContent = 'OFF';
+    activityPill.title = 'Kill switch is engaged: nothing is being recorded. Restart Pikina to resume.';
+    return;
+  }
   if (act && act.settings_error) {        // fails closed: recording is paused until it's fixed
     activityPill.className        = 'activity-pill paused';
     activityPillIcon.textContent  = '!';
@@ -593,7 +615,7 @@ function renderActivityPill(act) {
 
 if (activityPill) {
   activityPill.addEventListener('click', async () => {
-    if (!activityState || activityBusy) return;
+    if (!activityState || activityBusy || killSwitchOn) return;
     const previous = activityState;
     const want     = !previous.paused;
     activityBusy = true;
@@ -705,7 +727,7 @@ async function executeCommand(text) {
   if (status === 'ok' && result.pattern !== undefined && Array.isArray(result.results)) {
     cmdResult.innerHTML = '';
     const header = document.createElement('div');
-    header.textContent = `✓ Found ${result.count} files for '${result.pattern}':`;
+    header.textContent = `✓ Found ${result.count} file${result.count === 1 ? '' : 's'} for '${result.pattern}':`;
     header.style.marginBottom = '8px';
     cmdResult.appendChild(header);
 
@@ -816,9 +838,10 @@ async function executeCommand(text) {
   // Publish to event log
   await pollEvents();
   
-  // Reload deadlines (todos) and refetch calendar events
+  // Reload deadlines (todos), the activity pill (e.g. after "pause activity") and calendar events
   try {
     loadDeadlines();
+    pollStatus();
     if (calendarMiniObj) {
       calendarMiniObj.refetchEvents();
     }
@@ -888,7 +911,7 @@ cmdInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     const text = cmdInput.value.trim();
     if (text) {
-      cmdSuggestions.classList.add("hidden");
+      cancelSuggestions();
       executeCommand(text);
     }
   }
@@ -903,7 +926,7 @@ cmdInput.addEventListener('keydown', (e) => {
 cmdSend.addEventListener('click', () => {
   const text = cmdInput.value.trim();
   if (text) {
-    cmdSuggestions.classList.add("hidden");
+    cancelSuggestions();
     executeCommand(text);
   }
 });
@@ -975,7 +998,7 @@ setInterval(pollStatus,    10000);  // Status every 10s
 
 async function cachePath(path, isDir) {
   try {
-    await fetch(`${window.pikina ? window.pikina.BACKEND : "http://localhost:5001"}/api/cache/path`, {
+    await fetch(`${BACKEND}/api/cache/path`, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({path: path, is_dir: isDir})
@@ -995,7 +1018,14 @@ function handleOpenFolder(path) {
 
 const cmdSuggestions = document.getElementById("cmd-suggestions");
 let suggestionTimeout = null;
+let suggestionSeq = 0;      // bumped on submit: replies to older requests are dropped
 let currentSuggestions = [];
+
+function cancelSuggestions() {
+  clearTimeout(suggestionTimeout);
+  suggestionSeq++;
+  cmdSuggestions.classList.add("hidden");
+}
 let selectedSuggestionIndex = -1;
 
 cmdInput.addEventListener("input", () => {
@@ -1011,10 +1041,12 @@ cmdInput.addEventListener("input", () => {
   }
 
   clearTimeout(suggestionTimeout);
+  const seq = ++suggestionSeq;
   suggestionTimeout = setTimeout(async () => {
     try {
-      const res = await fetch(`${window.pikina ? window.pikina.BACKEND : "http://localhost:5001"}/api/suggest?q=${encodeURIComponent(q)}`);
+      const res = await fetch(`${BACKEND}/api/suggest?q=${encodeURIComponent(q)}`);
       const data = await res.json();
+      if (seq !== suggestionSeq || cmdInput.value !== q) return;  // submitted or edited since
       currentSuggestions = data.suggestions || [];
       renderSuggestions();
     } catch (e) {
@@ -1123,10 +1155,14 @@ function applyWallpaper(url) {
   }
 }
 
+let settingsLoaded = false;  // SAVE waits for this, so defaults never overwrite your saved settings
+
 async function loadSettings() {
   try {
     const res = await fetch(`${BACKEND}/api/settings`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+    settingsLoaded = true;
     if (data.wallpaperUrl) {
       applyWallpaper(data.wallpaperUrl);
       inputWallpaperUrl.value = data.wallpaperUrl;
@@ -1243,6 +1279,11 @@ if (modalBackdrop) {
 
 if (btnSaveSettings) {
   btnSaveSettings.addEventListener("click", async () => {
+    if (!settingsLoaded) {
+      setSettingsStatus("Settings haven't loaded from the backend yet; try again in a moment.", "warn");
+      loadSettings();
+      return;
+    }
     const url = inputWallpaperUrl.value.trim();
     setSettingsStatus("Saving...");
     try {
@@ -1586,7 +1627,7 @@ function initDetailedCalendar() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 tool: 'calendar.update_event',
-                params: { event_id: id, title, date, time, type: typeVal, recurring: recurringVal, source, description: descriptionVal }
+                params: { event_id: id, title, date, time: selectedTime || null, type: typeVal, recurring: recurringVal, source, description: descriptionVal }
               })
             });
             const data = await res.json();

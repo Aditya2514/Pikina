@@ -9,7 +9,7 @@ const fs   = require('fs');
 const { tokenFile } = require('./paths');
 const { ensureBackend, stopBackend } = require('./backend');
 
-const BACKEND_URL = 'http://localhost:5001';
+const BACKEND_URL = 'http://127.0.0.1:5001';
 const RENDERER    = path.join(__dirname, 'renderer');
 
 // The backend writes a random API token into the data folder on first start and
@@ -36,10 +36,14 @@ if (!gotTheLock) {
   return;
 } else {
   app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Launching Pikina again always brings the dashboard back, even after ✕ closed it
+    // (the app keeps running for the quick panel, and many Linux desktops have no tray).
     if (dashboardWindow) {
       if (dashboardWindow.isMinimized()) dashboardWindow.restore();
       dashboardWindow.show();
       dashboardWindow.focus();
+    } else if (app.isReady()) {
+      createDashboard();
     }
   });
 }

@@ -449,9 +449,9 @@ def create_app(start_daemons: bool = False, enable_tier2: bool | None = None,
     @app.get("/api/weather")
     def weather():
         key = os.getenv("OPENWEATHER_API_KEY", "")
-        if not key:
-            return jsonify({"error": "OPENWEATHER_API_KEY not configured",
-                            "hint": "Add OPENWEATHER_API_KEY=<key> to your .env file"}), 503
+        if not key:  # not an outage, just not set up: 200 so the HUD doesn't log an error every 5 minutes
+            return jsonify({"error": "OPENWEATHER_API_KEY not configured", "configured": False,
+                            "hint": "Add OPENWEATHER_API_KEY=<key> to your .env file"})
         city = request.args.get("city", os.getenv("OPENWEATHER_CITY", "Mumbai"))
         try:
             resp = requests.get("https://api.openweathermap.org/data/2.5/weather",
