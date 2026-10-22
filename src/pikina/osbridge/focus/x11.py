@@ -5,7 +5,8 @@ X11 focus listener via xprop (package xorg-xprop / x11-utils).
 (the first line is the current window). For each new window id we run
 `xprop -id <wid> WM_CLASS _NET_WM_PID _NET_WM_NAME`: app = the second WM_CLASS
 string (the class), pid from _NET_WM_PID; _NET_WM_NAME (the title) is only used
-for the private-window check. The spy child is restarted with backoff if it exits.
+for the private-window check. The spy child is restarted with backoff if it exits;
+meanwhile nothing counts as focused and `failure` says why.
 """
 from __future__ import annotations
 
@@ -21,6 +22,10 @@ _WID = re.compile(r"window id # (0x[0-9a-fA-F]+)")
 _QUOTED = re.compile(r'"((?:[^"\\]|\\.)*)"')
 _PID = re.compile(r"=\s*(\d+)")
 _NOTHING = object()  # "nothing focused"
+
+_NO_XPROP = "can't run xprop (retrying)"
+_EXITED = "xprop exited (restarting)"
+_KEEPS_EXITING = "xprop keeps exiting (retrying)"
 
 
 def parse_spy_line(line: str):
@@ -96,9 +101,9 @@ class X11Source(FocusSource):
         while not self.stopping:
             proc = self._spawn()
             if proc is not None:
+                produced = False
                 try:
-                    if self._follow(proc):
-                        backoff.reset()
+                    produced = self._follow(proc)
                 except Exception:
                     pass  # any surprise = child lost; restart below
                 finally:
@@ -108,6 +113,11 @@ class X11Source(FocusSource):
                     with self._proc_lock:
                         if self._proc is proc:
                             self._proc = None
+                if produced:
+                    backoff.reset()
+                self._lost(_EXITED if produced else _KEEPS_EXITING)
+            elif not self.stopping:
+                self._lost(_NO_XPROP)
             if self.stopping:
                 break
             self._stop_event.wait(backoff.next())
@@ -117,7 +127,7 @@ class X11Source(FocusSource):
             proc = subprocess.Popen(SPY_CMD, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                     stdin=subprocess.DEVNULL, text=True, bufsize=1,
                                     encoding="utf-8", errors="replace")
-        except OSError:
+        except (OSError, ValueError, subprocess.SubprocessError):
             return None
         with self._proc_lock:
             if self.stopping:
@@ -138,7 +148,9 @@ class X11Source(FocusSource):
             wid = parse_spy_line(line)
             if wid is None:
                 continue
-            produced = True
+            if not produced:
+                produced = True
+                self.failure = None  # xprop is talking to the X server
             if wid == last:
                 continue
             last = wid

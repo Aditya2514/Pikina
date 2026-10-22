@@ -151,6 +151,7 @@ body::after {
 }
 .activity-pill.paused:hover { background: rgba(255, 140, 0, 0.16); }
 .activity-pill:disabled { cursor: progress; opacity: 0.7; }
+.activity-pill.idle { color: var(--c-text-dim); border-color: var(--c-text-dim); background: transparent; }
 .activity-pill-icon { font-size: 10px; letter-spacing: 0; line-height: 1; }
 .activity-pill.rec .activity-pill-icon { animation: activity-rec-pulse 2s ease-in-out infinite; }
 

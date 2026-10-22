@@ -8,6 +8,16 @@ from pikina.mcm import killswitch
 from pikina.eventbus.bus import EventBus
 
 
+def _mark_live_recording() -> None:
+    """Open the activity store before this command's first audit event, so a later backfill
+    never imports a command that the live activity log saw (or skipped while paused)."""
+    try:
+        from pikina.activity.store import ActivityStore
+        ActivityStore(timeout=0.5)
+    except Exception:
+        pass
+
+
 class Orchestrator:
     def __init__(self, router=None, tier2_router=None):
         self._router = router
@@ -32,6 +42,7 @@ class Orchestrator:
         Returns a result dict.
         """
         provenance = tag(source)
+        _mark_live_recording()
 
         self._bus.publish(
             topic="mcm.received",

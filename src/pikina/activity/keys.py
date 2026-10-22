@@ -11,10 +11,12 @@ by its tool id only. A qualifier must be one short lowercase token; anything els
 becomes "?". Every core and built-in tool has an explicit rule (a test checks).
 """
 import hashlib
+import hmac
 import re
 import shutil
 from datetime import date, datetime, timedelta
 
+from pikina.activity import privacy
 from pikina.osbridge.apps import canonical_app, known_app
 
 _TOKEN = re.compile(r"^[a-z0-9*.][a-z0-9._*+-]{0,31}$")
@@ -65,7 +67,7 @@ def _app_open(params: dict, result: dict | None) -> str:
     name = str(params.get("path") or "")
     app = known_app(name)
     if app:
-        return app
+        return privacy.EXCLUDED if privacy.is_excluded(name, app) else app
     for candidate in ((result or {}).get("launched"), name):
         if not candidate:
             continue
@@ -77,10 +79,12 @@ def _app_open(params: dict, result: dict | None) -> str:
         if not base or base.lower() in _LAUNCH_WRAPPERS:
             continue
         app = known_app(base)
-        if app:
-            return app
-        if shutil.which(base) or shutil.which(base.lower()):
-            return _token(canonical_app(base))
+        if app or shutil.which(base) or shutil.which(base.lower()):
+            app = app or canonical_app(base)
+            # password managers and your own exclusions are never named, not even as "opened"
+            return privacy.EXCLUDED if privacy.is_excluded(base, app) else _token(app)
+    if name and privacy.is_excluded(name, canonical_app(name)):
+        return privacy.EXCLUDED
     return "?"
 
 
@@ -133,14 +137,29 @@ def _calendar_query(params: dict, when: date) -> str:
     return "date"
 
 
+_alias_secrets: dict = {}
+
+
+def _alias_secret() -> bytes:
+    from pikina.activity.store import ActivityStore  # lazy: the store doesn't depend on keys
+    store = ActivityStore(timeout=2.0)
+    path = str(store.path)
+    if path not in _alias_secrets:
+        _alias_secrets[path] = (store.meta("alias_key") or "").encode("ascii")
+    return _alias_secrets[path]
+
+
 def alias_hash(trigger) -> str:
     """
-    Aliases are stored by a stable hash of their trigger, not the trigger itself: a
-    trigger is free text you wrote ("text sarah"). The summary shows the name again
-    by hashing your current aliases; a deleted alias stays anonymous.
+    Aliases are stored by a keyed hash of their trigger, not the trigger itself: a trigger
+    is free text you wrote ("text sarah"). The key is random per install and never
+    exported, so the hash can't be reversed with a word list. The summary shows the
+    name again by hashing your current aliases; a deleted alias stays anonymous.
     """
     s = " ".join(str(trigger or "").lower().split())
-    return hashlib.sha256(("pikina-alias:" + s).encode("utf-8")).hexdigest()[:10] if s else "?"
+    if not s:
+        return "?"
+    return hmac.new(_alias_secret(), s.encode("utf-8"), hashlib.sha256).hexdigest()[:12]
 
 
 _BARE = {

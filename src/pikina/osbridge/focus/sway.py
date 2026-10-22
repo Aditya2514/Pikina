@@ -2,9 +2,17 @@
 Sway / i3 focus listener over raw i3-ipc ($SWAYSOCK or $I3SOCK).
 
 Frame: struct "=6sII" (b"i3-ipc", payload length, message type) + JSON payload.
-We SUBSCRIBE to ["window", "shutdown"] and then ask GET_TREE once on the same
-connection, so no focus change can slip in between the seed and the first event
+We SUBSCRIBE to ["window", "workspace", "shutdown"] and then ask GET_TREE once on the
+same connection, so no focus change can slip in between the seed and the first event
 (replies and events are told apart by the event bit in the type).
+
+window::focus only fires for containers with a view, so switching to an empty
+workspace (or closing its last window) sends just workspace::focus / window::close.
+For those we ask GET_TREE again on the same socket and re-seed from the reply (an
+empty focused workspace -> nothing focused).
+
+If $SWAYSOCK no longer works (it names the pid of a sway that has since restarted), we
+also try the newest live $XDG_RUNTIME_DIR/sway-ipc.<uid>.<pid>.sock.
 
 app = container.app_id (native Wayland) or container.window_properties.class
 (XWayland / i3); the container name (window title) is only used for the
@@ -16,17 +24,26 @@ import json
 import socket
 import struct
 import threading
+from pathlib import Path
 
-from pikina.osbridge.focus import FocusSource
+from pikina.osbridge.focus import FocusSource, _pid_alive
 
 HEADER = struct.Struct("=6sII")
 MAGIC = b"i3-ipc"
 SUBSCRIBE = 2
 GET_TREE = 4
 EVENT_BIT = 0x80000000
+EVENT_WORKSPACE = EVENT_BIT | 0
 EVENT_WINDOW = EVENT_BIT | 3
 EVENT_SHUTDOWN = EVENT_BIT | 6
+EVENTS = ["window", "workspace", "shutdown"]
 _MAX_PAYLOAD = 64 << 20
+_CONNECT_TIMEOUT = 1.0
+
+_NO_SOCKET = "no sway/i3 IPC socket found (retrying)"
+_UNREACHABLE = "can't reach the sway/i3 IPC socket (retrying)"
+_REFUSED = "sway/i3 refused the event subscription (retrying)"
+_LOST = "lost the sway/i3 IPC connection (reconnecting)"
 
 
 def pack(msg_type: int, payload: bytes = b"") -> bytes:
@@ -82,6 +99,29 @@ def window_of(node) -> tuple[str | None, str | None, int | None] | None:
             pid)
 
 
+def live_sway_sockets(env) -> list[str]:
+    """$XDG_RUNTIME_DIR/sway-ipc.<uid>.<pid>.sock whose sway pid is alive, newest first."""
+    runtime = env.get("XDG_RUNTIME_DIR")
+    if not runtime:
+        return []
+    found = []
+    try:
+        paths = list(Path(runtime).glob("sway-ipc.*.sock"))
+    except OSError:
+        return []
+    for path in paths:
+        parts = path.name.split(".")  # sway-ipc, uid, pid, sock
+        try:
+            pid = int(parts[-2])
+            mtime = path.stat().st_mtime
+        except (IndexError, ValueError, OSError):
+            continue
+        if _pid_alive(pid):
+            found.append((mtime, str(path)))
+    found.sort(key=lambda item: item[0], reverse=True)
+    return [p for _, p in found]
+
+
 def focused_node(tree):
     """The node with focused == true (iterative walk over nodes + floating_nodes)."""
     stack = [tree]
@@ -106,8 +146,14 @@ class SwaySource(FocusSource):
         self._sock_lock = threading.Lock()
         self._sock: socket.socket | None = None
 
-    def _socket_path(self) -> str | None:
-        return self._env.get("SWAYSOCK") or self._env.get("I3SOCK") or None
+    def _socket_paths(self) -> list[str]:
+        """$SWAYSOCK (or $I3SOCK) first; for sway also any live sway-ipc socket, in case
+        $SWAYSOCK names an instance that has since exited."""
+        configured = self._env.get("SWAYSOCK") or self._env.get("I3SOCK") or None
+        paths = [configured] if configured else []
+        if self._env.get("SWAYSOCK") or not configured:
+            paths += [p for p in live_sway_sockets(self._env) if p not in paths]
+        return paths
 
     # -- stop ------------------------------------------------------------------
     def _interrupt(self) -> None:
@@ -123,24 +169,39 @@ class SwaySource(FocusSource):
     def _loop(self) -> None:
         backoff = self._backoff()
         while not self.stopping:
-            path = self._socket_path()
-            sock = self._connect(path) if path else None
+            paths = self._socket_paths()
+            sock = None
+            for path in paths:
+                if self.stopping:
+                    break
+                sock = self._connect(path)
+                if sock is not None:
+                    break
             if sock is not None:
+                failure = _LOST
                 try:
-                    self._session(sock, backoff)
+                    failure = self._session(sock, backoff)
                 except Exception:
                     pass  # any surprise = lost connection; reconnect below
                 finally:
                     self._close(sock)
+                self._lost(failure)
+            elif not self.stopping:
+                self._lost(_UNREACHABLE if paths else _NO_SOCKET)
             if self.stopping:
                 break
             self._stop_event.wait(backoff.next())
 
     def _connect(self, path: str) -> socket.socket | None:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        except OSError:  # EMFILE and friends: retry later rather than kill the thread
+            return None
+        try:
+            sock.settimeout(_CONNECT_TIMEOUT)
             sock.connect(path)
-        except OSError:
+            sock.settimeout(None)
+        except (OSError, ValueError):
             sock.close()
             return None
         with self._sock_lock:
@@ -159,25 +220,32 @@ class SwaySource(FocusSource):
         except OSError:
             pass
 
-    def _session(self, sock: socket.socket, backoff) -> None:
-        """Subscribe, seed, then follow events until shutdown / disconnect / stop."""
-        sock.sendall(pack(SUBSCRIBE, json.dumps(["window", "shutdown"]).encode()))
+    def _session(self, sock: socket.socket, backoff) -> str:
+        """Subscribe, seed, then follow events until shutdown / disconnect / stop.
+
+        Returns the failure to report once the session is over."""
+        sock.sendall(pack(SUBSCRIBE, json.dumps(EVENTS).encode()))
         sock.sendall(pack(GET_TREE))
         while not self.stopping:
             msg = read_message(sock)
             if msg is None:
-                return
+                return _LOST
             msg_type, payload = msg
             if msg_type == SUBSCRIBE:
                 if _decode(payload).get("success") is not True:
-                    return
+                    return _REFUSED
+                self.failure = None
                 backoff.reset()
             elif msg_type == GET_TREE:
                 self._seed(payload)
             elif msg_type == EVENT_WINDOW:
-                self._window_event(payload)
+                self._window_event(sock, payload)
+            elif msg_type == EVENT_WORKSPACE:
+                if _decode(payload).get("change") == "focus":
+                    sock.sendall(pack(GET_TREE))  # maybe an empty workspace: re-seed from the tree
             elif msg_type == EVENT_SHUTDOWN:
-                return  # sway is exiting / i3 restarting: reconnect
+                return _LOST  # sway is exiting / i3 restarting: reconnect
+        return _LOST
 
     def _seed(self, payload: bytes) -> None:
         tree = _decode(payload)
@@ -189,9 +257,14 @@ class SwaySource(FocusSource):
         else:
             self._emit(*win)
 
-    def _window_event(self, payload: bytes) -> None:
+    def _window_event(self, sock: socket.socket, payload: bytes) -> None:
         event = _decode(payload)
-        if event.get("change") != "focus":
+        change = event.get("change")
+        if change in ("close", "move"):
+            # the last window on the workspace may have closed or moved away: re-seed
+            sock.sendall(pack(GET_TREE))
+            return
+        if change != "focus":
             return
         win = window_of(event.get("container"))
         if win is not None:

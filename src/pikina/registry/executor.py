@@ -17,7 +17,8 @@ from pikina.validation.failure_classes import FailureClass
 
 def execute_action(registry, tool: str, params: dict, *, raw: str = "", tier=1,
                    provenance: str = "TRUSTED_COMMAND", gate: bool = True,
-                   origin: str = "typed", log_activity: bool = True, group_id: str | None = None) -> dict:
+                   origin: str = "typed", log_activity: bool = True, group_id: str | None = None,
+                   started_at: datetime | None = None) -> dict:
     """
     Run one capability.
       gate=False is only for callers that already obtained consent
@@ -25,9 +26,10 @@ def execute_action(registry, tool: str, params: dict, *, raw: str = "", tier=1,
       origin is where the command came from (typed, quick_panel, cli, alias, ui).
       log_activity=False keeps it out of the activity log (rollbacks: not something you did).
       group_id links alias steps to their alias run.
+      started_at: when the user asked (Tier 2 passes the time before its own consent dialog).
     """
     bus = EventBus()
-    started = datetime.now(timezone.utc)  # before any consent dialog, which can take a while
+    started = started_at or datetime.now(timezone.utc)  # before any consent dialog, which can take a while
 
     def log(result, event_id):
         if log_activity:
@@ -44,7 +46,10 @@ def execute_action(registry, tool: str, params: dict, *, raw: str = "", tier=1,
                 "failure_class": FailureClass.VALIDATION}
 
     level = manifest["permission_level"]
-    if manifest.get("activity_log") is False:  # e.g. viewing or wiping the activity log itself
+    # Capabilities that show or control the activity log itself stay out of it, and
+    # their results (your app names, top actions) stay out of the replay log too.
+    private_result = manifest.get("activity_log") is False
+    if private_result:
         log_activity = False
 
     if gate and needs_consent(manifest):
@@ -72,9 +77,10 @@ def execute_action(registry, tool: str, params: dict, *, raw: str = "", tier=1,
         result = {"status": "error", "reason": f"{type(exc).__name__}: {exc}",
                   "failure_class": FailureClass.RECOVERABLE}
 
+    logged = {"status": result.get("status") if isinstance(result, dict) else None} if private_result else result
     bus.publish(
         topic="router.result",
-        payload={"tool": tool, "result": result, "tier": tier},
+        payload={"tool": tool, "result": logged, "tier": tier, "exec_id": executing_id},
         provenance=provenance,
         permission_level=level,
     )

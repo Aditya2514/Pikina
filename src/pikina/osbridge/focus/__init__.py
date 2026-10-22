@@ -11,7 +11,12 @@ Focus listeners: which app has keyboard focus, per OS / compositor.
 on_focus(app, private, pid) runs on the source's own thread for the initial
 window and for every change of (app, private). `app` is the raw class / app_id /
 exe name ("org.keepassxc.KeePassXC", "Code", "Code.exe"), None when nothing is
-focused.
+focused, and also once when the source loses its compositor connection / xprop
+child (so the last app doesn't stay current while nothing is being reported).
+
+source.failure is None while the listener is delivering focus changes, and a short
+human sentence ("can't reach Hyprland's event socket (retrying)") while it can't.
+Sources never give up on their own: they retry with backoff until stop().
 
 Privacy: only app names leave this package. Window titles are read in memory,
 solely so is_private_window() can spot private browser windows, then dropped.
@@ -29,7 +34,8 @@ import sys
 import threading
 from pathlib import Path
 
-__all__ = ["detect_backend", "is_private_window", "make_source", "FocusSource", "BACKENDS"]
+__all__ = ["detect_backend", "is_private_window", "is_firefox_family", "make_source", "FocusSource",
+           "BACKENDS"]
 
 BACKENDS = ("hyprland", "sway", "x11", "windows")
 
@@ -61,11 +67,44 @@ def _pid_alive(pid: int) -> bool:
     return True
 
 
+def _exists(path) -> bool:
+    """Path.exists() that never raises (it raises PermissionError on Python < 3.14)."""
+    try:
+        return os.path.exists(path)
+    except (OSError, ValueError):
+        return False
+
+
+def _read_hyprland_lock(lock: Path) -> tuple[int, str, float] | None:
+    """(pid, wayland socket, mtime) from a hyprland.lock, None if missing or unreadable.
+
+    A lock file reads "<pid>\\n<wayland socket>\\n". Hyprland removes it on a clean exit
+    (but leaves .socket2.sock behind), so a live lock pid is what marks a live instance.
+    """
+    try:
+        lines = lock.read_text(encoding="utf-8", errors="replace").splitlines()
+        mtime = lock.stat().st_mtime
+    except (OSError, ValueError):
+        return None
+    try:
+        pid = int(lines[0].strip())
+    except (IndexError, ValueError):
+        return None
+    sock = lines[1].strip() if len(lines) > 1 else ""
+    return pid, sock, mtime
+
+
+def _hyprland_lock_alive(instance_dir: Path) -> bool:
+    """True when instance_dir/hyprland.lock exists and names a running process."""
+    info = _read_hyprland_lock(instance_dir / "hyprland.lock")
+    return info is not None and _pid_alive(info[0])
+
+
 def _hyprland_instances(env) -> list[Path]:
     """Live Hyprland instance dirs from $XDG_RUNTIME_DIR/hypr/*/hyprland.lock, newest first.
 
-    A lock file reads "<pid>\\n<wayland socket>\\n". It counts when the pid is alive and,
-    if WAYLAND_DISPLAY is set, its wayland socket matches it.
+    A lock counts when its pid is alive and, if WAYLAND_DISPLAY is set, its wayland
+    socket matches it.
     """
     runtime = env.get("XDG_RUNTIME_DIR")
     if not runtime:
@@ -77,21 +116,14 @@ def _hyprland_instances(env) -> list[Path]:
     except OSError:
         return []
     for lock in locks:
-        try:
-            lines = lock.read_text(encoding="utf-8", errors="replace").splitlines()
-            mtime = lock.stat().st_mtime
-        except OSError:
+        info = _read_hyprland_lock(lock)
+        if info is None:
             continue
-        try:
-            pid = int(lines[0].strip())
-        except (IndexError, ValueError):
-            continue
+        pid, sock, mtime = info
         if not _pid_alive(pid):
             continue
-        if wayland:
-            sock = lines[1].strip() if len(lines) > 1 else ""
-            if sock != wayland and os.path.basename(sock) != os.path.basename(wayland):
-                continue
+        if wayland and sock != wayland and os.path.basename(sock) != os.path.basename(wayland):
+            continue
         found.append((mtime, lock.parent))
     found.sort(key=lambda item: item[0], reverse=True)
     return [d for _, d in found]
@@ -130,6 +162,25 @@ def detect_backend(env: dict | None = None, platform: str | None = None) -> tupl
 
 # --------------------------------------------------------------------------- privacy
 _ALWAYS_PRIVATE_APPS = ("torbrowser", "mullvadbrowser")
+# Browsers whose private windows are only recognisable by the title suffix.
+_FIREFOX_FAMILY_SUBSTRINGS = ("firefox", "librewolf", "floorp", "waterfox", "mullvadbrowser", "torbrowser")
+_FIREFOX_FAMILY_WORDS = ("zen", "mullvad", "tor")  # too short to match inside other names
+
+
+def is_firefox_family(app: str | None) -> bool:
+    """True for Firefox and its forks (LibreWolf, Floorp, Waterfox, Zen, Mullvad, Tor).
+
+    Used to fail closed: when a title we can't trust (cut short by the compositor) comes
+    from one of these, the window is treated as private.
+    """
+    if not app:
+        return False
+    lowered = str(app).lower()
+    squashed = "".join(ch for ch in lowered if ch.isalnum())
+    if any(name in squashed for name in _FIREFOX_FAMILY_SUBSTRINGS):
+        return True
+    words = "".join(ch if ch.isalnum() else " " for ch in lowered).split()
+    return any(word in _FIREFOX_FAMILY_WORDS for word in words)
 
 
 def is_private_window(app: str | None, title: str | None) -> bool:
@@ -184,6 +235,12 @@ class FocusSource(threading.Thread):
 
     Subclasses implement _loop() (runs until stop is requested, reconnecting as needed)
     and may override _interrupt() to unblock a blocking read when stop() is called.
+
+    `failure` is None while focus info is flowing, else a short human sentence (never a
+    title or an exception message). Subclasses set it while they can't connect and reset
+    it to None as soon as a connection / seed succeeds. run() never lets the thread die:
+    an unexpected exception out of _loop() is reported in `failure` and _loop() is run
+    again after a backoff, until stop().
     """
 
     backend = "base"
@@ -197,14 +254,26 @@ class FocusSource(threading.Thread):
         self._initial_backoff = initial_backoff
         self._max_backoff = max_backoff
         self._last = _UNSET  # last (app, private) handed to on_focus
+        self.failure: str | None = None
 
     # -- lifecycle -------------------------------------------------------------
     def run(self) -> None:
-        try:
-            self._loop()
-        except Exception as exc:  # never include the message: it could carry window data
-            if not self._stop_event.is_set():
-                print(f"[Focus] {self.backend} listener stopped ({type(exc).__name__})")
+        backoff = self._backoff()
+        while not self.stopping:
+            try:
+                self._loop()
+            except Exception as exc:  # never include the message: it could carry window data
+                if self.stopping:
+                    break
+                message = f"listener error ({type(exc).__name__}), retrying"
+                if self.failure is None:
+                    backoff.reset()  # it was healthy until now: retry soon
+                if self.failure != message:
+                    print(f"[Focus] {self.backend} {message}")
+                self._lost(message)
+            if self.stopping:
+                break
+            self._stop_event.wait(backoff.next())
 
     def stop(self) -> None:
         """Ask the source to finish; unblocks promptly. Safe twice and before start()."""
@@ -228,11 +297,24 @@ class FocusSource(threading.Thread):
     def _backoff(self) -> Backoff:
         return Backoff(self._initial_backoff, self._max_backoff)
 
-    def _emit(self, app, title, pid) -> None:
-        """Classify, dedupe on (app, private) and call on_focus. `title` is not kept."""
+    def _lost(self, failure: str) -> None:
+        """The listener can't currently see focus: set `failure`, and report nothing focused
+        once (if anything was reported before) so the last app doesn't stay current.
+        A no-op while stopping: stop() is not a failure."""
+        if self.stopping:
+            return
+        self.failure = failure
+        if self._last is not _UNSET:
+            self._emit(None, None, None)
+
+    def _emit(self, app, title, pid, *, private: bool = False) -> None:
+        """Classify, dedupe on (app, private) and call on_focus. `title` is not kept.
+
+        private=True forces the window to count as private (fail closed when the title
+        can't be trusted)."""
         if app is not None:
             app = str(app).strip() or None
-        private = is_private_window(app, title)
+        private = bool(private) or is_private_window(app, title)
         title = None  # noqa: F841 - drop our reference before calling out
         key = (app, private)
         if key == self._last:

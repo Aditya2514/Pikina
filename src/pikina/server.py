@@ -13,6 +13,7 @@ import json
 import os
 import secrets
 import socket
+import sqlite3
 import sys
 import threading
 import urllib.request
@@ -108,7 +109,7 @@ class Backend:
         self._stopped = False
         self._daemons_started = False
         self.tracker = None
-        self._tracker_lock = threading.Lock()
+        self._tracker_lock = threading.RLock()
 
     def start_daemons(self) -> None:
         from pikina.daemons.clipboard import ClipboardDaemon
@@ -126,16 +127,20 @@ class Backend:
         for daemon in self._daemons:
             daemon.start()
         self._daemons_started = True
-        if settings.get("window_tracking", False):
+        if settings.get("window_tracking", False) is True:
             self.set_window_tracking(True)
         threading.Thread(target=self._slow_init, name="BackendInit", daemon=True).start()
 
     def _slow_init(self) -> None:
         """Model loading and network sync, kept off the startup path."""
         try:
-            from pikina.activity.backfill import backfill
+            from pikina.activity.backfill import backfill, scrub_replay_log
             from pikina.activity.store import ActivityStore
-            ActivityStore().prune()
+            store = ActivityStore()
+            store.prune()
+            if not store.meta("replay_scrubbed"):
+                scrub_replay_log()
+                store.set_meta("replay_scrubbed", "1")
             done = backfill()
             if done.get("added"):
                 print(f"[Backend] Activity log: {done['added']} past actions imported from the replay log.")
@@ -154,9 +159,10 @@ class Backend:
             print(f"[Backend] Holiday sync skipped: {exc}")
 
     def stop_daemons(self) -> None:
-        if self._stopped:
-            return
-        self._stopped = True
+        with self._tracker_lock:
+            if self._stopped:
+                return
+            self._stopped = True
         self._stop_tracker()
         for daemon in self._daemons:
             try:
@@ -165,32 +171,39 @@ class Backend:
                 print(f"[Backend] Failed to stop {type(daemon).__name__}: {exc}")
 
     # -- activity log and window tracker ---------------------------------------
+    # _tracker_lock (re-entrant) covers: starting/stopping the tracker, the kill switch
+    # and stop checks, and saving the activity switches, so overlapping requests can't
+    # leave a tracker running that the saved settings or the kill switch say is off.
 
     def _stop_tracker(self) -> None:
         with self._tracker_lock:
             tracker, self.tracker = self.tracker, None
-        if tracker is not None:
-            try:
-                tracker.stop()
-            except Exception as exc:
-                print(f"[Backend] Failed to stop the window tracker: {exc}")
+            if tracker is not None:
+                try:
+                    tracker.stop()
+                except Exception as exc:
+                    print(f"[Backend] Failed to stop the window tracker: {exc}")
 
     def set_window_tracking(self, on: bool) -> None:
         """Start or stop the tracker now. It only runs inside a backend that runs daemons."""
-        if not on or killswitch.is_engaged() or self._stopped or not self._daemons_started:
-            self._stop_tracker()
-            return
         with self._tracker_lock:
-            if self.tracker is not None and self.tracker.running:
+            if not on or killswitch.is_engaged() or self._stopped or not self._daemons_started:
+                self._stop_tracker()
                 return
+            if self.tracker is not None:
+                if self.tracker.running:
+                    return
+                self._stop_tracker()  # a dead or failed tracker: clean it up before replacing it
             from pikina.activity.tracker import WindowTracker
             tracker = WindowTracker()
             tracker.start()  # on failure it keeps .reason for the HUD
             self.tracker = tracker
 
     def activity_status(self) -> dict:
-        s = settings.read()
-        tracking = bool(s.get("window_tracking", False))
+        from pikina.activity import recorder
+        data, ok = settings.read_checked()
+        flags = recorder.flags()
+        tracking = ok and data.get("window_tracking", False) is True
         if self.tracker is not None:
             tracker = self.tracker.status()
         elif not tracking:
@@ -202,25 +215,46 @@ class Backend:
                        "reason": "Background services are off (PIKINA_NO_DAEMONS); restart Pikina normally."}
         else:
             tracker = {"running": False, "backend": None, "reason": "Not started."}
-        return {"logging": bool(s.get("activity_logging", True)),
-                "paused": bool(s.get("activity_paused", False)),
-                "window_tracking": tracking, "tracker": tracker}
+        return {"logging": flags["logging"], "paused": flags["paused"], "window_tracking": tracking,
+                "tracker": tracker,
+                "settings_error": None if ok else
+                "settings.json can't be read, so recording is paused until you fix or delete it."}
 
     def apply_activity_settings(self, changes: dict) -> dict:
         """Save activity switches ({logging, paused, window_tracking}: bool) and apply them now."""
+        from pikina.activity.store import ActivityStore
         clean = {}
         for key, setting in _ACTIVITY_KEYS.items():
             if key in changes:
                 if not isinstance(changes[key], bool):
                     raise ValueError(f"'{key}' must be true or false")
                 clean[setting] = changes[key]
-        if clean.get("window_tracking") and killswitch.is_engaged():
-            raise PermissionError("Kill switch is engaged — restart Pikina to turn tracking on.")
-        if clean:
-            settings.update(clean)
-        if "window_tracking" in clean:
-            self.set_window_tracking(clean["window_tracking"])
+        from pikina.activity import recorder
+        with self._tracker_lock:
+            if clean.get("window_tracking") and killswitch.is_engaged():
+                raise KillSwitchEngaged("Kill switch is engaged — restart Pikina to turn tracking on.")
+            if clean.get("window_tracking") is False:
+                self._stop_tracker()  # turning off works even if saving fails below
+            if clean:
+                try:
+                    settings.update(clean)
+                except Exception:
+                    if clean.get("activity_paused") is True:
+                        recorder.set_runtime_pause(True)  # a pause holds even if it couldn't be saved
+                    raise
+                if "activity_paused" in clean:
+                    recorder.set_runtime_pause(False)    # the saved setting is in charge again
+            if clean.get("window_tracking"):
+                self.set_window_tracking(True)
+        try:  # mark when live recording began (best effort: a DB problem must not block a switch)
+            ActivityStore(timeout=0.5)
+        except (sqlite3.Error, OSError):
+            pass
         return self.activity_status()
+
+
+class KillSwitchEngaged(Exception):
+    pass
 
 
 # ---------------------------------------------------------------------------
@@ -308,7 +342,8 @@ def create_app(start_daemons: bool = False, enable_tier2: bool | None = None,
         # source decides trust and must stay "user_typed"; origin only labels the surface
         # (dashboard or quick panel) for the activity log.
         from pikina.activity.recorder import REQUEST_ORIGINS
-        origin = body.get("origin") if body.get("origin") in REQUEST_ORIGINS else "typed"
+        origin = body.get("origin")
+        origin = origin if isinstance(origin, str) and origin in REQUEST_ORIGINS else "typed"
         return jsonify(backend.mcm.receive(text, source=body.get("source", "user_typed"), origin=origin))
 
     @app.post("/api/capability")
@@ -449,6 +484,8 @@ def create_app(start_daemons: bool = False, enable_tier2: bool | None = None,
             return jsonify({"status": "ok", "settings": _update_settings(body)})
         except settings.SettingsError as exc:
             return jsonify({"status": "error", "reason": str(exc)}), 409
+        except OSError as exc:
+            return jsonify({"status": "error", "reason": f"Couldn't save settings ({exc.strerror or exc})."}), 500
 
     # -- Activity log -----------------------------------------------------------
 
@@ -461,8 +498,10 @@ def create_app(start_daemons: bool = False, enable_tier2: bool | None = None,
             return jsonify({"status": "ok", "activity": backend.apply_activity_settings(body)})
         except ValueError as exc:
             return jsonify({"status": "error", "reason": str(exc)}), 400
-        except (PermissionError, settings.SettingsError) as exc:
+        except (KillSwitchEngaged, settings.SettingsError) as exc:
             return jsonify({"status": "error", "reason": str(exc)}), 409
+        except (OSError, sqlite3.Error) as exc:
+            return jsonify({"status": "error", "reason": f"Couldn't save settings ({getattr(exc, 'strerror', None) or exc})."}), 500
 
     @app.get("/api/activity")
     def activity_recent():
