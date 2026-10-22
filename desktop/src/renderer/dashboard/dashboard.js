@@ -322,6 +322,16 @@ function reloadAfterBackendStart() {
   } catch (e) { console.error(e); }
 }
 
+// One list of event types for creating and editing (the backend stores any of these).
+const EVENT_TYPES = ['personal', 'college', 'appointment', 'meeting', 'work', 'holiday', 'other'];
+
+// <option>s for the edit form; an event's own type is always kept, even an unusual one.
+function eventTypeOptions(current) {
+  const types = EVENT_TYPES.includes(current) || !current ? EVENT_TYPES : [current, ...EVENT_TYPES];
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  return types.map((v) => `<option value="${esc(v)}" ${v === current ? 'selected' : ''}>${esc(v).toUpperCase()}</option>`).join('');
+}
+
 function setBackendStatus(online, profile) {
   const cameOnline = online && !backendOnline;
   backendOnline = online;
@@ -978,12 +988,10 @@ document.getElementById('btn-close').addEventListener('click', () => window.piki
 // POLLING SCHEDULE
 // ============================================================
 
-// Initial loads
+// Initial loads. Settings, weather, objectives and status load once the first telemetry
+// call reaches the backend (reloadAfterBackendStart), so they never run twice or too early.
 pollTelemetry();
-pollWeather();
 pollEvents();
-loadDeadlines();
-pollStatus();
 
 // Recurring intervals
 setInterval(pollTelemetry, 2000);   // Telemetry every 2s
@@ -1317,8 +1325,6 @@ if (window.pikina && window.pikina.onTriggerWallpaper) {
   });
 }
 
-loadSettings();
-
 
 // ============================================================
 // CHRONOLOGY (CALENDAR) INTEGRATION
@@ -1560,10 +1566,7 @@ function initDetailedCalendar() {
             <div style="flex: 1;">
               <label style="color: var(--c-cyan); font-weight: bold; display: block; margin-bottom: 2px; font-size: 10px;">TYPE</label>
               <select id="edit-event-type" class="cmd-input" style="width: 100%; box-sizing: border-box; padding: 6px; font-family: inherit; font-size: 11px; background: #020810; border: 1px solid rgba(0, 212, 255, 0.2); color: #fff;">
-                <option value="personal" ${type === 'personal' ? 'selected' : ''}>PERSONAL</option>
-                <option value="work" ${type === 'work' ? 'selected' : ''}>WORK</option>
-                <option value="holiday" ${type === 'holiday' ? 'selected' : ''}>HOLIDAY</option>
-                <option value="other" ${type === 'other' ? 'selected' : ''}>OTHER</option>
+                ${eventTypeOptions(type)}
               </select>
             </div>
             <div style="flex: 1;">

@@ -31,7 +31,10 @@
           "personal",
           "college",
           "appointment",
-          "holiday"
+          "meeting",
+          "work",
+          "holiday",
+          "other"
         ],
         "description": "Category of the event. Defaults to personal."
       },

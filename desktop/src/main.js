@@ -317,10 +317,12 @@ ipcMain.on('open-url',    (_, url)      => shell.openExternal(url).catch(err => 
 // App lifecycle
 // ---------------------------------------------------------------------------
 
-app.whenReady().then(() => {
-  // Start the Python backend unless one is already running (the HUD shows
-  // "BACKEND OFFLINE" until it answers, so no need to wait here).
-  ensureBackend().then((state) => console.log(`[Main] Backend: ${state}`));
+app.whenReady().then(async () => {
+  // Start the Python backend unless one is already running, and give it a few seconds
+  // before the dashboard opens, so the HUD's first requests don't all fail. If it is slow
+  // the HUD opens anyway, shows "BACKEND OFFLINE", and loads everything once it answers.
+  const backendReady = ensureBackend().then((state) => { console.log(`[Main] Backend: ${state}`); return state; });
+  await Promise.race([backendReady, new Promise((resolve) => setTimeout(resolve, 8000))]);
 
   // Attach the API token to every renderer request to the backend.
   session.defaultSession.webRequest.onBeforeSendHeaders(

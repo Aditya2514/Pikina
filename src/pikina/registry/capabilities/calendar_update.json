@@ -8,7 +8,11 @@
   "rollback_action": null,
   "params_schema": {
     "type": "object",
-    "required": ["event_id", "title", "date"],
+    "required": [
+      "event_id",
+      "title",
+      "date"
+    ],
     "properties": {
       "event_id": {
         "type": "string",
@@ -28,7 +32,15 @@
       },
       "type": {
         "type": "string",
-        "enum": ["personal", "work", "holiday", "other"],
+        "enum": [
+          "personal",
+          "college",
+          "appointment",
+          "meeting",
+          "work",
+          "holiday",
+          "other"
+        ],
         "description": "Optional event type."
       },
       "source": {
@@ -37,7 +49,13 @@
       },
       "recurring": {
         "type": "string",
-        "enum": ["none", "daily", "weekly", "monthly", "yearly"],
+        "enum": [
+          "none",
+          "daily",
+          "weekly",
+          "monthly",
+          "yearly"
+        ],
         "description": "Optional recurrence schedule."
       }
     }
