@@ -35,6 +35,8 @@ Pikina is learning your routines so it can later suggest your next step. Phase 1
 - **Alias names.** An alias is logged by a keyed hash (`alias.run:3f9c0a1b77de`). The key is
   random on each install and is never exported, so the hash can't be reversed with a word
   list. The `activity` command shows the name again for the aliases you have now.
+- **Project names.** `work on <project>` is logged by a keyed hash, the same way as aliases.
+  The `activity` command shows the name again.
 - **Plugin parameters.** Plugin commands are logged by their command name only.
 - **Undos.** The steps Pikina undoes after an alias fails are not logged.
 - **Excluded apps.** Password managers, unlock prompts, authenticator apps and Tor Browser

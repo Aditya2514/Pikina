@@ -1,0 +1,15 @@
+{
+  "tool": "project.list",
+  "description": "Lists your saved projects and what each one opens.",
+  "permission_level": 0,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "read_only": true,
+  "params_schema": {"type": "object", "required": [], "properties": {}},
+  "patterns": [
+    {"regex": "(?:list|show)\\s+(?:my\\s+|all\\s+)?projects$", "priority": 44},
+    {"regex": "(?:my\\s+)?projects$", "priority": 44}
+  ]
+}

@@ -149,6 +149,14 @@ def _alias_secret() -> bytes:
     return _alias_secrets[path]
 
 
+def project_hash(name) -> str:
+    """Projects are named by you too ("client acme"), so they're stored the same keyed way."""
+    s = " ".join(str(name or "").strip().strip("\"'").lower().split())
+    if not s:
+        return "?"
+    return hmac.new(_alias_secret(), ("project\0" + s).encode("utf-8"), hashlib.sha256).hexdigest()[:12]
+
+
 def alias_hash(trigger) -> str:
     """
     Aliases are stored by a keyed hash of their trigger, not the trigger itself: a trigger
@@ -168,9 +176,10 @@ _BARE = {
     "clipboard.history", "memory.recall", "utility.calculate", "system.lock_screen",
     "alias.add", "alias.list", "alias.remove",
     "activity.summary", "activity.pause", "activity.forget",
+    "project.add", "project.list", "project.remove",
 }
 RULES = {"app.open", "fs.find_file", "calendar.query", "utility.stopwatch", "prefs.update",
-         "dev.doctor", "dev.ports", "dev.free_port", "alias.run"} | _BARE
+         "dev.doctor", "dev.ports", "dev.free_port", "alias.run", "project.open"} | _BARE
 
 
 def action_key(tool: str, params: dict | None, result: dict | None = None, when: datetime | None = None) -> str:
@@ -199,4 +208,6 @@ def action_key(tool: str, params: dict | None, result: dict | None = None, when:
         return _join(tool, _port(params))
     if tool == "alias.run":
         return _join(tool, alias_hash(params.get("trigger")))
+    if tool == "project.open":
+        return _join(tool, project_hash(params.get("name")))
     return tool  # _BARE tools and anything unknown: the tool id only

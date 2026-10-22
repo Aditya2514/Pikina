@@ -169,7 +169,7 @@ sequenceDiagram
 
 ## ⚡ Capability Registry & Command Specs
 
-Pikina OS provides **26 built-in capabilities** spanning system controls, task management, calendar integration, math calculations, file searches, clipboard history and developer tools. New features are added as **plugins** (one folder each) — see [CONTRIBUTING.md](CONTRIBUTING.md#writing-a-plugin).
+Pikina OS provides **30 built-in capabilities** spanning system controls, task management, calendar integration, math calculations, file searches, clipboard history and developer tools. New features are added as **plugins** (one folder each) — see [CONTRIBUTING.md](CONTRIBUTING.md#writing-a-plugin).
 
 ### Safety Permission Levels
 
@@ -207,6 +207,10 @@ Pikina OS provides **26 built-in capabilities** spanning system controls, task m
 │ activity.summary     │   0   │ "activity", "activity this week", "what did I do today"│
 │ activity.pause       │   1   │ "pause activity", "resume activity"                    │
 │ activity.forget      │   4   │ "forget my activity" (always asks first)               │
+│ project.open         │   1   │ "work on pikina", "college mode", "open project acme"  │
+│ project.add          │   1   │ "add project pikina at ~/code/pikina"                  │
+│ project.list         │   0   │ "list projects", "projects"                            │
+│ project.remove       │   1   │ "remove project pikina" (your folder is untouched)     │
 └──────────────────────┴───────┴────────────────────────────────────────────────────────┘
 ```
 

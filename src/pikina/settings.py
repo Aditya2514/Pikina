@@ -116,9 +116,12 @@ def _replace(tmp, f) -> None:
             time.sleep(0.05)
 
 
-def update(changes: dict) -> dict:
-    """Merge top-level keys into settings.json and return the new dict. Raises SettingsError or OSError."""
-    f = _file()
+def edit_json(f, mutate, *, what: str = "file") -> dict:
+    """
+    Locked (threads and processes), atomic read-modify-write of a JSON object file.
+    mutate(data) changes the dict in place. A file that exists but doesn't parse is
+    never overwritten: SettingsError. Other write problems raise OSError.
+    """
     f.parent.mkdir(parents=True, exist_ok=True)
     with _lock, _process_lock(f):
         if f.exists():
@@ -128,7 +131,7 @@ def update(changes: dict) -> dict:
                 raise SettingsError(f"{f} is not valid JSON ({exc}); fix or delete it first.") from exc
         else:
             current = {}
-        current.update(changes)
+        mutate(current)
         tmp = f.with_name(f".{f.name}.{os.getpid()}.{threading.get_ident()}.tmp")
         try:
             tmp.write_text(json.dumps(current, indent=2), encoding="utf-8")
@@ -138,6 +141,23 @@ def update(changes: dict) -> dict:
                 tmp.unlink()
             except FileNotFoundError:
                 pass
-        _cache["key"] = None
-        _last_good[str(f)] = dict(current)
-        return dict(current)
+        return current
+
+
+def read_json(f) -> dict:
+    """Read a JSON object file: {} if missing; SettingsError if it exists but doesn't parse."""
+    if not f.exists():
+        return {}
+    try:
+        return _parse(f)
+    except (OSError, ValueError) as exc:
+        raise SettingsError(f"{f} is not valid JSON ({exc}); fix or delete it first.") from exc
+
+
+def update(changes: dict) -> dict:
+    """Merge top-level keys into settings.json and return the new dict. Raises SettingsError or OSError."""
+    f = _file()
+    current = edit_json(f, lambda data: data.update(changes))
+    _cache["key"] = None
+    _last_good[str(f)] = dict(current)
+    return dict(current)

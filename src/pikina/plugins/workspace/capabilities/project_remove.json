@@ -1,0 +1,17 @@
+{
+  "tool": "project.remove",
+  "description": "Removes a saved project from the switcher (the folder itself is not touched).",
+  "permission_level": 1,
+  "estimated_cost": 0.0,
+  "requires_network": false,
+  "supports_rollback": false,
+  "rollback_action": null,
+  "params_schema": {
+    "type": "object",
+    "required": ["name"],
+    "properties": {"name": {"type": "string", "description": "The project's name"}}
+  },
+  "patterns": [
+    {"regex": "(?:remove|delete|forget)\\s+project\\s+(?P<name>[\\w .-]+?)\\s*$", "priority": 44}
+  ]
+}

@@ -16,6 +16,17 @@ All notable changes to Pikina OS. Versions follow [Semantic Versioning](https://
 - Dependencies are declared in `pyproject.toml` (`requirements.txt` removed).
 
 ### Added
+- **Project switcher** (built-in `workspace` plugin):
+  - `add project pikina at ~/code/pikina` saves a project and detects its dev command
+    (npm, pnpm, yarn, bun, Django).
+  - `work on pikina` switches to its Hyprland/Sway workspace, opens VS Code and a terminal
+    in the folder, starts the dev server there, opens its apps and links, and shows git
+    status (branch, uncommitted, ahead/behind).
+  - The dev command runs only after you allow it once, and you're asked again if it or the
+    folder changes.
+  - `college mode` works for a project with no folder (apps and links only).
+  - `list projects` and `remove project <name>`; the rest is set in `projects.json`.
+  - Project names reach the activity log only as keyed hashes.
 - **Activity log (learning layer, Phase 1).** Every action run through Pikina is logged to
   `activity.db` as a normalised, privacy-safe key (`app.open:code`, `fs.find_file:*.pdf`), with
   its source (typed, quick panel, CLI, alias, dashboard click), outcome, local hour and weekday,
