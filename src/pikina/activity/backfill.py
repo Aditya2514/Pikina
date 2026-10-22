@@ -175,6 +175,8 @@ def _rows_from_replay(path: Path, since: str, until: str, skip: set) -> list[dic
                     queue.clear()
             if entry is not None:
                 status = result.get("status") if isinstance(result, dict) else None
+                if status == "no_match":       # not an action of yours (live logging skips it too)
+                    continue
                 finish(entry, status not in ("error", "denied", None), recorder.outcome_of(result), result)
 
         elif topic == "validation.rejected" and p.get("outcome") == "denied":

@@ -116,7 +116,7 @@ def _replace(tmp, f) -> None:
             time.sleep(0.05)
 
 
-def edit_json(f, mutate, *, what: str = "file") -> dict:
+def edit_json(f, mutate) -> dict:
     """
     Locked (threads and processes), atomic read-modify-write of a JSON object file.
     mutate(data) changes the dict in place. A file that exists but doesn't parse is

@@ -18,6 +18,8 @@ def run(params: dict) -> dict:
     try:
         entry = projects.get(name)
     except projects.ProjectError as exc:
+        if params.get("loose"):  # "airplane mode" must still reach the model when projects.json has a typo
+            return {"status": "no_match", "message": str(exc)}
         return {"status": "error", "reason": str(exc)}
     if entry is None:
         if params.get("loose"):
@@ -40,16 +42,19 @@ def run(params: dict) -> dict:
     if entry.get("workspace") not in (None, ""):
         note(f"workspace {entry['workspace']}", launch.switch_workspace(entry["workspace"]))
 
-    if where and entry.get("editor"):
-        note(str(entry["editor"]), launch.open_editor(str(entry["editor"]), where))
-
-    dev = (entry.get("dev") or "").strip() or None
     terminal = entry.get("terminal")
     preferred = terminal if isinstance(terminal, str) else None
+    if where and entry.get("editor"):
+        note(str(entry["editor"]), launch.open_editor(str(entry["editor"]), where, preferred))
+
+    dev = (entry.get("dev") or "").strip() or None
     if where and dev:
         digest = projects.dev_digest(dev, folder)
         allowed = entry.get("dev_approved") == digest
-        if not allowed:
+        if not allowed and not consent.can_ask():
+            problems.append(f"dev server not started: Pikina can't ask you to allow `{dev}` (install zenity, "
+                            f"or run `pikina` in a terminal and say 'work on {name}' there once)")
+        elif not allowed:
             # It runs code from the project folder, so ask once (and again if the command changes).
             allowed = consent.ask(f"Start the dev command for '{name}'?\n\n  {dev}\n\nin {where}\n\n"
                                   "Pikina will remember your answer until the command or folder changes.")
@@ -58,12 +63,12 @@ def run(params: dict) -> dict:
                     projects.approve_dev(name, digest)
                 except projects.ProjectError as exc:
                     problems.append(f"couldn't remember the approval ({exc})")
+            if not allowed:
+                problems.append(f"dev server not started (`{dev}` not allowed)")
         if allowed:
             note(f"terminal running `{dev}`", launch.open_terminal(where, dev, preferred))
-        else:
-            problems.append(f"dev server not started (`{dev}` not allowed)")
-            if terminal:
-                note("terminal", launch.open_terminal(where, None, preferred))
+        elif terminal:
+            note("terminal", launch.open_terminal(where, None, preferred))
     elif where and terminal:
         note("terminal", launch.open_terminal(where, None, preferred))
 
@@ -74,7 +79,9 @@ def run(params: dict) -> dict:
 
     git = projects.git_summary(folder) if folder else None
     lines = [f"Working on {name}: " + (", ".join(done) if done else "nothing to open")]
-    if git:
+    if git and git.get("skipped"):
+        lines.append(f"Git: {git['skipped']}")
+    elif git:
         bits = [f"on {git['branch']}", f"{git['uncommitted']} uncommitted"]
         if git["ahead"]:
             bits.append(f"{git['ahead']} not pushed")
