@@ -162,7 +162,8 @@ sequenceDiagram
 | **4c — Scheduler** | Dependency-aware task scheduler with cost limits | 🧱 Built & tested, no caller until 4f |
 | **4f — Planner** | Multi-agent task planner, calendar free/busy slots | ⏳ Planned |
 | **— Tier 3** | Metered cloud reasoning | ⏳ Planned |
-| **5 — Voice & Vision** | Local STT (Whisper.cpp), TTS (Kokoro-82M), Screen Vision (`mss` + Gemini Flash) | ⏳ Planned |
+| **5a — Voice input** | `voice` in the terminal: local STT with whisper.cpp, confirm before running, works from a file without a mic | 🧪 Built & tested with fakes, not yet run on real hardware |
+| **5 — Voice & Vision** | Voice in the desktop app, TTS (Kokoro-82M), Screen Vision (`mss` + Gemini Flash) | ⏳ Planned |
 | **6 — Vault** | AES-256 Encrypted Vault (`cryptography.fernet`), Playwright Web Automation | ⏳ Planned |
 
 ---
@@ -290,7 +291,8 @@ Pikina/
 │   ├── daemons/                # Clipboard (Windows/Linux), file watcher, file indexer
 │   ├── calendar/  todo/  preferences/
 │   ├── governor/               # Telemetry & resource profiles
-│   └── scheduler/              # Task scheduler (awaiting the Phase 4f planner)
+│   ├── scheduler/              # Task scheduler (awaiting the Phase 4f planner)
+│   └── voice/                  # Voice input (5a): recorder, whisper.cpp, `voice` command
 ├── desktop/                    # Electron desktop app
 │   └── src/
 │       ├── main.js             # Windows, tray, hotkeys; starts the backend if it isn't running
@@ -326,7 +328,7 @@ Set `PIKINA_DATA_DIR` to use another folder. Data from versions before 0.4 (the 
 | **Local LLM Service** | `Ollama` (`llama3` by default) | Tier 2 natural language tool parameter extraction |
 | **Vector Embeddings** | `SentenceTransformers` (`All-MiniLM-L6-v2`) | Semantic memory representation & retrieval |
 | **Knowledge Graph** | `NetworkX` | Entity relationship mapping |
-| **Speech & Voice** *(planned, Phase 5)* | `Whisper.cpp`, `Kokoro-82M` | Offline Speech-to-Text & Text-to-Speech |
+| **Speech & Voice** *(STT in the terminal since 5a; TTS planned)* | `Whisper.cpp`, `Kokoro-82M` | Offline Speech-to-Text & Text-to-Speech |
 | **Vision Capture** *(planned, Phase 5)* | `mss`, `Gemini Flash API` | Screen capture & visual analysis |
 | **Encryption & Vault** *(planned, Phase 6)* | `cryptography.fernet` (AES-256) | Encrypted key/value storage |
 | **System Telemetry** | `psutil` | CPU, RAM, Disk, and Battery diagnostics |

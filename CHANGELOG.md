@@ -16,6 +16,13 @@ All notable changes to Pikina OS. Versions follow [Semantic Versioning](https://
 - Dependencies are declared in `pyproject.toml` (`requirements.txt` removed).
 
 ### Added
+- **Voice input (Phase 5a), in the terminal.** `voice` records from the microphone until you
+  press Enter, transcribes locally with whisper.cpp, shows what it heard and asks before
+  running it. `voice <file>` does the same from a recording, so it can be tested without a
+  microphone. `voice check` and `doctor` say what's missing (recorder, whisper.cpp, model);
+  without them Pikina says so and you keep typing. `python -m pikina.voice.download` fetches a
+  model. Silent recordings (muted mic) are reported instead of transcribed. Spoken commands
+  use the `user_spoke` provenance and the `voice` activity source.
 - **Project switcher** (built-in `workspace` plugin):
   - `add project pikina at ~/code/pikina` saves a project and detects its dev command
     (npm, pnpm, yarn, bun, Django).
@@ -61,6 +68,7 @@ All notable changes to Pikina OS. Versions follow [Semantic Versioning](https://
 - pytest suite and GitHub Actions CI on Linux and Windows.
 
 ### Fixed
+- The terminal printed raw result data for commands that reply with `display` (e.g. `list todos`).
 - `open vs code` failed on Arch, whose package installs `code-oss`.
 - Saving settings could lose keys when two saves overlapped, and a hand-edit with a typo was
   silently replaced. Settings are now written atomically under a lock, and a broken file is

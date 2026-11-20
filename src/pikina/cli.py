@@ -25,6 +25,8 @@ Commands:
   activity backfill Import past actions from the replay log again (safe to repeat)
   activity export F Save everything the activity log holds to the JSON file F
   telemetry         Show current CPU / RAM / battery
+  voice             Speak a command instead of typing it ("voice check" shows what's missing,
+                    "voice clip.wav" runs the command spoken in a recording)
   quit / exit       Exit
 """
 
@@ -112,6 +114,16 @@ def main():
             except (OSError, ValueError, sqlite3.Error) as exc:
                 print(f"  [Activity] Couldn't do that: {getattr(exc, 'strerror', None) or exc}")
 
+        elif cmd == "voice":
+            from pikina.voice.command import handle as voice_command
+            try:
+                result = voice_command(parts[1:], mcm)
+            except Exception as exc:  # voice problems must not end the session
+                print(f"  [X] {type(exc).__name__}: {exc}")
+                continue
+            if result is not None:
+                _print_result(result)
+
         elif cmd == "telemetry":
             t = get_telemetry()
             print(f"\n  CPU:  {t['cpu']['percent']}%  ({t['cpu']['core_count']} cores)")
@@ -128,13 +140,17 @@ def main():
             except Exception as exc:  # one bad command must not end the session
                 print(f"  [X] {type(exc).__name__}: {exc}")
                 continue
-            status = result.get("status", "unknown")
-            icon   = "[OK]" if status == "ok" else ("[X]" if status in ("error", "denied") else "->")
-            text   = result.get("message") or result.get("reason")
-            if text:
-                print(f"  {icon} " + str(text).replace("\n", "\n      "))
-            else:
-                print(f"  {icon} {result}")
+            _print_result(result)
+
+
+def _print_result(result: dict) -> None:
+    status = result.get("status", "unknown")
+    icon   = "[OK]" if status == "ok" else ("[X]" if status in ("error", "denied") else "->")
+    text   = result.get("message") or result.get("display") or result.get("reason")
+    if text:
+        print(f"  {icon} " + str(text).replace("\n", "\n      "))
+    else:
+        print(f"  {icon} {result}")
 
 
 if __name__ == "__main__":

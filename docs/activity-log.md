@@ -12,7 +12,7 @@ Pikina is learning your routines so it can later suggest your next step. Phase 1
 |:---|:---|:---|
 | time | 2026-10-21 09:04 (stored in UTC; hour and weekday in local time) | |
 | action | `app.open:code`, `fs.find_file:*.pdf`, `todo.add` | A normalised key, never what you typed |
-| source | `typed`, `quick_panel`, `cli`, `alias`, `ui`, `backfill` | Where the command came from |
+| source | `typed`, `quick_panel`, `cli`, `voice`, `alias`, `ui`, `backfill` | Where the command came from |
 | outcome | `ok`, `error`, `denied` | Failed or declined actions are kept but won't be learned as habits |
 | active app | `code` | The app you were in when you ran the command. Only filled in when app tracking is on |
 | session | `s-3fa2c1b04e` | A new session starts after 30 minutes with no activity |

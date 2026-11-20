@@ -259,6 +259,33 @@ Recall stored facts and events from semantic vector memory.
 * Saying `work on X` while you're already on its workspace keeps you there. Pikina won't
   bounce you back to the previous workspace.
 
+### 13. Voice Input (`voice`, in the `pikina` terminal)
+Speak a command instead of typing it. Everything runs on your machine; nothing is sent anywhere.
+
+* **Setup (Linux), once:**
+  1. A recorder. Most desktops already have one: `pw-record` (PipeWire), `parecord`
+     (PulseAudio) or `arecord` (ALSA).
+  2. whisper.cpp, so `whisper-cli` is on your PATH (Arch: `whisper.cpp` package; or build it
+     from github.com/ggml-org/whisper.cpp). Set `PIKINA_WHISPER_BIN` if it lives elsewhere.
+  3. A speech model: `python -m pikina.voice.download` (base.en, 142 MB). `tiny.en` (75 MB)
+     is faster, `small.en` (466 MB) more accurate.
+  `voice check` and `doctor` say which of these is missing.
+* `voice`: Pikina listens until you press Enter (at most 30 seconds), shows what it heard and
+  asks before running it. Press Enter to run it, `n` to drop it.
+* `voice clip.wav`: runs the command spoken in a recording instead. This needs no microphone,
+  so you can test whisper.cpp and the model on their own. Files that aren't 16 kHz mono WAV
+  (mp3, ogg, m4a, other WAVs) are converted with `ffmpeg` if it's installed.
+* Silence is caught before transcription: if the level is near zero, Pikina tells you to check
+  that the microphone isn't muted and is the default input, instead of guessing words.
+* Whisper writes sentences ("Work on Pikina."), so the closing punctuation and the hyphen in
+  "to-do" are removed before the command is matched.
+* A spoken command counts as yours (the same trust as typed). In the activity log its source
+  is `voice`.
+* Settings (`settings.json`): `voice_confirm` (default `true`; set `false` to run without
+  asking), `voice_max_seconds` (30), `voice_language` (`"en"`), `voice_model` (a full path to
+  a `ggml-*.bin`, else the best one in `<data folder>/models`).
+* Not yet: a hotkey or voice in the desktop app, wake words, spoken replies (TTS).
+
 ### Plugins
 `pikina plugins` lists loaded, switched-off and skipped plugins. Your own plugins go in the
 `plugins/` folder inside your Pikina data folder and only load once their name is in
