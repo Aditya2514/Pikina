@@ -163,6 +163,7 @@ sequenceDiagram
 | **4f — Planner** | Multi-agent task planner, calendar free/busy slots | ⏳ Planned |
 | **— Tier 3** | Metered cloud reasoning | ⏳ Planned |
 | **5a — Voice input** | `voice` in the terminal: local STT with whisper.cpp, confirm before running, works from a file without a mic | 🧪 Built & tested with fakes, not yet run on real hardware |
+| **5b — Voice hotkey** | `pikina-voice` for a compositor keybind: press to talk, press to stop; replies as notifications | 🧪 Built & tested with fakes, not yet run on real hardware |
 | **5 — Voice & Vision** | Voice in the desktop app, TTS (Kokoro-82M), Screen Vision (`mss` + Gemini Flash) | ⏳ Planned |
 | **6 — Vault** | AES-256 Encrypted Vault (`cryptography.fernet`), Playwright Web Automation | ⏳ Planned |
 

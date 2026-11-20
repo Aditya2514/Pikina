@@ -45,6 +45,7 @@ dev = ["pytest>=8.0"]
 [project.scripts]
 pikina = "pikina.cli:main"
 pikina-server = "pikina.server:main"
+pikina-voice = "pikina.voice.hotkey:main"
 
 [project.urls]
 Homepage = "https://github.com/Aditya2514/Pikina"

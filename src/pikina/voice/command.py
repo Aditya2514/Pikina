@@ -15,7 +15,7 @@ USAGE = ("  voice            speak a command (press Enter when you're done)\n"
          "  voice check      what voice input uses here, and what's missing")
 
 
-def _setting(key, default):
+def setting(key, default):
     from pikina import settings
     value = settings.get(key, default)
     if isinstance(default, bool):
@@ -33,6 +33,20 @@ def _wait_for_enter(ask):
         except EOFError:   # no terminal (piped input): stop at once rather than hang
             pass
     return wait
+
+
+class SilenceError(VoiceError):
+    """The recording is (near) silent, so whisper would only guess."""
+
+
+def transcribe_file(src: Path, workdir: Path, progress: Callable[[], None] = lambda: None) -> str:
+    """Cleaned text spoken in src ('' if no words). Raises VoiceError / SilenceError."""
+    wav, info = audio.prepare(src, workdir)
+    if audio.is_silent(info):
+        raise SilenceError(f"Heard only silence ({info['seconds']:.1f} s, level {info['rms']:.0f}). "
+                           "Check that the microphone isn't muted and is the default input.")
+    progress()
+    return stt.transcribe(wav, language=setting("voice_language", "en"))
 
 
 def status_lines(status: dict | None = None) -> list[str]:
@@ -70,17 +84,11 @@ def handle(args: list[str], mcm, ask: Callable[[str], str] = input, out: Callabl
                         out(f"      - {g}")
                     out("      You can still type commands. 'voice check' shows what's installed.")
                     return None
-                limit = _setting("voice_max_seconds", audio.MAX_SECONDS)
+                limit = setting("voice_max_seconds", audio.MAX_SECONDS)
                 out(f"  🎙  Listening ({status['recorder']}). Speak, then press Enter. Stops by itself after {limit} s.")
                 src = audio.record(tmp / "spoken.wav", wait=_wait_for_enter(ask), max_seconds=limit)
 
-            wav, info = audio.prepare(src, tmp)
-            if audio.is_silent(info):
-                out(f"  [X] Heard only silence ({info['seconds']:.1f} s, level {info['rms']:.0f}). "
-                    "Check that the microphone isn't muted and is the default input.")
-                return None
-            out("  …transcribing")
-            text = stt.transcribe(wav, language=_setting("voice_language", "en"))
+            text = transcribe_file(src, tmp, progress=lambda: out("  …transcribing"))
     except VoiceError as exc:
         out(f"  [X] {exc}")
         return None
@@ -92,7 +100,7 @@ def handle(args: list[str], mcm, ask: Callable[[str], str] = input, out: Callabl
         out("  [X] Didn't catch any words. Try again, a little closer to the mic.")
         return None
     out(f'  Heard: "{text}"')
-    if _setting("voice_confirm", True):
+    if setting("voice_confirm", True):
         try:
             answer = ask("  Run it? [Enter = yes, n = no] ").strip().lower()
         except (EOFError, KeyboardInterrupt):

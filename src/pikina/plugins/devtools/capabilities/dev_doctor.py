@@ -60,6 +60,10 @@ def _system_checks() -> list:
         checks.append(_check("Consent dialog", OK if dialog else WARN,
                              os.path.basename(dialog) if dialog else
                              "install zenity, otherwise high-risk actions are always denied"))
+        notify = shutil.which("notify-send")
+        checks.append(_check("Notifications", OK if notify else WARN,
+                             "notify-send" if notify else
+                             "install libnotify (notify-send) so pikina-voice can show what it heard"))
         if "hyprland" in os.environ.get("XDG_CURRENT_DESKTOP", "").lower():
             checks.append(_check("hyprctl", OK if shutil.which("hyprctl") else WARN,
                                  "available" if shutil.which("hyprctl") else "not found on PATH"))
