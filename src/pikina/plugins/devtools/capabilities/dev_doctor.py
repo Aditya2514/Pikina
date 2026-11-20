@@ -65,6 +65,7 @@ def _system_checks() -> list:
                                  "available" if shutil.which("hyprctl") else "not found on PATH"))
 
     checks.append(_tracker_check())
+    checks.append(_voice_check())
     checks.append(_ollama_check())
     checks.append(_memory_check())
     checks.append(_disk_check())
@@ -86,6 +87,20 @@ def _tracker_check():
     if backend:
         return _check("App tracking", OK, f"works here via {backend}; " + ("on" if on else "off (opt-in, in Settings)"))
     return _check("App tracking", WARN if on else OK, f"not available: {reason}")
+
+
+def _voice_check():
+    """Voice input is optional, so a gap is a warning that names the fix."""
+    try:
+        from pikina import voice
+        status = voice.check()
+        gaps = voice.missing(status)
+    except Exception as exc:
+        return _check("Voice input", WARN, f"couldn't check ({type(exc).__name__})")
+    if not gaps:
+        return _check("Voice input", OK, f"ready ({status['recorder']} + {os.path.basename(status['whisper'])} + "
+                                         f"{os.path.basename(status['model'])}); say 'voice' in the pikina terminal")
+    return _check("Voice input", WARN, "off: " + "; ".join(gaps))
 
 
 def _ollama_check():

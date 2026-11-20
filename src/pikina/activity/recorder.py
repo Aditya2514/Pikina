@@ -18,7 +18,7 @@ from pikina.activity.keys import action_key
 from pikina.activity.store import ActivityStore
 
 # Where a command came from. "typed" = the dashboard's command bar.
-SOURCES = {"typed", "quick_panel", "cli", "alias", "ui", "suggestion", "backfill"}
+SOURCES = {"typed", "quick_panel", "cli", "voice", "alias", "ui", "suggestion", "backfill"}
 REQUEST_ORIGINS = {"typed", "quick_panel"}  # what the desktop app may claim over HTTP
 
 _OK = {"ok", "success"}
