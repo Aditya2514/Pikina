@@ -16,6 +16,10 @@ All notable changes to Pikina OS. Versions follow [Semantic Versioning](https://
 - Dependencies are declared in `pyproject.toml` (`requirements.txt` removed).
 
 ### Added
+- **Voice from a keyboard shortcut (Phase 5b).** `pikina-voice` toggles listening (press to
+  start, press again to stop), so a Hyprland/Sway keybind can drive Pikina with no terminal.
+  What it heard and the reply show as desktop notifications; confirmation uses the consent
+  dialog and fails closed when there's none. `doctor` checks for `notify-send`.
 - **Voice input (Phase 5a), in the terminal.** `voice` records from the microphone until you
   press Enter, transcribes locally with whisper.cpp, shows what it heard and asks before
   running it. `voice <file>` does the same from a recording, so it can be tested without a

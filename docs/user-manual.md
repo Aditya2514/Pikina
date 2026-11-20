@@ -284,7 +284,22 @@ Speak a command instead of typing it. Everything runs on your machine; nothing i
 * Settings (`settings.json`): `voice_confirm` (default `true`; set `false` to run without
   asking), `voice_max_seconds` (30), `voice_language` (`"en"`), `voice_model` (a full path to
   a `ggml-*.bin`, else the best one in `<data folder>/models`).
-* Not yet: a hotkey or voice in the desktop app, wake words, spoken replies (TTS).
+* **From a keyboard shortcut, no terminal (Linux):** `pikina-voice` starts listening; running
+  it again stops and runs what you said. Bind it in your compositor, with the full path to
+  your virtualenv:
+  ```
+  # Hyprland (~/.config/hypr/hyprland.conf)
+  bind = SUPER, V, exec, ~/code/pikina/.venv/bin/pikina-voice
+  # Sway (~/.config/sway/config)
+  bindsym $mod+v exec ~/code/pikina/.venv/bin/pikina-voice
+  ```
+  * What it heard and the reply show as desktop notifications (`notify-send`, from libnotify).
+    Without it, they go to the compositor's log only.
+  * Confirmation uses the same dialog as risky actions (`zenity`, `kdialog` or `yad`). **With
+    no dialog tool and `voice_confirm` on, the command is not run**, never run without asking.
+  * `pikina-voice --stop` stops listening; `pikina-voice clip.wav` runs a recording.
+  * It runs on its own: the backend server and desktop app don't need to be open.
+* Not yet: voice in the desktop app, wake words, spoken replies (TTS).
 
 ### Plugins
 `pikina plugins` lists loaded, switched-off and skipped plugins. Your own plugins go in the

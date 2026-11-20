@@ -31,6 +31,20 @@ Commands:
 """
 
 
+def make_orchestrator():
+    """The registry and the command pipeline (Tier 1, then Tier 2), as the terminal uses them."""
+    from pikina.server import load_env
+    load_env()
+    paths.migrate_legacy_data()
+    registry = CapabilityRegistry()
+    mcm = Orchestrator(router=Tier1Router(registry=registry), tier2_router=Tier2Router(registry=registry))
+    return registry, mcm
+
+
+def result_text(result: dict) -> str:
+    return str(result.get("message") or result.get("display") or result.get("reason") or "")
+
+
 def main():
     print("=" * 60)
     print(f"  Pikina OS  {__version__}  —  CLI")
@@ -38,14 +52,7 @@ def main():
     print(HELP)
     print("=" * 60)
 
-    from pikina.server import load_env
-    load_env()
-    paths.migrate_legacy_data()
-
-    registry = CapabilityRegistry()
-    router   = Tier1Router(registry=registry)
-    tier2    = Tier2Router(registry=registry)
-    mcm      = Orchestrator(router=router, tier2_router=tier2)
+    registry, mcm = make_orchestrator()
 
     while True:
         try:
@@ -146,7 +153,7 @@ def main():
 def _print_result(result: dict) -> None:
     status = result.get("status", "unknown")
     icon   = "[OK]" if status == "ok" else ("[X]" if status in ("error", "denied") else "->")
-    text   = result.get("message") or result.get("display") or result.get("reason")
+    text   = result_text(result)
     if text:
         print(f"  {icon} " + str(text).replace("\n", "\n      "))
     else:
